@@ -2,7 +2,7 @@ import argparse
 
 class YamlArgparse():
     def __init__(self, add_grid_type=False):
-        '''Initialize YamlArgparse class and parse CLI arguments for COMPASS.'''
+        '''Initialize YamlArgparse class and parse CLI arguments for OPERA RTC.'''
         parser = argparse.ArgumentParser(description='', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument('run_config_path', type=str, nargs='?', default=None, help='Path to run config file')
 
