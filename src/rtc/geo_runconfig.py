@@ -7,7 +7,7 @@ from isce3.product import GeoGridParameters
 import journal
 from ruamel.yaml import YAML
 
-from rtc.geo_grid import generate_geogrids, geogrid_as_dict
+from rtc.geogrid import generate_geogrids, geogrid_as_dict
 from rtc.runconfig import (
     runconfig_to_bursts,
     load_validate_yaml,

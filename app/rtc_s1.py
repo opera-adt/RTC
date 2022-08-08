@@ -87,7 +87,8 @@ def correction_and_calibration(burst_in: Sentinel1BurstSlc,
                                flag_output_complex: bool = False,
                                flag_thermal_correction: bool = True,
                                flag_apply_abs_rad_correction: bool = True):
-    '''Apply thermal correction stored in burst_in. Save the corrected signal back to ENVI format. Preserves the phase.'''
+    '''Apply thermal correction stored in burst_in. Save the corrected signal
+    back to ENVI format. Preserves the phase.'''
 
     # Load the SLC of the burst
     burst_in.slc_to_vrt_file(path_slc_vrt)
@@ -122,7 +123,7 @@ def correction_and_calibration(burst_in: Sentinel1BurstSlc,
                 corrected_image / burst_in.burst_calibration.beta_naught ** 2
 
     # Save the corrected image
-    drvout = gdal.GetDriverByName('ENVI')
+    drvout = gdal.GetDriverByName('GTiff')
     raster_out = drvout.Create(path_slc_out, burst_in.shape[1],
                                burst_in.shape[0], 1, dtype)
     band_out = raster_out.GetRasterBand(1)
@@ -146,6 +147,8 @@ def run(cfg):
 
     # Start tracking processing time
     t_start = time.time()
+    time_stamp = str(float(time.time()))
+    temp_suffix = f'temp_{time_stamp}'
     info_channel.log("Starting geocode burst")
 
 
@@ -204,7 +207,7 @@ def run(cfg):
 
     # output mosaics
     geo_filename = f'{output_dir}/'f'rtc_product.tif'
-    output_imagery_dict = {}
+    output_imagery_list = []
     output_metadata_dict = {}
 
     _add_output_to_output_metadata_dict(flag_save_nlooks, 'nlooks', output_dir,
@@ -223,14 +226,15 @@ def run(cfg):
     os.makedirs(scratch_path, exist_ok=True)
 
     # iterate over sub-burts
-    for burst in cfg.bursts:
+    for burst_id, burst_pol_dict in cfg.bursts.items():
+
+        pols = list(burst_pol_dict.keys())
+        burst = burst_pol_dict[pols[0]]
 
         t_burst_start = time.time()
 
         date_str = burst.sensing_start.strftime("%Y%m%d")
-        burst_id = burst.burst_id
         info_channel.log(f'processing burst: {burst_id}')
-        pol = burst.polarization
         geogrid = cfg.geogrids[burst_id]
 
         # snap coordinates
@@ -255,24 +259,37 @@ def run(cfg):
         if 'lookside' not in mosaic_geogrid_dict.keys():
             mosaic_geogrid_dict['lookside'] = radar_grid.lookside
 
-        temp_slc_path = f'{scratch_path}/{burst_id}_{pol}_temp.vrt'
-        temp_slc_corrected_path=f'{scratch_path}/{burst_id}_{pol}_corrected_temp'
-        burst.slc_to_vrt_file(temp_slc_path)
-        
-        if flag_apply_thermal_noise_correction or flag_apply_abs_rad_correction:
-            correction_and_calibration(
-                burst,temp_slc_path,temp_slc_corrected_path,
-                flag_output_complex=False,
-                flag_thermal_correction=flag_apply_thermal_noise_correction,
-                flag_apply_abs_rad_correction=True)
-            rdr_burst_raster = isce3.io.Raster(temp_slc_corrected_path)
-        else:
-            rdr_burst_raster = isce3.io.Raster(temp_slc_path)
-            temp_files_list.append(temp_slc_path)
+        input_file_list = []
+        for pol, burst_pol in burst_pol_dict.items():
+            temp_slc_path = f'{scratch_path}/{burst_id}_{pol}_{temp_suffix}.vrt'
+            temp_slc_corrected_path=f'{scratch_path}/{burst_id}_{pol}_corrected_{temp_suffix}.tif'
+            burst_pol.slc_to_vrt_file(temp_slc_path)
+
+            if flag_apply_thermal_noise_correction or flag_apply_abs_rad_correction:
+                correction_and_calibration(
+                    burst_pol, temp_slc_path, temp_slc_corrected_path,
+                    flag_output_complex=False,
+                    flag_thermal_correction=flag_apply_thermal_noise_correction,
+                    flag_apply_abs_rad_correction=True)
+                input_burst_filename = temp_slc_corrected_path
+            else:
+                input_burst_filename = temp_slc_path
+
+            temp_files_list.append(input_burst_filename)
+            input_file_list.append(input_burst_filename)
+
+        # create multi-band VRT
+        temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.tif'
+        print('*** creating temporary VRT file:', temp_vrt_path)
+        print('*** input_file_list:', input_file_list)
+        # gdal.BuildVRT(temp_vrt_path, input_file_list)
+        _merge_bands(input_file_list, temp_vrt_path)
+        rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
+        temp_files_list.append(temp_vrt_path)
 
         # Generate output geocoded burst raster
         geo_burst_filename = (f'{scratch_path}/'
-                              f'{burst_id}_{date_str}_{pol}.tif')
+                              f'{burst_id}_{date_str}.tif')
 
         geo_burst_raster = isce3.io.Raster(
             geo_burst_filename,
@@ -311,7 +328,7 @@ def run(cfg):
 
         if flag_save_nlooks:
             temp_nlooks = (f'{scratch_path}/'
-                           f'{burst_id}_{date_str}_{pol}_nlooks.tif')
+                           f'{burst_id}_{date_str}_{pol}_nlooks_{temp_suffix}.tif')
             out_geo_nlooks_obj = isce3.io.Raster(
                 temp_nlooks,
                 geogrid.width, geogrid.length, 1,
@@ -323,7 +340,7 @@ def run(cfg):
 
         if flag_save_rtc:
             temp_rtc = (f'{scratch_path}/'
-                           f'{burst_id}_{date_str}_{pol}_rtc_anf.tif')
+                           f'{burst_id}_{date_str}_{pol}_rtc_anf_{temp_suffix}.tif')
             out_geo_rtc_obj = isce3.io.Raster(
                 temp_rtc,
                 geogrid.width, geogrid.length, 1,
@@ -392,9 +409,7 @@ def run(cfg):
 
         del geo_burst_raster
         info_channel.log(f'file saved: {geo_burst_filename}')
-        if pol not in output_imagery_dict:
-            output_imagery_dict[pol] = []
-        output_imagery_dict[pol].append(geo_burst_filename)
+        output_imagery_list.append(geo_burst_filename)
 
         if flag_save_nlooks:
             del out_geo_nlooks_obj
@@ -516,15 +531,13 @@ def run(cfg):
             info_channel.log(f'file saved: {filename}')
 
     # mosaic sub-bursts
-    mosaic_pol_list = []
-    for pol in output_imagery_dict.keys():
-        geo_pol_filename = (f'{output_dir}/'
-                            f'rtc_product_{pol}.tif')
-        imagery_list = output_imagery_dict[pol]
-        info_channel.log(f'mosaicking file: {geo_pol_filename}')
-        _mosaic(imagery_list, geo_pol_filename)
-        mosaic_pol_list.append(geo_pol_filename)
-    _merge_bands(mosaic_pol_list, geo_filename)
+    # mosaic_pol_list = []
+    geo_filename = (f'{output_dir}/'
+                        f'rtc_product.tif')
+    info_channel.log(f'mosaicking file: {geo_filename}')
+    _mosaic(output_imagery_list, geo_filename)
+    # mosaic_pol_list.append(geo_filename)
+    # _merge_bands(mosaic_list, geo_filename)
     output_file_list.append(geo_filename)
 
     # mosaic other bands
@@ -642,15 +655,3 @@ if __name__ == "__main__":
 
     # Run geocode burst workflow
     run(cfg)
-
-    # Save burst metadata
-    '''
-    metadata = RtcMetadata.from_georunconfig(cfg)
-    for burst in cfg.bursts:
-        burst_id = burst.burst_id
-        date_str = burst.sensing_start.strftime("%Y%m%d")
-        pol = burst.polarization
-        # json_path = f'{cfg.output_dir}/{burst_id}_{date_str}_{pol}.json'
-        # with open(json_path, 'w') as f_json:
-        #     metadata.to_file(f_json, 'json')
-    '''

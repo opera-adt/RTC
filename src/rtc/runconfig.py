@@ -157,7 +157,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
     error_channel = journal.error('runconfig.correlate_burst_to_orbit')
 
     # dict to store list of bursts keyed by burst_ids
-    bursts = []
+    bursts = {}
 
     # extract given SAFE zips to find bursts identified in cfg.burst_id
     for safe_file in cfg.input_file_group.safe_file_path:
@@ -192,10 +192,6 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
         # used to prevent reference repeats
         id_pols_found = []
 
-        # list of burst IDs found to ensure all
-        # used to ensure all IDs in config processed
-        burst_ids_found = []
-
         # loop over pol and subswath index combinations
         for pol, i_subswath in pol_subswath_index_pairs:
 
@@ -215,23 +211,15 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
 
                 # has burst_id + pol combo been found?
                 burst_id_pol_exist = id_pol in id_pols_found
-                if not burst_id_pol_exist:
-                    id_pols_found.append(id_pol)
-                else:
+                if burst_id_pol_exist:
                     continue
 
-                # check if not a reference burst (radar grid workflow only)
-                if 'reference_burst' in cfg.input_file_group.__dict__:
-                    not_ref = not cfg.input_file_group.reference_burst.is_reference
-                else:
-                    not_ref = True
+                id_pols_found.append(id_pol)
 
-                # if not reference burst, then always ok to add
-                # if reference burst, ok to add if id+pol combo does not exist
-                # no duplicate id+pol combos for reference bursts
-                if not_ref or not burst_id_pol_exist:
-                    burst_ids_found.append(burst_id)
-                    bursts.append(burst)
+                # append burst to bursts dict
+                if burst_id not in bursts.keys():
+                    bursts[burst_id] = {}
+                bursts[burst_id][pol] = burst
 
     # check if no bursts were found
     if not bursts:
