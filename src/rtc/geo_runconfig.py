@@ -49,7 +49,11 @@ def check_geocode_dict(geocode_cfg: dict) -> None:
 
 @dataclass(frozen=True)
 class GeoRunConfig(RunConfig):
-    '''dataclass containing GCSLC runconfig'''
+    '''dataclass containing RTC runconfig'''
+
+    # output product geogrid
+    geogrid: GeoGridParameters
+
     # dict of geogrids associated to burst IDs
     geogrids: dict[str, GeoGridParameters]
 
@@ -78,13 +82,13 @@ class GeoRunConfig(RunConfig):
 
         # Load geogrids
         dem_file = groups_cfg['dynamic_ancillary_file_group']['dem_file']
-        geogrids = generate_geogrids(bursts, geocoding_dict, dem_file)
+        geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict, dem_file)
 
         # Empty reference dict for base runconfig class constructor
         empty_ref_dict = {}
 
         return cls(cfg['runconfig']['name'], sns, bursts, empty_ref_dict,
-                   geogrids)
+                   geogrid_all, geogrids)
 
     @property
     def geocoding_params(self) -> dict:

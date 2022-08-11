@@ -37,20 +37,68 @@ def assign_check_geogrid(geogrid, x_start=None, y_start=None,
 
     # Check assigned input coordinates and initialize geogrid accordingly
     if x_start is not None:
-        new_end_x = geogrid.start_x + geogrid.spacing_x * geogrid.width
+        current_end_x = geogrid.start_x + geogrid.spacing_x * geogrid.width
         geogrid.start_x = x_start
-        geogrid.width = int(np.ceil((new_end_x - x_start) /
+        geogrid.width = int(np.ceil((current_end_x - x_start) /
                                      geogrid.spacing_x))
     # Restore geogrid end point if provided by the user
     if x_end is not None:
         geogrid.width = int(np.ceil((x_end - geogrid.start_x) /
                                      geogrid.spacing_x))
     if y_start is not None:
-        new_end_y = geogrid.start_y + geogrid.spacing_y * geogrid.length
+        current_end_y = geogrid.start_y + geogrid.spacing_y * geogrid.length
         geogrid.start_y = y_start
-        geogrid.length = int(np.ceil((new_end_y - y_start) /
+        geogrid.length = int(np.ceil((current_end_y - y_start) /
                                       geogrid.spacing_y))
     if y_end is not None:
+        geogrid.length = int(np.ceil((y_end - geogrid.start_y) /
+                                      geogrid.spacing_y))
+
+    return geogrid
+
+
+def intersect_geogrid(geogrid, x_start=None, y_start=None,
+                      x_end=None, y_end=None):
+    '''
+    Return intersected geogrid with user defined parameters.
+
+    Parameters
+    ----------
+    geogrid: isce3.product.bbox_to_geogrid
+        ISCE3 object defining the geogrid
+    x_start: float
+        Geogrid top-left X coordinate
+    y_start: float
+        Geogrid top-left Y coordinate
+    x_end: float
+        Geogrid bottom-right X coordinate
+    y_end: float
+        Geogrid bottom-right Y coordinate
+
+    Returns
+    -------
+    geogrid: isce3.product.bbox_to_geogrid
+        ISCE3 geogrid
+    '''
+
+    if x_start is not None and x_start > geogrid.start_x:
+        current_end_x = geogrid.start_x + geogrid.spacing_x * geogrid.width
+        geogrid.start_x = x_start
+        geogrid.width = int(np.ceil((current_end_x - x_start) /
+                                     geogrid.spacing_x))
+
+    if (x_end is not None and
+            (x_end < geogrid.start_x + geogrid.width * geogrid.spacing_x)):
+        geogrid.width = int(np.ceil((x_end - geogrid.start_x) /
+                                     geogrid.spacing_x))
+    if y_start is not None and y_start < geogrid.start_y:
+        current_end_y = geogrid.start_y + geogrid.spacing_y * geogrid.length
+        geogrid.start_y = y_start
+        geogrid.length = int(np.ceil((current_end_y - y_start) /
+                                      geogrid.spacing_y))
+
+    if (y_end is not None and 
+            (y_end > geogrid.start_y + geogrid.length * geogrid.spacing_y)):
         geogrid.length = int(np.ceil((y_end - geogrid.start_y) /
                                       geogrid.spacing_y))
 
@@ -125,7 +173,7 @@ def check_snap_values(x_snap, y_snap, x_spacing, y_spacing):
         raise ValueError(err_str)
 
 
-def snap_geogrid(geogrid, x_snap, y_snap, x_end, y_end):
+def snap_geogrid(geogrid, x_snap, y_snap):
     '''
     Snap geogrid based on user-defined snapping values
 
@@ -137,29 +185,27 @@ def snap_geogrid(geogrid, x_snap, y_snap, x_end, y_end):
         Snap value along X-direction
     y_snap: float
         Snap value along Y-direction
-    x_end: float
-        Bottom-right X coordinate
-    y_end: float
-        Bottom-right Y coordinate
 
     Returns
     -------
     geogrid: isce3.product.bbox_to_geogrid
         ISCE3 object containing the snapped geogrid
     '''
-    if x_end is None: x_end = geogrid.end_x
-    if y_end is None: y_end = geogrid.end_y
+    x_end = geogrid.start_x + geogrid.width * geogrid.spacing_x
+    y_end = geogrid.start_y + geogrid.length * geogrid.spacing_y
 
-    if x_snap is not None or y_snap is not None:
-        snap_coord = lambda val, snap, round_func: round_func(
-            float(val) / snap) * snap
+    snap_coord = lambda val, snap, round_func: round_func(
+        float(val) / snap) * snap
+
+    if x_snap is not None:
         geogrid.start_x = snap_coord(geogrid.start_x, x_snap, np.floor)
-        geogrid.start_y = snap_coord(geogrid.start_y, y_snap, np.ceil)
         end_x = snap_coord(x_end, x_snap, np.ceil)
+        geogrid.width = _grid_size(end_x, geogrid.start_x, geogrid.spacing_x)
+    if y_snap is not None:
+        geogrid.start_y = snap_coord(geogrid.start_y, y_snap, np.ceil)
         end_y = snap_coord(y_end, y_snap, np.floor)
         geogrid.length = _grid_size(end_y, geogrid.start_y,
                                      geogrid.spacing_y)
-        geogrid.width = _grid_size(end_x, geogrid.start_x, geogrid.spacing_x)
     return geogrid
 
 
@@ -216,6 +262,11 @@ def generate_geogrids(bursts, geo_dict, dem):
     x_snap = geo_dict['x_snap']
     y_snap = geo_dict['y_snap']
 
+    x_start_all_bursts = np.inf
+    y_start_all_bursts = -np.inf
+    x_end_all_bursts = -np.inf
+    y_end_all_bursts = np.inf
+
     # Compute burst EPSG if not assigned in runconfig
     if epsg is None:
         y_list = []
@@ -271,10 +322,12 @@ def generate_geogrids(bursts, geo_dict, dem):
                 radar_grid, orbit, isce3.core.LUT2d(), x_spacing, y_spacing,
                 epsg)
             
-            if None in [x_start, y_start, x_end, y_end]:
+            if len(bursts) == 1 and None in [x_start, y_start, x_end, y_end]:
                 # Check and further initialize geogrid
                 geogrid_burst = assign_check_geogrid(
                     geogrid_burst, x_start, y_start, x_end, y_end)
+            geogrid_burst = intersect_geogrid(
+                geogrid_burst, x_start, y_start, x_end, y_end)
         else:
             # If all the start/end coordinates have been assigned,
             # initialize the geogrid with them
@@ -284,16 +337,42 @@ def generate_geogrids(bursts, geo_dict, dem):
                 x_start, y_start, x_spacing, y_spacing, width, length,
                 epsg)
 
-        # Check end point of geogrid before compute snaps
-        x_end, y_end = check_geogrid_endpoints(geogrid_burst, x_end, y_end)
         # Check snap values
         check_snap_values(x_snap, y_snap, x_spacing, y_spacing)
         # Snap coordinates
-        geogrid = snap_geogrid(geogrid_burst, x_snap, y_snap, x_end, y_end)
+        geogrid = snap_geogrid(geogrid_burst, x_snap, y_snap)
+
+        x_start_all_bursts = min([x_start_all_bursts, geogrid.start_x])
+        y_start_all_bursts = max([y_start_all_bursts, geogrid.start_y])
+        x_end_all_bursts = max([x_end_all_bursts,
+                                geogrid.start_x + geogrid.spacing_x *
+                                geogrid.width])
+        y_end_all_bursts = min([y_end_all_bursts,
+                                geogrid.start_y + geogrid.spacing_y *
+                                geogrid.length])
 
         geogrids_dict[burst_id] = geogrid
 
-    return geogrids_dict
+    if x_start is None:
+        x_start = x_start_all_bursts
+    if y_start is None:
+        y_start = y_start_all_bursts
+    if x_end is None:
+        x_end = x_end_all_bursts
+    if y_end is None:
+        y_end = y_end_all_bursts
+
+    width = _grid_size(x_end, x_start, x_spacing)
+    length = _grid_size(y_end, y_start, y_spacing)
+    geogrid_all = isce3.product.GeoGridParameters(
+        x_start, y_start, x_spacing, y_spacing, width, length, epsg)
+
+    # Check snap values
+    check_snap_values(x_snap, y_snap, x_spacing, y_spacing)
+
+    # Snap coordinates
+    geogrid_all = snap_geogrid(geogrid_all, x_snap, y_snap)
+    return geogrid_all, geogrids_dict
 
 
 def geogrid_as_dict(grid):

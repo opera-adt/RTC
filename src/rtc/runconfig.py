@@ -91,12 +91,6 @@ def validate_group_dict(group_cfg: dict, workflow_name) -> None:
 
     # Check 'input_file_group' section of runconfig
     input_group = group_cfg['input_file_group']
-    # If is_reference flag is False, check that file path to reference
-    # burst is assigned and valid (required by geo2rdr and resample)
-    if workflow_name == 's1_cslc_radar':
-        is_reference = input_group['reference_burst']['is_reference']
-        if not is_reference:
-            helpers.check_directory(input_group['reference_burst']['file_path'])
 
     # Check SAFE files
     run_pol_mode = group_cfg['processing']['polarization']
@@ -202,7 +196,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
 
                 # is burst_id wanted? skip if not given in config
                 if (not cfg.input_file_group.burst_id is None and
-                        burst_id != cfg.input_file_group.burst_id):
+                        burst_id not in cfg.input_file_group.burst_id):
                     continue
 
                 # get polarization and save as tuple with burst ID
@@ -265,7 +259,7 @@ class ReferenceRadarInfo:
 
 @dataclass(frozen=True)
 class RunConfig:
-    '''dataclass containing CSLC runconfig'''
+    '''dataclass containing RTC runconfig'''
     # workflow name
     name: str
     # runconfig options converted from dict
@@ -275,33 +269,6 @@ class RunConfig:
     # dict of reference radar paths and grids values keyed on burst ID
     # (empty/unused if rdr2geo)
     reference_radar_info: ReferenceRadarInfo
-
-    @classmethod
-    def load_from_yaml(cls, yaml_path: str, workflow_name: str) -> RunConfig:
-        """Initialize RunConfig class with options from given yaml file.
-
-        Parameters
-        ----------
-        yaml_path : str
-            Path to yaml file containing the options to load
-        workflow_name: str
-            Name of the workflow for which uploading default options
-        """
-        cfg = load_validate_yaml(yaml_path, workflow_name)
-
-        # Convert runconfig dict to SimpleNamespace
-        sns = wrap_namespace(cfg['runconfig']['groups'])
-
-        bursts = runconfig_to_bursts(sns)
-
-        # Load reference grids if not reference run i.e. not running rdr2geo
-        ref_rdr_grid_info = None
-        if not sns.input_file_group.reference_burst.is_reference:
-            ref_rdr_grid_info = get_ref_radar_grid_info(
-                sns.input_file_group.reference_burst.file_path,
-                sns.input_file_group.burst_id)
-
-        return cls(cfg['runconfig']['name'], sns, bursts, ref_rdr_grid_info)
 
     @property
     def burst_id(self) -> list[str]:

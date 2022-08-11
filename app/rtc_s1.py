@@ -14,9 +14,10 @@ from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
 # TODO: remove PLAnT mosaicking and bands merging
 import plant
-def _mosaic(input_files, output_file):
+def _mosaic(input_files, output_file, **kwargs):
     plant.mosaic(input_files, output_file = output_file,
-                 no_average=True, force=True, interp='average')
+                 no_average=True, force=True, **kwargs)
+
 def _merge_bands(input_files, output_file):
     plant.util(input_files, output_file = output_file, force=True)
 
@@ -203,17 +204,18 @@ def run(cfg):
     zero_doppler = isce3.core.LUT2d()
     threshold = cfg.geo2rdr_params.threshold
     maxiter = cfg.geo2rdr_params.numiter
-    exponent = 1 if (flag_apply_thermal_noise_correction or flag_apply_abs_rad_correction) else 2
+    exponent = 1 if (flag_apply_thermal_noise_correction or
+                     flag_apply_abs_rad_correction) else 2
 
     # output mosaics
     geo_filename = f'{output_dir}/'f'rtc_product.tif'
     output_imagery_list = []
     output_metadata_dict = {}
 
-    _add_output_to_output_metadata_dict(flag_save_nlooks, 'nlooks', output_dir,
-                                       output_metadata_dict)
-    _add_output_to_output_metadata_dict(flag_save_rtc, 'rtc', output_dir,
-                                       output_metadata_dict)
+    _add_output_to_output_metadata_dict(
+        flag_save_nlooks, 'nlooks', output_dir, output_metadata_dict)
+    _add_output_to_output_metadata_dict(
+        flag_save_rtc, 'rtc', output_dir, output_metadata_dict)
     '''
     _add_output_to_output_metadata_dict(flag_save_dem, 'interpolated_dem',
                                         output_dir, output_metadata_dict)
@@ -261,8 +263,10 @@ def run(cfg):
 
         input_file_list = []
         for pol, burst_pol in burst_pol_dict.items():
-            temp_slc_path = f'{scratch_path}/{burst_id}_{pol}_{temp_suffix}.vrt'
-            temp_slc_corrected_path=f'{scratch_path}/{burst_id}_{pol}_corrected_{temp_suffix}.tif'
+            temp_slc_path = \
+                f'{scratch_path}/{burst_id}_{pol}_{temp_suffix}.vrt'
+            temp_slc_corrected_path = \
+                f'{scratch_path}/{burst_id}_{pol}_corrected_{temp_suffix}.tif'
             burst_pol.slc_to_vrt_file(temp_slc_path)
 
             if flag_apply_thermal_noise_correction or flag_apply_abs_rad_correction:
@@ -280,8 +284,6 @@ def run(cfg):
 
         # create multi-band VRT
         temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.tif'
-        print('*** creating temporary VRT file:', temp_vrt_path)
-        print('*** input_file_list:', input_file_list)
         # gdal.BuildVRT(temp_vrt_path, input_file_list)
         _merge_bands(input_file_list, temp_vrt_path)
         rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
@@ -327,8 +329,8 @@ def run(cfg):
                         geogrid.width, geogrid.length, geogrid.epsg)
 
         if flag_save_nlooks:
-            temp_nlooks = (f'{scratch_path}/'
-                           f'{burst_id}_{date_str}_{pol}_nlooks_{temp_suffix}.tif')
+            temp_nlooks = (f'{scratch_path}/{burst_id}_{date_str}_{pol}'
+                           f'_nlooks_{temp_suffix}.tif')
             out_geo_nlooks_obj = isce3.io.Raster(
                 temp_nlooks,
                 geogrid.width, geogrid.length, 1,
@@ -339,8 +341,8 @@ def run(cfg):
             out_geo_nlooks_obj = None
 
         if flag_save_rtc:
-            temp_rtc = (f'{scratch_path}/'
-                           f'{burst_id}_{date_str}_{pol}_rtc_anf_{temp_suffix}.tif')
+            temp_rtc = (f'{scratch_path}/{burst_id}_{date_str}_{pol}'
+                        f'_rtc_anf_{temp_suffix}.tif')
             out_geo_rtc_obj = isce3.io.Raster(
                 temp_rtc,
                 geogrid.width, geogrid.length, 1,
@@ -373,11 +375,20 @@ def run(cfg):
 
         # Extract burst boundaries and create sub_swaths object to mask
         # invalid radar samples
-        sub_swaths = isce3.product.SubSwaths(1)
+        n_subswaths = 1
+        sub_swaths = isce3.product.SubSwaths(radar_grid.length,
+                                             radar_grid.width,
+                                             n_subswaths)
+        last_range_sample = min([burst.last_valid_sample, radar_grid.width])
         valid_samples_sub_swath = np.repeat(
-            [[burst.first_valid_sample, burst.last_valid_sample]],
-            burst.last_valid_line - burst.first_valid_line, axis=0)
-        sub_swaths.valid_samples_sub_swath(1, valid_samples_sub_swath)
+            [[burst.first_valid_sample, last_range_sample + 1]],
+            radar_grid.length, axis=0)
+        for i in range(burst.first_valid_line):
+            valid_samples_sub_swath[i, :] = 0
+        for i in range(burst.last_valid_line, radar_grid.length):
+            valid_samples_sub_swath[i, :] = 0
+        
+        sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
 
         # geocode
         geo_obj.geocode(radar_grid=radar_grid,
@@ -430,7 +441,8 @@ def run(cfg):
         '''
 
         t_burst_end = time.time()
-        info_channel.log(f'elapsed time (burst): {t_burst_end - t_burst_start}')
+        info_channel.log(
+            f'elapsed time (burst): {t_burst_end - t_burst_start}')
 
     # create mosaic geogrid
     if (flag_save_incidence_angle or flag_save_local_inc_angle or
@@ -531,20 +543,31 @@ def run(cfg):
             info_channel.log(f'file saved: {filename}')
 
     # mosaic sub-bursts
-    # mosaic_pol_list = []
     geo_filename = (f'{output_dir}/'
                         f'rtc_product.tif')
     info_channel.log(f'mosaicking file: {geo_filename}')
-    _mosaic(output_imagery_list, geo_filename)
-    # mosaic_pol_list.append(geo_filename)
-    # _merge_bands(mosaic_list, geo_filename)
+
+    mosaic_kwargs = {}
+    x_min = cfg.geogrid.start_x
+    y_max = cfg.geogrid.start_y
+    x_max = cfg.geogrid.start_x + cfg.geogrid.spacing_x * cfg.geogrid.width
+    y_min = cfg.geogrid.start_y + cfg.geogrid.spacing_y * cfg.geogrid.length
+    dx = cfg.geogrid.spacing_x
+    dy = abs(cfg.geogrid.spacing_y)
+    mosaic_kwargs['bbox'] = [y_min + dy / 2, y_max - dy / 2,
+                             x_min + dx / 2, x_max - dx / 2]
+    # mosaic_kwargs['bbox'] = [y_min, y_max, x_min, x_max]
+    mosaic_kwargs['step_lat'] = dy
+    mosaic_kwargs['step_lon'] = dx
+    _mosaic(output_imagery_list, geo_filename, interp='average',
+            **mosaic_kwargs)
     output_file_list.append(geo_filename)
 
     # mosaic other bands
     for key in output_metadata_dict.keys():
         output_file, input_files = output_metadata_dict[key]
         info_channel.log(f'mosaicking file: {output_file}')
-        _mosaic(input_files, output_file)
+        _mosaic(input_files, output_file, **mosaic_kwargs)
         output_file_list.append(output_file)
 
     info_channel.log('removing temporary files:')
@@ -566,7 +589,6 @@ def _load_parameters(cfg):
     '''
     Load GCOV specific parameters.
     '''
-    error_channel = journal.error('gcov_runconfig.load')
 
     geocode_namespace = cfg.groups.processing.geocoding
     rtc_namespace = cfg.groups.processing.rtc
@@ -581,23 +603,29 @@ def _load_parameters(cfg):
         geocode_namespace.geogrid_upsampling = 1.0
 
     if geocode_namespace.memory_mode == 'single_block':
-        geocode_namespace.memory_mode = isce3.core.GeocodeMemoryMode.SingleBlock
+        geocode_namespace.memory_mode = \
+            isce3.core.GeocodeMemoryMode.SingleBlock
     elif geocode_namespace.memory_mode == 'geogrid':
-        geocode_namespace.memory_mode = isce3.core.GeocodeMemoryMode.BlocksGeogrid
+        geocode_namespace.memory_mode = \
+            isce3.core.GeocodeMemoryMode.BlocksGeogrid
     elif geocode_namespace.memory_mode == 'geogrid_and_radargrid':
-        geocode_namespace.memory_mode = isce3.core.GeocodeMemoryMode.BlocksGeogridAndRadarGrid
-    elif geocode_namespace.memory_mode == 'auto' or (geocode_namespace.memory_mode is None):
-        geocode_namespace.memory_mode = isce3.core.GeocodeMemoryMode.Auto
+        geocode_namespace.memory_mode = \
+            isce3.core.GeocodeMemoryMode.BlocksGeogridAndRadarGrid
+    elif (geocode_namespace.memory_mode == 'auto' or
+          geocode_namespace.memory_mode is None):
+        geocode_namespace.memory_mode = \
+            isce3.core.GeocodeMemoryMode.Auto
     else:
         err_msg = f"ERROR memory_mode: {geocode_namespace.memory_mode}"
         raise ValueError(err_msg)
 
     rtc_output_type = rtc_namespace.output_type
     if rtc_output_type == 'sigma0':
-        rtc_namespace.output_type = isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT
+        rtc_namespace.output_type = \
+            isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT
     else:
-        rtc_namespace.output_type = isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT
-
+        rtc_namespace.output_type = \
+            isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT
 
     geocode_algorithm = cfg.groups.processing.geocoding.algorithm_type
     if geocode_algorithm == "area_projection":
@@ -606,16 +634,21 @@ def _load_parameters(cfg):
         output_mode = isce3.geocode.GeocodeOutputMode.INTERP
     geocode_namespace.output_mode = output_mode
 
-    # only 2 RTC algorithms supported: area_projection (default) & bilinear_distribution
+    # only 2 RTC algorithms supported: area_projection (default) &
+    # bilinear_distribution
     if rtc_namespace.algorithm_type == "bilinear_distribution":
-        rtc_namespace.algorithm_type = isce3.geometry.RtcAlgorithm.RTC_BILINEAR_DISTRIBUTION
+        rtc_namespace.algorithm_type = \
+            isce3.geometry.RtcAlgorithm.RTC_BILINEAR_DISTRIBUTION
     else:
-        rtc_namespace.algorithm_type = isce3.geometry.RtcAlgorithm.RTC_AREA_PROJECTION
+        rtc_namespace.algorithm_type = \
+            isce3.geometry.RtcAlgorithm.RTC_AREA_PROJECTION
 
     if rtc_namespace.input_terrain_radiometry == "sigma0":
-        rtc_namespace.input_terrain_radiometry = isce3.geometry.RtcInputTerrainRadiometry.SIGMA_NAUGHT_ELLIPSOID
+        rtc_namespace.input_terrain_radiometry = \
+            isce3.geometry.RtcInputTerrainRadiometry.SIGMA_NAUGHT_ELLIPSOID
     else:
-        rtc_namespace.input_terrain_radiometry = isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT
+        rtc_namespace.input_terrain_radiometry = \
+            isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT
 
     if rtc_namespace.rtc_min_value_db is None:
         rtc_namespace.rtc_min_value_db = np.nan
