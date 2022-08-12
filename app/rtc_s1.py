@@ -8,9 +8,12 @@ from osgeo import gdal
 
 from rtc.geo_runconfig import GeoRunConfig
 from rtc.yaml_argparse import YamlArgparse
+from rtc import mosaic_geobursts
 
 from osgeo import osr,gdal
+
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
+
 
 # TODO: remove PLAnT mosaicking and bands merging
 import plant
@@ -559,9 +562,16 @@ def run(cfg):
     # mosaic_kwargs['bbox'] = [y_min, y_max, x_min, x_max]
     mosaic_kwargs['step_lat'] = dy
     mosaic_kwargs['step_lon'] = dx
-    _mosaic(output_imagery_list, geo_filename, interp='average',
-            **mosaic_kwargs)
-    output_file_list.append(geo_filename)
+    #_mosaic(output_imagery_list, geo_filename, interp='average',
+    #        **mosaic_kwargs)
+
+    if mosaic_geobursts.check_mosaic_eligibility(output_imagery_list, output_metadata_dict['nlooks'][1]):
+        mosaic_geobursts.weighted_mosaic(output_imagery_list, output_metadata_dict['nlooks'][1],
+                                         geo_filename, cfg.geogrid)
+
+
+
+    output_file_list.append(geo_filename) #NOTE: This line will raise error when the used does not opt in to save auxiliary data (local incidence, simulated brightness, etc.)
 
     # mosaic other bands
     for key in output_metadata_dict.keys():
