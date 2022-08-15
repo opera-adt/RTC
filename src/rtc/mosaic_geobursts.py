@@ -9,7 +9,7 @@ import numpy as np
 from osgeo import gdal
 
 
-def check_mosaic_eligibility(list_rtc: list, list_nlooks: list):
+def check_mosaic_eligibility(list_rtc: list, list_nlooks: list) -> bool:
     '''
     Check if the list of the geobursts are eligible to be mosaiced
 
@@ -20,6 +20,9 @@ def check_mosaic_eligibility(list_rtc: list, list_nlooks: list):
         list_nlooks: list
             path to the nlooks raster that corresponds to list_rtc
 
+    Returns:
+        flag_rtn: bool
+            Flag if the lists of the input rtc and nlooks are eligible for mosaicking.
     '''
 
     # Accepted error in the coordinates as floating number. Used when checking the snapping.
@@ -160,8 +163,11 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
             list of the path to the rtc geobursts
         list_nlooks: list
             list of the nlooks raster that corresponds to list_rtc
+        geo_filename: str
+            Path to the output mosaic
         geogrid_in: isce3.product.GeoGridParameters, default: None
             geogrid information to determine the output mosaic's shape and projection
+            The geogrid of the output mosaic will automatically determined when it is None
 
     '''
 
