@@ -9,7 +9,7 @@ import numpy as np
 from osgeo import gdal
 
 
-def check_mosaic_eligibility(list_rtc,list_nlooks):
+def check_mosaic_eligibility(list_rtc: list, list_nlooks: list):
     '''
     Check if the list of the geobursts are eligible to be mosaiced
 
@@ -22,122 +22,130 @@ def check_mosaic_eligibility(list_rtc,list_nlooks):
 
     '''
 
-    # Accepted error in the coordinates.
-    maxerr_coord=1.0e-6
+    # Accepted error in the coordinates as floating number. Used when checking the snapping.
+    maxerr_coord = 1.0e-6
+
+    # Return value after this mosaicking eligibility check.
+    # It will turn to False if any of the checks below fails.
+    flag_rtn = True
 
     # Check the number of the raster files in list_rtc and list_nlooks
-    num_rtc=len(list_rtc)
-    num_nlooks=len(list_nlooks)
+    num_rtc = len(list_rtc)
+    num_nlooks = len(list_nlooks)
     if num_rtc != num_nlooks:
-        raise ValueError(f'# RTC ({num_rtc}) and # nlooks ({num_nlooks}) does not match.')
+        #raise ValueError(f'# RTC ({num_rtc}) and # nlooks ({num_nlooks}) does not match.')
+        print(f'# RTC ({num_rtc}) and # nlooks ({num_nlooks}) does not match.')
+        flag_rtn=False
 
-    # Check for geotransform, dimension, #bands, and projection
-    str_proj_prev = None
-    spacing_x_prev = None
-    spacing_y_prev = None
-    numbands_prev = None
-    mod_x_prev = None
-    mod_y_prev = None
+    else:
+        # Variables to keep record of the geogrid-related information in the input rasters
+        str_proj_prev = None
+        spacing_x_prev = None
+        spacing_y_prev = None
+        numbands_prev = None
+        mod_x_prev = None
+        mod_y_prev = None
 
-    flag_rtn=True
-    for i, path_rtc in enumerate(list_rtc):
-        path_nlooks=list_nlooks[i]
+        for i, path_rtc in enumerate(list_rtc):
+            path_nlooks = list_nlooks[i]
 
-        raster_rtc=gdal.Open(path_rtc,0)
-        raster_nlooks=gdal.Open(path_rtc,0)
+            raster_rtc = gdal.Open(path_rtc, 0)
+            raster_nlooks = gdal.Open(path_rtc, 0)
 
-        geo_transformation_rtc=raster_rtc.GetGeoTransform()
-        geo_transformation_nlooks=raster_nlooks.GetGeoTransform()
+            geo_transformation_rtc = raster_rtc.GetGeoTransform()
+            geo_transformation_nlooks = raster_nlooks.GetGeoTransform()
 
-        # Geotransform - between RTC and corresponding nlooks
-        if geo_transformation_rtc != geo_transformation_nlooks:
-            print('GeoTransform does not match between '+\
-                  f'{os.path.basename(path_rtc)} and {os.path.basename(path_nlooks)}')
-            flag_rtn=False
+            # Compare Geotransform - between RTC and corresponding nlooks
+            if geo_transformation_rtc != geo_transformation_nlooks:
+                print('GeoTransform does not match between '+\
+                    f'{os.path.basename(path_rtc)} and {os.path.basename(path_nlooks)}')
+                flag_rtn = False
 
-        # dimension - between RTC and corresponding nlooks
-        if (raster_rtc.RasterXSize != raster_nlooks.RasterXSize) or (raster_rtc.RasterYSize != raster_nlooks.RasterYSize):
-            print('Dimension does not agree between '+\
-                   f'{os.path.basename(path_rtc)} and {os.path.basename(path_nlooks)}')
-            flag_rtn=False
+            # Compare dimension - between RTC and corresponding nlooks
+            if (raster_rtc.RasterXSize != raster_nlooks.RasterXSize) or\
+            (raster_rtc.RasterYSize != raster_nlooks.RasterYSize):
+                print('Dimension does not agree between '+\
+                    f'{os.path.basename(path_rtc)} and {os.path.basename(path_nlooks)}')
+                flag_rtn = False
 
-        # number of bands - for all RTC
-        if numbands_prev is None:
-            numbands_prev = raster_rtc.RasterCount
-        else:
-            if numbands_prev != raster_rtc.RasterCount:
-                print(f'Band number anomaly detected from {os.path.basename(path_rtc)}')
-                flag_rtn=False
-            #else:
-            #    numbands_prev = raster_rtc.RasterCount
-
-
-        # projection - for every RTC and nlooks
-        if str_proj_prev is None:
-            str_proj_prev = raster_rtc.GetProjection()
-        else:
-            if numbands_prev != raster_rtc.RasterCount:
-                print(f'Map projection anomaly detected: {os.path.basename(path_rtc)}')
-                flag_rtn=False
-
-            if numbands_prev != raster_nlooks.RasterCount:
-                print(f'Map projection anomaly detected: {os.path.basename(path_nlooks)}')
-                flag_rtn=False
+            # Check number of bands - for all RTC
+            if numbands_prev is None:
+                numbands_prev = raster_rtc.RasterCount
+            else:
+                if numbands_prev != raster_rtc.RasterCount:
+                    print(f'Band number anomaly detected from {os.path.basename(path_rtc)}')
+                    flag_rtn = False
+                #else:
+                #    numbands_prev = raster_rtc.RasterCount
 
 
-        #spacing x - for all RTC and nlooks
-        if spacing_x_prev is None:
-            spacing_x_prev = geo_transformation_rtc[1]
-        else:
-            if spacing_x_prev != geo_transformation_rtc[1]:
-                print(f'spacing_x anomaly detected: {os.path.basename(path_rtc)}')
-                flag_rtn=False
+            # Check projection - for every RTC and nlooks
+            if str_proj_prev is None:
+                str_proj_prev = raster_rtc.GetProjection()
+            else:
+                if numbands_prev != raster_rtc.RasterCount:
+                    print(f'Map projection anomaly detected from : {os.path.basename(path_rtc)}')
+                    flag_rtn = False
 
-            if spacing_x_prev != geo_transformation_nlooks[1]:
-                print(f'spacing_y anomaly detected: {os.path.basename(path_nlooks)}')
-                flag_rtn=False
-
-        #spacing y - for all RTC and nlooks
-        if spacing_y_prev is None:
-            spacing_y_prev = geo_transformation_rtc[5]
-        else:
-            if spacing_y_prev != geo_transformation_rtc[5]:
-                print(f'spacing_y anomaly detected: {os.path.basename(path_rtc)}')
-                flag_rtn=False
-
-            if spacing_y_prev != geo_transformation_nlooks[5]:
-                print(f'spacing_y anomaly detected: {os.path.basename(path_nlooks)}')
-                flag_rtn=False
-
-        #snapping_x - by calculating the mod of the corner coords - for all RTC and nlooks
-        if mod_x_prev is None:
-            mod_x_prev = geo_transformation_rtc[0] % geo_transformation_rtc[1]
-        else:
-            if abs(mod_x_prev - geo_transformation_rtc[0]%geo_transformation_rtc[1]) > maxerr_coord:
-                print(f'snapping_x anomaly detected: {os.path.basename(path_rtc)}')
-                flag_rtn=False
-
-            if abs(mod_x_prev - geo_transformation_nlooks[0]%geo_transformation_nlooks[1]) > maxerr_coord:
-                print(f'snapping_x anomaly detected: {os.path.basename(path_nlooks)}')
-                flag_rtn=False
-
-        #snapping_y - by calculating the mod of the corner coords - for all RTC and nlooks
-        if mod_y_prev is None:
-            mod_y_prev = geo_transformation_rtc[3] % geo_transformation_rtc[5]
-        else:
-            if abs(mod_y_prev - geo_transformation_rtc[3]%geo_transformation_rtc[5]) > maxerr_coord:
-                print(f'snapping_y anomaly detected: {os.path.basename(path_rtc)}')
-                flag_rtn=False
-
-            if abs(mod_y_prev - geo_transformation_nlooks[3]%geo_transformation_nlooks[5]) > maxerr_coord:
-                print(f'snapping_y anomaly detected: {os.path.basename(path_nlooks)}')
-                flag_rtn=False
+                if numbands_prev != raster_nlooks.RasterCount:
+                    print(f'Map projection anomaly detected from : {os.path.basename(path_nlooks)}')
+                    flag_rtn = False
 
 
-        raster_rtc=None
-        raster_nlooks=None
+            #spacing x - for all RTC and nlooks
+            if spacing_x_prev is None:
+                spacing_x_prev = geo_transformation_rtc[1]
+            else:
+                if spacing_x_prev != geo_transformation_rtc[1]:
+                    print(f'spacing_x anomaly detected from : {os.path.basename(path_rtc)}')
+                    flag_rtn = False
 
-    print('Passed the mosaic eligiblity test.')
+                if spacing_x_prev != geo_transformation_nlooks[1]:
+                    print(f'spacing_y anomaly detected from : {os.path.basename(path_nlooks)}')
+                    flag_rtn = False
+
+            #spacing y - for all RTC and nlooks
+            if spacing_y_prev is None:
+                spacing_y_prev = geo_transformation_rtc[5]
+            else:
+                if spacing_y_prev != geo_transformation_rtc[5]:
+                    print(f'spacing_y anomaly detected from : {os.path.basename(path_rtc)}')
+                    flag_rtn = False
+
+                if spacing_y_prev != geo_transformation_nlooks[5]:
+                    print(f'spacing_y anomaly detected from : {os.path.basename(path_nlooks)}')
+                    flag_rtn = False
+
+            #snapping_x - by calculating the mod of the corner coords - for all RTC and nlooks
+            if mod_x_prev is None:
+                mod_x_prev = geo_transformation_rtc[0] % geo_transformation_rtc[1]
+            else:
+                if abs(mod_x_prev - geo_transformation_rtc[0] % geo_transformation_rtc[1]) > maxerr_coord:
+                    print(f'snapping_x anomaly detected from : {os.path.basename(path_rtc)}')
+                    flag_rtn = False
+
+                if abs(mod_x_prev - geo_transformation_nlooks[0] % geo_transformation_nlooks[1]) > maxerr_coord:
+                    print(f'snapping_x anomaly detected from : {os.path.basename(path_nlooks)}')
+                    flag_rtn = False
+
+            #snapping_y - by calculating the mod of the corner coords - for all RTC and nlooks
+            if mod_y_prev is None:
+                mod_y_prev = geo_transformation_rtc[3] % geo_transformation_rtc[5]
+            else:
+                if abs(mod_y_prev - geo_transformation_rtc[3] % geo_transformation_rtc[5]) > maxerr_coord:
+                    print(f'snapping_y anomaly detected from : {os.path.basename(path_rtc)}')
+                    flag_rtn = False
+
+                if abs(mod_y_prev - geo_transformation_nlooks[3] % geo_transformation_nlooks[5]) > maxerr_coord:
+                    print(f'snapping_y anomaly detected from : {os.path.basename(path_nlooks)}')
+                    flag_rtn = False
+
+
+            raster_rtc = None
+            raster_nlooks = None
+
+        print('Passed the mosaic eligiblity test.')
+
     return flag_rtn
 
 
@@ -152,7 +160,7 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
             list of the path to the rtc geobursts
         list_nlooks: list
             list of the nlooks raster that corresponds to list_rtc
-        geogrid_in: isce3.product.GeoGridParameters, default: None <-- TODO check again the data type
+        geogrid_in: isce3.product.GeoGridParameters, default: None
             geogrid information to determine the output mosaic's shape and projection
 
     '''
@@ -288,14 +296,3 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
     else:
         for i_band in range(num_bands):
             raster_out.GetRasterBand(i_band+1).WriteArray(arr_out[i_band])
-
-'''
-# test code below. remove before commit!!!
-if __name__=='__main__':
-    PATH_HOME=os.getenv('HOME')
-    PATH_RTC_BURST=PATH_HOME+'/opera-adt/scratch/COMPASS_RTC_Indonesia_WIP_v15/scratch_dir_all_bursts_with_correction_all_frame'
-    list_rtc_vh=glob.glob(f'{PATH_RTC_BURST}/t??_??????_iw?_????????.tif')
-    list_nlooks_vh=[rtc.replace('.tif','_VH_nlooks_temp_1660198055.814647.tif') for rtc in list_rtc_vh]
-
-    weighted_mosaic(list_rtc_vh,list_nlooks_vh)
-'''
