@@ -52,8 +52,8 @@ def check_mosaic_eligibility(list_rtc: list, list_nlooks: list) -> bool:
         for i, path_rtc in enumerate(list_rtc):
             path_nlooks = list_nlooks[i]
 
-            raster_rtc = gdal.Open(path_rtc, 0)
-            raster_nlooks = gdal.Open(path_rtc, 0)
+            raster_rtc = gdal.Open(path_rtc, gdal.GA_ReadOnly)
+            raster_nlooks = gdal.Open(path_rtc, gdal.GA_ReadOnly)
 
             geo_transformation_rtc = raster_rtc.GetGeoTransform()
             geo_transformation_nlooks = raster_nlooks.GetGeoTransform()
@@ -181,7 +181,7 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
 
     for i, path_rtc in enumerate(list_rtc):
         print(f'Processing: {i+1} of {num_raster}')
-        raster_in = gdal.Open(path_rtc, 0)
+        raster_in = gdal.Open(path_rtc, gdal.GA_ReadOnly)
         list_geo_transform[i, :] = raster_in.GetGeoTransform()
         list_dimension[i, :] = (raster_in.RasterYSize, raster_in.RasterXSize)
 
@@ -213,9 +213,9 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
         dim_mosaic = (int(np.ceil((ymin_mosaic - ymax_mosaic) / posting_y)),
                       int(np.ceil((xmax_mosaic - xmin_mosaic) / posting_x)))
 
-        with gdal.Open(list_rtc[0],0) as raster_in:
-            wkt_projection=raster_in.GetProjectionRef()
-            epsg_mosaic=None
+        with gdal.Open(list_rtc[0], gdal.GA_ReadOnly) as raster_in:
+            wkt_projection = raster_in.GetProjectionRef()
+            epsg_mosaic = None
 
     else:
         # Directly bring the geogrid information from the input parameter

@@ -24,6 +24,54 @@ def _mosaic(input_files, output_file, **kwargs):
 def _merge_bands(input_files, output_file):
     plant.util(input_files, output_file = output_file, force=True)
 
+
+def merge_vv_Vh(input_files, output_file):
+    '''Merge VV and VH S1 burst (in radargrid) into one file
+    '''
+
+    template_vrt='''<VRTDataset rasterXSize="{XSize_out}" rasterYSize="{YSize_out}">
+  <VRTRasterBand dataType="Float32" band="1">
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">{PATH_VV}</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="{XSize_VV}" RasterYSize="{YSize_VV}" DataType="Float32" BlockXSize="{XSize_VV}" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="{XSize_VV}" ySize="{YSize_VV}" />
+      <DstRect xOff="0" yOff="0" xSize="{XSize_VV}" ySize="{YSize_VV}" />
+    </ComplexSource>
+  </VRTRasterBand>
+  <VRTRasterBand dataType="Float32" band="2">
+    <ComplexSource>
+      <SourceFilename relativeToVRT="1">{PATH_VH}</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="{XSize_VH}" RasterYSize="{YSize_VH}" DataType="Float32" BlockXSize="{XSize_VH}" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="{XSize_VH}" ySize="{YSize_VH}" />
+      <DstRect xOff="0" yOff="0" xSize="{XSize_VH}" ySize="{YSize_VH}" />
+    </ComplexSource>
+  </VRTRasterBand>
+</VRTDataset>
+'''
+    arr_xsize=[]
+    arr_ysize=[]
+
+    for input_file in input_files:
+        raster_in=gdal.Open(input_file,gdal.GA_ReadOnly)
+        arr_xsize.append(raster_in.RasterXSize)
+        arr_ysize.append(raster_in.RasterYSize)
+
+    str_vrt=template_vrt.format(XSize_out=arr_xsize[0],
+                                YSize_out=arr_ysize[0],
+                                PATH_VV=os.path.basename(input_files[0]),
+                                XSize_VV=arr_xsize[0],
+                                YSize_VV=arr_ysize[0],
+                                PATH_VH=os.path.basename(input_files[1]),
+                                XSize_VH=arr_xsize[1],
+                                YSize_VH=arr_ysize[1])
+
+    with open(output_file,'w+') as file_out:
+        file_out.write(str_vrt)
+
+
+
 def snap_coord(val, snap, round_func):
     snapped_value = round_func(float(val) / snap) * snap
     return snapped_value
@@ -286,9 +334,13 @@ def run(cfg):
             input_file_list.append(input_burst_filename)
 
         # create multi-band VRT
-        temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.tif'
+
+        #temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.tif'
+        temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.vrt'
         # gdal.BuildVRT(temp_vrt_path, input_file_list)
-        _merge_bands(input_file_list, temp_vrt_path)
+
+        #_merge_bands(input_file_list, temp_vrt_path)
+        merge_vv_Vh(input_file_list, temp_vrt_path)
         rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
         temp_files_list.append(temp_vrt_path)
 
@@ -562,12 +614,12 @@ def run(cfg):
     # mosaic_kwargs['bbox'] = [y_min, y_max, x_min, x_max]
     mosaic_kwargs['step_lat'] = dy
     mosaic_kwargs['step_lon'] = dx
-    #_mosaic(output_imagery_list, geo_filename, interp='average',
-    #        **mosaic_kwargs)
-
-    if mosaic_geobursts.check_mosaic_eligibility(output_imagery_list, output_metadata_dict['nlooks'][1]):
-        mosaic_geobursts.weighted_mosaic(output_imagery_list, output_metadata_dict['nlooks'][1],
-                                         geo_filename, cfg.geogrid)
+    _mosaic(output_imagery_list, geo_filename, interp='average',
+            **mosaic_kwargs)
+    nlooks_list = output_metadata_dict['nlooks'][1]
+    if mosaic_geobursts.check_mosaic_eligibility(output_imagery_list, nlooks_list):
+        mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
+                                         geo_filename.replace('.tif','.weighted_avg.tif'), cfg.geogrid)
 
 
 
