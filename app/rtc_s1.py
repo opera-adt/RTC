@@ -630,6 +630,9 @@ def run(cfg):
         output_file, input_files = output_metadata_dict[key]
         info_channel.log(f'mosaicking file: {output_file}')
         _mosaic(input_files, output_file, **mosaic_kwargs)
+        mosaic_geobursts.weighted_mosaic(input_files, nlooks_list,
+                                         output_file.replace('.tif','.weighted_avg.tif'),
+                                         cfg.geogrid)
         output_file_list.append(output_file)
 
     info_channel.log('removing temporary files:')
