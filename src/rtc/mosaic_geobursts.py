@@ -2,7 +2,6 @@
 A module to mosaic Sentinel-1 geobursts from RTC workflow
 '''
 
-
 import os
 
 import numpy as np
@@ -61,14 +60,14 @@ def check_mosaic_eligibility(list_rtc: list, list_nlooks: list) -> bool:
             # Compare Geotransform - between RTC and corresponding nlooks
             if geo_transformation_rtc != geo_transformation_nlooks:
                 print('GeoTransform does not match between '+\
-                    f'{os.path.basename(path_rtc)} and {os.path.basename(path_nlooks)}')
+                     f'{os.path.basename(path_rtc)} and {os.path.basename(path_nlooks)}')
                 flag_rtn = False
 
             # Compare dimension - between RTC and corresponding nlooks
             if (raster_rtc.RasterXSize != raster_nlooks.RasterXSize) or\
             (raster_rtc.RasterYSize != raster_nlooks.RasterYSize):
                 print('Dimension does not agree between '+\
-                    f'{os.path.basename(path_rtc)} and {os.path.basename(path_nlooks)}')
+                     f'{os.path.basename(path_rtc)} and {os.path.basename(path_nlooks)}')
                 flag_rtn = False
 
             # Check number of bands - for all RTC
@@ -143,7 +142,6 @@ def check_mosaic_eligibility(list_rtc: list, list_nlooks: list) -> bool:
                     print(f'snapping_y anomaly detected from : {os.path.basename(path_nlooks)}')
                     flag_rtn = False
 
-
             raster_rtc = None
             raster_nlooks = None
 
@@ -180,7 +178,7 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
     list_dimension = np.zeros((num_raster, 2), dtype=np.int32)
 
     for i, path_rtc in enumerate(list_rtc):
-        print(f'Processing: {i+1} of {num_raster}')
+        print(f'Loading geocoding info: {i+1} of {num_raster}')
         raster_in = gdal.Open(path_rtc, gdal.GA_ReadOnly)
         list_geo_transform[i, :] = raster_in.GetGeoTransform()
         list_dimension[i, :] = (raster_in.RasterYSize, raster_in.RasterXSize)
@@ -190,7 +188,7 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
             num_bands = raster_in.RasterCount
             continue
         elif num_bands != raster_in.RasterCount:
-            raise ValueError(f'Anomaly detected on # of bands from RTC file: {os.path.basename(path_rtc)}')
+            raise ValueError(f'Anomaly detected on # of bands from source file: {os.path.basename(path_rtc)}')
 
         raster_in = None
 
@@ -233,14 +231,9 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
         epsg_mosaic=geogrid_in.epsg
         wkt_projection = None
 
-    print('mosaic dimension: ',dim_mosaic)
+    print(f'mosaic dimension: {dim_mosaic}, #bands: {num_bands}')
 
-    if num_bands == 1:
-        arr_numerator = np.zeros(dim_mosaic)
-
-    else:
-        arr_numerator = np.zeros((num_bands,dim_mosaic[0], dim_mosaic[1]))
-
+    arr_numerator = np.zeros((num_bands, dim_mosaic[0], dim_mosaic[1]))
     arr_denominator = np.zeros(dim_mosaic)
 
     for i, path_rtc in enumerate(list_rtc):
@@ -251,7 +244,7 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
         offset_imgx = int((list_geo_transform[i,0] - xmin_mosaic) / posting_x + 0.5)
         offset_imgy = int((list_geo_transform[i,3] - ymax_mosaic) / posting_y + 0.5)
 
-        print(f'img. offset [x,y]=[{offset_imgx}, {offset_imgy}]')
+        print(f'img. offset [x, y] = [{offset_imgx}, {offset_imgy}]')
         raster_rtc = gdal.Open(path_rtc,0)
         arr_rtc = raster_rtc.ReadAsArray()
         # Replace NaN values with 0
@@ -261,28 +254,16 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
         arr_nlooks = raster_nlooks.ReadAsArray()
         arr_nlooks[np.isnan(arr_nlooks)] = 0.0
 
-        if num_bands == 1:
-            arr_numerator[offset_imgy:offset_imgy+list_dimension[i, 0],
-                          offset_imgx:offset_imgx+list_dimension[i, 1]] += arr_rtc * arr_nlooks
-        else:
-            for i_band in range(num_bands):
-                arr_numerator[i_band,
-                              offset_imgy:offset_imgy+list_dimension[i, 0],
-                              offset_imgx:offset_imgx+list_dimension[i, 1]] += arr_rtc[i_band, :, :] * arr_nlooks
+        for i_band in range(num_bands):
+            arr_numerator[i_band,
+                          offset_imgy:offset_imgy+list_dimension[i, 0],
+                          offset_imgx:offset_imgx+list_dimension[i, 1]] += arr_rtc[i_band, :, :] * arr_nlooks
 
         arr_denominator[offset_imgy:offset_imgy + list_dimension[i, 0],
                         offset_imgx:offset_imgx + list_dimension[i, 1]] += arr_nlooks
 
         raster_rtc = None
         raster_nlooks = None
-
-    if num_bands == 1:
-        arr_out = arr_numerator/arr_denominator
-    else:
-        arr_out = np.zeros(arr_numerator.shape)
-        for i_band in range(num_bands):
-            arr_out[i_band, :, :]=arr_numerator[i_band, :, :] / arr_denominator
-
 
     # write out the array
     drv_out = gdal.GetDriverByName('Gtiff')
@@ -296,9 +277,5 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
     raster_out.SetProjection(raster_srs_src.GetProjection())
     raster_srs_src = None
 
-    if num_bands == 1:
-        raster_out.GetRasterBand(1).WriteArray(arr_out)
-
-    else:
-        for i_band in range(num_bands):
-            raster_out.GetRasterBand(i_band+1).WriteArray(arr_out[i_band])
+    for i_band in range(num_bands):
+        raster_out.GetRasterBand(i_band+1).WriteArray(arr_numerator[i_band, :, :] / arr_denominator)
