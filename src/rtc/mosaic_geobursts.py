@@ -247,6 +247,11 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
         print(f'img. offset [x, y] = [{offset_imgx}, {offset_imgy}]')
         raster_rtc = gdal.Open(path_rtc,0)
         arr_rtc = raster_rtc.ReadAsArray()
+
+        #reshape arr_rtc when it is a singleband raster: to make it compatible in the for loop below
+        if num_bands==1:
+            arr_rtc=arr_rtc.reshape((1, arr_rtc.shape[0], arr_rtc.shape[1]))
+
         # Replace NaN values with 0
         arr_rtc[np.isnan(arr_rtc)] = 0.0
 
@@ -278,4 +283,9 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
     raster_srs_src = None
 
     for i_band in range(num_bands):
-        raster_out.GetRasterBand(i_band+1).WriteArray(arr_numerator[i_band, :, :] / arr_denominator)
+        arr_band_writeout = arr_numerator[i_band, :, :] / arr_denominator
+
+        # Deal with abnormal values in the array before writing it out
+        arr_band_writeout[np.isinf(arr_band_writeout)] = float('nan')
+
+        raster_out.GetRasterBand(i_band+1).WriteArray(arr_band_writeout)
