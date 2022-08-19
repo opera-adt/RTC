@@ -234,7 +234,7 @@ def get_point_epsg(lat, lon):
 
     if lat >= 75.0:
         return 3413
-    elif lat <= -60.0:
+    elif lat <= -75.0:
         return 3031
     elif lat > 0:
         return 32601 + int(np.round((lon + 177) / 6.0))

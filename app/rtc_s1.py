@@ -342,7 +342,7 @@ def run(cfg):
         # gdal.BuildVRT(temp_vrt_path, input_file_list)
 
         #_merge_bands(input_file_list, temp_vrt_path)
-        merge_vv_Vh(input_file_list, temp_vrt_path)
+        merge_vv_vh(input_file_list, temp_vrt_path)
         rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
         temp_files_list.append(temp_vrt_path)
 
