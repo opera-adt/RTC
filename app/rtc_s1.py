@@ -1,3 +1,7 @@
+'''
+RTC Workflow
+'''
+
 import os
 import time
 
@@ -6,23 +10,21 @@ import journal
 import numpy as np
 from osgeo import gdal
 
+from s1reader.s1_burst_slc import Sentinel1BurstSlc
+
 from rtc.geo_runconfig import GeoRunConfig
 from rtc.yaml_argparse import YamlArgparse
 from rtc import mosaic_geobursts
 
-from osgeo import osr,gdal
-
-from s1reader.s1_burst_slc import Sentinel1BurstSlc
-
 
 # TODO: remove PLAnT mosaicking and bands merging
-import plant
-def _mosaic(input_files, output_file, **kwargs):
-    plant.mosaic(input_files, output_file = output_file,
-                 no_average=True, force=True, **kwargs)
+#import plant
+#def _mosaic(input_files, output_file, **kwargs):
+#    plant.mosaic(input_files, output_file = output_file,
+#                 no_average=True, force=True, **kwargs)
 
-def _merge_bands(input_files, output_file):
-    plant.util(input_files, output_file = output_file, force=True)
+'''def _merge_bands(input_files, output_file):
+    plant.util(input_files, output_file = output_file, force=True)'''
 
 
 def merge_vv_Vh(input_files, output_file):
@@ -614,8 +616,8 @@ def run(cfg):
     # mosaic_kwargs['bbox'] = [y_min, y_max, x_min, x_max]
     mosaic_kwargs['step_lat'] = dy
     mosaic_kwargs['step_lon'] = dx
-    _mosaic(output_imagery_list, geo_filename, interp='average',
-            **mosaic_kwargs)
+    #_mosaic(output_imagery_list, geo_filename, interp='average',
+    #        **mosaic_kwargs)
     nlooks_list = output_metadata_dict['nlooks'][1]
     if mosaic_geobursts.check_mosaic_eligibility(output_imagery_list, nlooks_list):
         mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
@@ -629,7 +631,7 @@ def run(cfg):
     for key in output_metadata_dict.keys():
         output_file, input_files = output_metadata_dict[key]
         info_channel.log(f'mosaicking file: {output_file}')
-        _mosaic(input_files, output_file, **mosaic_kwargs)
+        #_mosaic(input_files, output_file, **mosaic_kwargs)
         mosaic_geobursts.weighted_mosaic(input_files, nlooks_list,
                                          output_file.replace('.tif','.weighted_avg.tif'),
                                          cfg.geogrid)
