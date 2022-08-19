@@ -621,7 +621,7 @@ def run(cfg):
     nlooks_list = output_metadata_dict['nlooks'][1]
     if mosaic_geobursts.check_mosaic_eligibility(output_imagery_list, nlooks_list):
         mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
-                                         geo_filename.replace('.tif','.weighted_avg.tif'), cfg.geogrid)
+                                         geo_filename, cfg.geogrid)
 
 
 
@@ -633,7 +633,7 @@ def run(cfg):
         info_channel.log(f'mosaicking file: {output_file}')
         #_mosaic(input_files, output_file, **mosaic_kwargs)
         mosaic_geobursts.weighted_mosaic(input_files, nlooks_list,
-                                         output_file.replace('.tif','.weighted_avg.tif'),
+                                         output_file,
                                          cfg.geogrid)
         output_file_list.append(output_file)
 
