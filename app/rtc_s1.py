@@ -27,59 +27,59 @@ from rtc import mosaic_geobursts
 
 
 # TODO Take care of single-band case, as well as 3+ bands
-def merge_vv_vh(input_files: list, output_file: str):
-    '''Merge VV and VH S1 burst (in radargrid) into one .vrt file
-
-    Parameters:
-    -----------
-    input_files : list
-        List of the input files to merge.
-
-    output_file : str
-        Path of the output .vrt file.
-
-    '''
-
-    template_vrt='''<VRTDataset rasterXSize="{x_size_out}" rasterYSize="{y_size_out}">
-  <VRTRasterBand dataType="Float32" band="1">
-    <ComplexSource>
-      <SourceFilename relativeToVRT="1">{path_vv}</SourceFilename>
-      <SourceBand>1</SourceBand>
-      <SourceProperties RasterXSize="{x_size_vv}" RasterYSize="{y_size_vv}" DataType="Float32" BlockXSize="{x_size_vv}" BlockYSize="1" />
-      <SrcRect xOff="0" yOff="0" xSize="{x_size_vv}" ySize="{y_size_vv}" />
-      <DstRect xOff="0" yOff="0" xSize="{x_size_vv}" ySize="{y_size_vv}" />
-    </ComplexSource>
-  </VRTRasterBand>
-  <VRTRasterBand dataType="Float32" band="2">
-    <ComplexSource>
-      <SourceFilename relativeToVRT="1">{path_vh}</SourceFilename>
-      <SourceBand>1</SourceBand>
-      <SourceProperties RasterXSize="{x_size_vh}" RasterYSize="{y_size_vh}" DataType="Float32" BlockXSize="{x_size_vh}" BlockYSize="1" />
-      <SrcRect xOff="0" yOff="0" xSize="{x_size_vh}" ySize="{y_size_vh}" />
-      <DstRect xOff="0" yOff="0" xSize="{x_size_vh}" ySize="{y_size_vh}" />
-    </ComplexSource>
-  </VRTRasterBand>
-</VRTDataset>
-'''
-    arr_xsize=[]
-    arr_ysize=[]
-
-    for input_file in input_files:
-        raster_in=gdal.Open(input_file,gdal.GA_ReadOnly)
-        arr_xsize.append(raster_in.RasterXSize)
-        arr_ysize.append(raster_in.RasterYSize)
-
-    str_vrt = template_vrt.format(x_size_out=arr_xsize[0],
-                                  y_size_out=arr_ysize[0],
-                                  path_vv=os.path.basename(input_files[0]),
-                                  x_size_vv=arr_xsize[0],
-                                  y_size_vv=arr_ysize[0],
-                                  path_vh=os.path.basename(input_files[1]),
-                                  x_size_vh=arr_xsize[1],
-                                  y_size_vh=arr_ysize[1])
-
-    with open(output_file, 'w+', encoding='utf8') as file_out:
-        file_out.write(str_vrt)
+#def merge_vv_vh(input_files: list, output_file: str):
+#    '''Merge VV and VH S1 burst (in radargrid) into one .vrt file#
+#
+#    Parameters:
+#   -----------
+#    input_files : list
+#        List of the input files to merge.
+#
+#    output_file : str
+#        Path of the output .vrt file.
+#
+#   '''
+#
+#    template_vrt='''<VRTDataset rasterXSize="{x_size_out}" rasterYSize="{y_size_out}">
+#  <VRTRasterBand dataType="Float32" band="1">
+#    <ComplexSource>
+#      <SourceFilename relativeToVRT="1">{path_vv}</SourceFilename>
+#      <SourceBand>1</SourceBand>
+#      <SourceProperties RasterXSize="{x_size_vv}" RasterYSize="{y_size_vv}" DataType="Float32" BlockXSize="{x_size_vv}" BlockYSize="1" />
+#      <SrcRect xOff="0" yOff="0" xSize="{x_size_vv}" ySize="{y_size_vv}" />
+#      <DstRect xOff="0" yOff="0" xSize="{x_size_vv}" ySize="{y_size_vv}" />
+#    </ComplexSource>
+#  </VRTRasterBand>
+#  <VRTRasterBand dataType="Float32" band="2">
+#    <ComplexSource>
+#      <SourceFilename relativeToVRT="1">{path_vh}</SourceFilename>
+#      <SourceBand>1</SourceBand>
+#      <SourceProperties RasterXSize="{x_size_vh}" RasterYSize="{y_size_vh}" DataType="Float32" BlockXSize="{x_size_vh}" BlockYSize="1" />
+#      <SrcRect xOff="0" yOff="0" xSize="{x_size_vh}" ySize="{y_size_vh}" />
+#      <DstRect xOff="0" yOff="0" xSize="{x_size_vh}" ySize="{y_size_vh}" />
+#    </ComplexSource>
+#  </VRTRasterBand>
+#</VRTDataset>
+#'''
+#    arr_xsize=[]
+#    arr_ysize=[]
+#
+#    for input_file in input_files:
+#        raster_in=gdal.Open(input_file,gdal.GA_ReadOnly)
+#        arr_xsize.append(raster_in.RasterXSize)
+#        arr_ysize.append(raster_in.RasterYSize)
+#
+#    str_vrt = template_vrt.format(x_size_out=arr_xsize[0],
+#                                  y_size_out=arr_ysize[0],
+#                                  path_vv=os.path.basename(input_files[0]),
+#                                  x_size_vv=arr_xsize[0],
+#                                  y_size_vv=arr_ysize[0],
+#                                  path_vh=os.path.basename(input_files[1]),
+#                                  x_size_vh=arr_xsize[1],
+#                                  y_size_vh=arr_ysize[1])
+#
+#    with open(output_file, 'w+', encoding='utf8') as file_out:
+#        file_out.write(str_vrt)
 
 
 def snap_coord(val, snap, round_func):
@@ -305,6 +305,7 @@ def run(cfg):
 
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(scratch_path, exist_ok=True)
+    vrt_options_mosaic = gdal.BuildVRTOptions(separate=True)
 
     # iterate over sub-burts
     for burst_id, burst_pol_dict in cfg.bursts.items():
@@ -368,7 +369,8 @@ def run(cfg):
         # gdal.BuildVRT(temp_vrt_path, input_file_list)
 
         #_merge_bands(input_file_list, temp_vrt_path)
-        merge_vv_vh(input_file_list, temp_vrt_path)
+        #merge_vv_vh(input_file_list, temp_vrt_path)
+        gdal.BuildVRT(temp_vrt_path, input_file_list, options=vrt_options_mosaic)
         rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
         temp_files_list.append(temp_vrt_path)
 
@@ -645,7 +647,9 @@ def run(cfg):
     #_mosaic(output_imagery_list, geo_filename, interp='average',
     #        **mosaic_kwargs)
     nlooks_list = output_metadata_dict['nlooks'][1]
-    if mosaic_geobursts.check_mosaic_eligibility(output_imagery_list, nlooks_list):
+    if mosaic_geobursts.check_reprojection(output_imagery_list, nlooks_list, cfg.geogrid):
+        print('Geocoded RTC backscatter images are not aligned for mosaic.')
+    else:
         mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
                                          geo_filename, cfg.geogrid)
 

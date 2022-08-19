@@ -7,10 +7,10 @@ import os
 import numpy as np
 from osgeo import osr, gdal
 
-def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
-                             geogrid_mosaic: isce3.product.GeoGridParameters=None) -> bool:
+def check_reprojection(list_rtc_imagery: list, list_nlooks: list,
+                             geogrid_mosaic) -> bool:
     '''
-    Check if the list of the geobursts are eligible to be mosaiced
+    Check if the reprojection is necessary to mosaic the input list of the rasters
 
     Parameters:
     -----------
@@ -21,7 +21,8 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
 
     Returns:
     flag_rtn: bool
-        Flag if the lists of the input rtc and nlooks are eligible for mosaicking.
+        True if reprojection is necessary to mosaic `list_rtc_imagery`;
+        False if the images are aligned, so that no reprojection is necessary.
     '''
 
     # Accepted error in the coordinates as floating number. Used when checking the snapping.
@@ -29,7 +30,7 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
 
     # Return value after this mosaicking eligibility check.
     # It will turn to False if any of the checks below fails.
-    flag_rtn = True
+    flag_rtn = False
 
     # Check the number of the raster files in list_rtc_imagery and list_nlooks
     num_rtc_imagery = len(list_rtc_imagery)
@@ -37,7 +38,7 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
     if num_rtc_imagery != num_nlooks:
         #raise ValueError(f'# RTC ({num_rtc}) and # nlooks ({num_nlooks}) does not match.')
         print(f'# RTC ({num_rtc_imagery}) and # nlooks ({num_nlooks}) does not match.')
-        flag_rtn = False
+        flag_rtn = True
 
     else:
         # Variables to keep record of the geogrid-related information in the input rasters
@@ -61,21 +62,21 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
             if geo_transformation_rtc_imagery != geo_transformation_nlooks:
                 print('GeoTransform does not match between '+\
                      f'{os.path.basename(path_rtc_imagery)} and {os.path.basename(path_nlooks)}')
-                flag_rtn = False
+                flag_rtn = True
 
             # Compare dimension - between RTC and corresponding nlooks
             if (raster_rtc_imagery.RasterXSize != raster_nlooks.RasterXSize) or\
             (raster_rtc_imagery.RasterYSize != raster_nlooks.RasterYSize):
                 print('Dimension does not agree between '+\
                      f'{os.path.basename(path_rtc_imagery)} and {os.path.basename(path_nlooks)}')
-                flag_rtn = False
+                flag_rtn = True
 
             # Check number of bands - for all RTC
             if numbands_prev is None:
                 numbands_prev = raster_rtc_imagery.RasterCount
             elif numbands_prev != raster_rtc_imagery.RasterCount:
                 print(f'Band number anomaly detected from {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = False
+                flag_rtn = True
 
             # Check projection - for every RTC and nlooks
             if str_proj_prev is None:
@@ -83,11 +84,11 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
 
             elif str_proj_prev != raster_rtc_imagery.GetProjection():
                 print(f'Map projection anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = False
+                flag_rtn = True
 
             elif str_proj_prev != raster_nlooks.GetProjection():
                 print(f'Map projection anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = False
+                flag_rtn = True
 
 
             # spacing x - for all RTC and nlooks
@@ -96,11 +97,11 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
 
             elif spacing_x_prev != geo_transformation_rtc_imagery[1]:
                 print(f'spacing_x anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = False
+                flag_rtn = True
 
             elif spacing_x_prev != geo_transformation_nlooks[1]:
                 print(f'spacing_y anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = False
+                flag_rtn = True
 
             # spacing y - for all RTC and nlooks
             if spacing_y_prev is None:
@@ -108,11 +109,11 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
 
             elif spacing_y_prev != geo_transformation_rtc_imagery[5]:
                 print(f'spacing_y anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = False
+                flag_rtn = True
 
             elif spacing_y_prev != geo_transformation_nlooks[5]:
                 print(f'spacing_y anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = False
+                flag_rtn = True
 
             # snapping_x - by calculating the mod of the corner coords - for all RTC and nlooks
             if mod_x_prev is None:
@@ -120,11 +121,11 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
 
             elif abs(mod_x_prev - geo_transformation_rtc_imagery[0] % geo_transformation_rtc_imagery[1]) > maxerr_coord:
                 print(f'snapping_x anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = False
+                flag_rtn = True
 
             elif abs(mod_x_prev - geo_transformation_nlooks[0] % geo_transformation_nlooks[1]) > maxerr_coord:
                 print(f'snapping_x anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = False
+                flag_rtn = True
 
             # snapping_y - by calculating the mod of the corner coords - for all RTC and nlooks
             if mod_y_prev is None:
@@ -132,11 +133,11 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
             
             elif abs(mod_y_prev - geo_transformation_rtc_imagery[3] % geo_transformation_rtc_imagery[5]) > maxerr_coord:
                 print(f'snapping_y anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = False
+                flag_rtn = True
 
             elif abs(mod_y_prev - geo_transformation_nlooks[3] % geo_transformation_nlooks[5]) > maxerr_coord:
                 print(f'snapping_y anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = False
+                flag_rtn = True
 
             raster_rtc_imagery = None
             raster_nlooks = None
@@ -148,28 +149,28 @@ def check_mosaic_eligibility(list_rtc_imagery: list, list_nlooks: list,
         if geogrid_mosaic is not None:
             if spacing_x_prev != geogrid_mosaic.spacing_x:
                 print('spacing_x of the input rasters does not match with that of the mosaic geogrid')
-                flag_rtn = False
+                flag_rtn = True
 
             if spacing_y_prev != geogrid_mosaic.spacing_y:
                 print('spacing_y of the input rasters does not match with that of the mosaic geogrid')
-                flag_rtn = False
+                flag_rtn = True
 
             #Checo projection: Use str_proj_prev
             srs_mosaic=osr.SpatialReference()
             srs_mosaic.ImportFromEPSG(geogrid_mosaic.epsg)
             if str_proj_prev != srs_mosaic.ExportToWkt():
                 print('Projection of the rasters do not match with that of the mosaic geogrid')
-                flag_rtn = False
+                flag_rtn = True
 
 
             #Check snapping: Use mod_x_prev, mod_y_prev
             if abs(mod_y_prev - geogrid_mosaic.start_x % geogrid_mosaic.spacing_x) > maxerr_coord:
                 print('X coordinate of the raster corner do not align with the mosaic geogrid')
-                flag_rtn = False
+                flag_rtn = True
 
             if abs(mod_y_prev - geogrid_mosaic.start_y % geogrid_mosaic.spacing_y) > maxerr_coord:
                 print('Y coordinate of the raster corner do not align with the mosaic geogrid')
-                flag_rtn = False
+                flag_rtn = True
 
 
 
