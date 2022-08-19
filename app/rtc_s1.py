@@ -27,7 +27,7 @@ from rtc import mosaic_geobursts
     plant.util(input_files, output_file = output_file, force=True)'''
 
 
-def merge_vv_Vh(input_files, output_file):
+def merge_vv_vh(input_files, output_file):
     '''Merge VV and VH S1 burst (in radargrid) into one file
     '''
 
