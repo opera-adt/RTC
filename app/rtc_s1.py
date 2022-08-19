@@ -17,7 +17,6 @@ from rtc.yaml_argparse import YamlArgparse
 from rtc import mosaic_geobursts
 
 
-# TODO: remove PLAnT mosaicking and bands merging
 #import plant
 #def _mosaic(input_files, output_file, **kwargs):
 #    plant.mosaic(input_files, output_file = output_file,
@@ -27,27 +26,37 @@ from rtc import mosaic_geobursts
     plant.util(input_files, output_file = output_file, force=True)'''
 
 
-def merge_vv_vh(input_files, output_file):
-    '''Merge VV and VH S1 burst (in radargrid) into one file
+# TODO Take care of single-band case, as well as 3+ bands
+def merge_vv_vh(input_files: list, output_file: str):
+    '''Merge VV and VH S1 burst (in radargrid) into one .vrt file
+
+    Parameters:
+    -----------
+    input_files : list
+        List of the input files to merge.
+
+    output_file : str
+        Path of the output .vrt file.
+
     '''
 
-    template_vrt='''<VRTDataset rasterXSize="{XSize_out}" rasterYSize="{YSize_out}">
+    template_vrt='''<VRTDataset rasterXSize="{x_size_out}" rasterYSize="{y_size_out}">
   <VRTRasterBand dataType="Float32" band="1">
     <ComplexSource>
-      <SourceFilename relativeToVRT="1">{PATH_VV}</SourceFilename>
+      <SourceFilename relativeToVRT="1">{path_vv}</SourceFilename>
       <SourceBand>1</SourceBand>
-      <SourceProperties RasterXSize="{XSize_VV}" RasterYSize="{YSize_VV}" DataType="Float32" BlockXSize="{XSize_VV}" BlockYSize="1" />
-      <SrcRect xOff="0" yOff="0" xSize="{XSize_VV}" ySize="{YSize_VV}" />
-      <DstRect xOff="0" yOff="0" xSize="{XSize_VV}" ySize="{YSize_VV}" />
+      <SourceProperties RasterXSize="{x_size_vv}" RasterYSize="{y_size_vv}" DataType="Float32" BlockXSize="{x_size_vv}" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="{x_size_vv}" ySize="{y_size_vv}" />
+      <DstRect xOff="0" yOff="0" xSize="{x_size_vv}" ySize="{y_size_vv}" />
     </ComplexSource>
   </VRTRasterBand>
   <VRTRasterBand dataType="Float32" band="2">
     <ComplexSource>
-      <SourceFilename relativeToVRT="1">{PATH_VH}</SourceFilename>
+      <SourceFilename relativeToVRT="1">{path_vh}</SourceFilename>
       <SourceBand>1</SourceBand>
-      <SourceProperties RasterXSize="{XSize_VH}" RasterYSize="{YSize_VH}" DataType="Float32" BlockXSize="{XSize_VH}" BlockYSize="1" />
-      <SrcRect xOff="0" yOff="0" xSize="{XSize_VH}" ySize="{YSize_VH}" />
-      <DstRect xOff="0" yOff="0" xSize="{XSize_VH}" ySize="{YSize_VH}" />
+      <SourceProperties RasterXSize="{x_size_vh}" RasterYSize="{y_size_vh}" DataType="Float32" BlockXSize="{x_size_vh}" BlockYSize="1" />
+      <SrcRect xOff="0" yOff="0" xSize="{x_size_vh}" ySize="{y_size_vh}" />
+      <DstRect xOff="0" yOff="0" xSize="{x_size_vh}" ySize="{y_size_vh}" />
     </ComplexSource>
   </VRTRasterBand>
 </VRTDataset>
@@ -60,21 +69,38 @@ def merge_vv_vh(input_files, output_file):
         arr_xsize.append(raster_in.RasterXSize)
         arr_ysize.append(raster_in.RasterYSize)
 
-    str_vrt=template_vrt.format(XSize_out=arr_xsize[0],
-                                YSize_out=arr_ysize[0],
-                                PATH_VV=os.path.basename(input_files[0]),
-                                XSize_VV=arr_xsize[0],
-                                YSize_VV=arr_ysize[0],
-                                PATH_VH=os.path.basename(input_files[1]),
-                                XSize_VH=arr_xsize[1],
-                                YSize_VH=arr_ysize[1])
+    str_vrt = template_vrt.format(x_size_out=arr_xsize[0],
+                                  y_size_out=arr_ysize[0],
+                                  path_vv=os.path.basename(input_files[0]),
+                                  x_size_vv=arr_xsize[0],
+                                  y_size_vv=arr_ysize[0],
+                                  path_vh=os.path.basename(input_files[1]),
+                                  x_size_vh=arr_xsize[1],
+                                  y_size_vh=arr_ysize[1])
 
-    with open(output_file,'w+') as file_out:
+    with open(output_file, 'w+', encoding='utf8') as file_out:
         file_out.write(str_vrt)
 
 
-
 def snap_coord(val, snap, round_func):
+    '''
+    Returns the snapped values of the input value
+
+    Parameters:
+    -----------
+    val : float
+        Input value to snap
+    snap : float
+        Snapping step
+    round_func : function pointer
+        A function about how to take care of `val` i.e. round, ceil, floor
+
+    Return:
+    --------
+    snapped_value : float
+        snapped value of `var` by `snap`
+
+    '''
     snapped_value = round_func(float(val) / snap) * snap
     return snapped_value
 
@@ -108,7 +134,7 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 
 
 def _get_raster(output_dir, ds_name, dtype, shape,
-                output_file_list, output_obj_list, 
+                output_file_list, output_obj_list,
                 flag_save_vector_1):
     if flag_save_vector_1 is not True:
         return None
@@ -189,11 +215,11 @@ def correction_and_calibration(burst_in: Sentinel1BurstSlc,
 def run(cfg):
     '''
     Run geocode burst workflow with user-defined
-    args stored in dictionary runconfig *cfg*
+    args stored in dictionary runconfig `cfg`
 
     Parameters
     ---------
-    cfg: dict
+    cfg : dict
         Dictionary with user runconfig options
     '''
     info_channel = journal.info("rtc.run")
