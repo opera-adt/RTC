@@ -104,7 +104,7 @@ def check_reprojection(geogrid_mosaic,
 
 
 def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
-                    geogrid_in=None):
+                    geogrid_in=None, verbose = True):
     '''
     Mosaic the snapped S1 geobursts
     paremeters:
@@ -130,7 +130,8 @@ def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
     list_dimension = np.zeros((num_raster, 2), dtype=np.int32)
 
     for i, path_rtc in enumerate(list_rtc_images):
-        print(f'loading geocoding info: {i+1} of {num_raster}')
+        if verbose:
+            print(f'loading geocoding info: {i+1} of {num_raster}')
         
         raster_in = gdal.Open(path_rtc, gdal.GA_ReadOnly)
         list_geo_transform[i, :] = raster_in.GetGeoTransform()
@@ -141,7 +142,8 @@ def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
             num_bands = raster_in.RasterCount
             continue
         elif num_bands != raster_in.RasterCount:
-            raise ValueError(f'Anomaly detected on # of bands from source file: {os.path.basename(path_rtc)}')
+            raise ValueError(f'Anomaly detected on # of bands from source'
+                             f' file: {os.path.basename(path_rtc)}')
 
         raster_in = None
 
@@ -184,14 +186,16 @@ def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
         srs_mosaic.ImportFromEPSG(geogrid_in.epsg)
         wkt_projection = srs_mosaic.ExportToWkt()
 
-    print(f'mosaic dimension: {dim_mosaic}, #bands: {num_bands}')
+    if verbose:
+        print(f'mosaic dimension: {dim_mosaic}, #bands: {num_bands}')
 
     arr_numerator = np.zeros((num_bands, dim_mosaic[0], dim_mosaic[1]))
     arr_denominator = np.zeros(dim_mosaic)
 
     for i, path_rtc in enumerate(list_rtc_images):
         path_nlooks = list_nlooks[i]
-        print(f'mosaicking: {i+1} of {num_raster}: {os.path.basename(path_rtc)}')
+        if verbose:
+            print(f'mosaicking: {i+1} of {num_raster}: {os.path.basename(path_rtc)}')
 
         if geogrid_in is not None and check_reprojection(
                 geogrid_in, path_rtc, path_nlooks):
@@ -204,7 +208,8 @@ def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
         offset_imgx = int((list_geo_transform[i,0] - xmin_mosaic) / posting_x + 0.5)
         offset_imgy = int((list_geo_transform[i,3] - ymax_mosaic) / posting_y + 0.5)
 
-        print(f'    image offset [x, y] = [{offset_imgx}, {offset_imgy}]')
+        if verbose:
+            print(f'image offset [x, y] = [{offset_imgx}, {offset_imgy}]')
         raster_rtc = gdal.Open(path_rtc,0)
         arr_rtc = raster_rtc.ReadAsArray()
 

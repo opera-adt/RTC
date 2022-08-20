@@ -22,15 +22,18 @@ runconfig:
           product_path:
           # Directory where SAS writes temporary data
           scratch_path:
-          # All files are saved within the output_directory following
-          #     the scheme:
-          # {output_dir}/{product_id}{suffix}.{ext}
-          # 
+
+          # If option `mosaic_bursts` is not set, output files are saved to:
+          #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
+          # If option `mosaic_bursts` is set, output files are saved to:
+          #     {output_dir}/{product_id}{suffix}.{ext}
           # If the field `product_id`` is left empty, the prefix "rtc_product"
-          #     will be used instead.
-          # The `suffix` is only used when there are multiple output files.
+          # will be used instead.
+          # `suffix` is only used when there are multiple output files.
+          # `ext` is determined by geocoding_options.output_format.
           output_dir:
           product_id:
+          mosaic_bursts: False
 
       primary_executable:
           product_type: RTC_S1
