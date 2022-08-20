@@ -16,72 +16,6 @@ from rtc.geo_runconfig import GeoRunConfig
 from rtc.yaml_argparse import YamlArgparse
 from rtc import mosaic_geobursts
 
-
-#import plant
-#def _mosaic(input_files, output_file, **kwargs):
-#    plant.mosaic(input_files, output_file = output_file,
-#                 no_average=True, force=True, **kwargs)
-
-'''def _merge_bands(input_files, output_file):
-    plant.util(input_files, output_file = output_file, force=True)'''
-
-
-# TODO Take care of single-band case, as well as 3+ bands
-#def merge_vv_vh(input_files: list, output_file: str):
-#    '''Merge VV and VH S1 burst (in radargrid) into one .vrt file#
-#
-#    Parameters:
-#   -----------
-#    input_files : list
-#        List of the input files to merge.
-#
-#    output_file : str
-#        Path of the output .vrt file.
-#
-#   '''
-#
-#    template_vrt='''<VRTDataset rasterXSize="{x_size_out}" rasterYSize="{y_size_out}">
-#  <VRTRasterBand dataType="Float32" band="1">
-#    <ComplexSource>
-#      <SourceFilename relativeToVRT="1">{path_vv}</SourceFilename>
-#      <SourceBand>1</SourceBand>
-#      <SourceProperties RasterXSize="{x_size_vv}" RasterYSize="{y_size_vv}" DataType="Float32" BlockXSize="{x_size_vv}" BlockYSize="1" />
-#      <SrcRect xOff="0" yOff="0" xSize="{x_size_vv}" ySize="{y_size_vv}" />
-#      <DstRect xOff="0" yOff="0" xSize="{x_size_vv}" ySize="{y_size_vv}" />
-#    </ComplexSource>
-#  </VRTRasterBand>
-#  <VRTRasterBand dataType="Float32" band="2">
-#    <ComplexSource>
-#      <SourceFilename relativeToVRT="1">{path_vh}</SourceFilename>
-#      <SourceBand>1</SourceBand>
-#      <SourceProperties RasterXSize="{x_size_vh}" RasterYSize="{y_size_vh}" DataType="Float32" BlockXSize="{x_size_vh}" BlockYSize="1" />
-#      <SrcRect xOff="0" yOff="0" xSize="{x_size_vh}" ySize="{y_size_vh}" />
-#      <DstRect xOff="0" yOff="0" xSize="{x_size_vh}" ySize="{y_size_vh}" />
-#    </ComplexSource>
-#  </VRTRasterBand>
-#</VRTDataset>
-#'''
-#    arr_xsize=[]
-#    arr_ysize=[]
-#
-#    for input_file in input_files:
-#        raster_in=gdal.Open(input_file,gdal.GA_ReadOnly)
-#        arr_xsize.append(raster_in.RasterXSize)
-#        arr_ysize.append(raster_in.RasterYSize)
-#
-#    str_vrt = template_vrt.format(x_size_out=arr_xsize[0],
-#                                  y_size_out=arr_ysize[0],
-#                                  path_vv=os.path.basename(input_files[0]),
-#                                  x_size_vv=arr_xsize[0],
-#                                  y_size_vv=arr_ysize[0],
-#                                  path_vh=os.path.basename(input_files[1]),
-#                                  x_size_vh=arr_xsize[1],
-#                                  y_size_vh=arr_ysize[1])
-#
-#    with open(output_file, 'w+', encoding='utf8') as file_out:
-#        file_out.write(str_vrt)
-
-
 def snap_coord(val, snap, round_func):
     '''
     Returns the snapped values of the input value
@@ -103,6 +37,7 @@ def snap_coord(val, snap, round_func):
     '''
     snapped_value = round_func(float(val) / snap) * snap
     return snapped_value
+
 
 def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     xf = geogrid.start_x + geogrid.spacing_x * geogrid.width
@@ -175,16 +110,13 @@ def correction_and_calibration(burst_in: Sentinel1BurstSlc,
     raster_slc_from = gdal.Open(path_slc_vrt)
     arr_slc_from = raster_slc_from.ReadAsArray()
 
-    # Generate the correction layer
-    arr_noise = burst_in.burst_noise.export_lut()
-
     # Apply the correction
     if flag_thermal_correction:
-        corrected_image = np.abs(arr_slc_from) ** 2 - arr_noise
+        corrected_image = np.abs(arr_slc_from) ** 2 - burst_in.thermal_noise_lut
         min_backscatter = 0
         max_backscatter = None
         corrected_image = np.clip(corrected_image, min_backscatter,
-                                max_backscatter)
+                                  max_backscatter)
     else:
         corrected_image=np.abs(arr_slc_from) ** 2
 
@@ -233,7 +165,6 @@ def run(cfg):
 
 
     dem_interp_method_enum = cfg.groups.processing.dem_interpolation_method_enum
-
 
 
     product_path = cfg.groups.product_path_group.product_path
@@ -366,10 +297,6 @@ def run(cfg):
 
         #temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.tif'
         temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.vrt'
-        # gdal.BuildVRT(temp_vrt_path, input_file_list)
-
-        #_merge_bands(input_file_list, temp_vrt_path)
-        #merge_vv_vh(input_file_list, temp_vrt_path)
         gdal.BuildVRT(temp_vrt_path, input_file_list, options=vrt_options_mosaic)
         rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
         temp_files_list.append(temp_vrt_path)
@@ -644,8 +571,7 @@ def run(cfg):
     # mosaic_kwargs['bbox'] = [y_min, y_max, x_min, x_max]
     mosaic_kwargs['step_lat'] = dy
     mosaic_kwargs['step_lon'] = dx
-    #_mosaic(output_imagery_list, geo_filename, interp='average',
-    #        **mosaic_kwargs)
+
     nlooks_list = output_metadata_dict['nlooks'][1]
     if mosaic_geobursts.check_reprojection(output_imagery_list, nlooks_list, cfg.geogrid):
         print('Geocoded RTC backscatter images are not aligned for mosaic.')
@@ -653,9 +579,7 @@ def run(cfg):
         mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
                                          geo_filename, cfg.geogrid)
 
-
-
-    output_file_list.append(geo_filename) #NOTE: This line will raise error when the used does not opt in to save auxiliary data (local incidence, simulated brightness, etc.)
+    output_file_list.append(geo_filename)
 
     # mosaic other bands
     for key in output_metadata_dict.keys():
