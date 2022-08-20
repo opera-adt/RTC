@@ -23,22 +23,15 @@ runconfig:
            # Directory where SAS can write temporary data
            scratch_path: str()
 
-
            # All files are saved within the output_directory following
-           # the scheme:
-           # {output_dir}/{product_id}.{ext}
-           # If the field product_id is left empty, the prefix "rtc_product"
-           # will be used instead
-
+           #     the scheme:
+           # {output_dir}/{product_id}{suffix}.{ext}
+           # 
+           # If the field `product_id`` is left empty, the prefix "rtc_product"
+           #     will be used instead.
+           # The `suffix` is only used when there are multiple output files.
            output_dir: str()
            product_id: str()
-
-
-
-           # Intermediate file name. SAS writes the output to this file.
-           # PGE may rename the product according to file naming convention
-           # sas_output_file: str()
-           # sas_output_dir: str(required=True)
 
         primary_executable:
           product_type: enum('RTC_S1')
@@ -123,8 +116,8 @@ geocoding_options:
     # Save the simulated radar brightness
     save_simulated_radar_brightness: bool(required=False)
 
-    # Save the directional slope angle
-    save_directional_slope_angle: bool(required=False)
+    # Save the range slope angle
+    save_range_slope_angle: bool(required=False)
 
     # Save the number of looks used to generate the RTC product
     save_nlooks: bool(required=False)

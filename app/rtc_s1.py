@@ -49,11 +49,11 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 
 def _get_raster(output_dir, ds_name, dtype, shape,
                 output_file_list, output_obj_list,
-                flag_save_vector_1):
+                flag_save_vector_1, extension):
     if flag_save_vector_1 is not True:
         return None
 
-    output_file = os.path.join(output_dir, ds_name)+'.tif'
+    output_file = os.path.join(output_dir, ds_name)+'.'+extension
     raster_obj = isce3.io.Raster(
         output_file,
         shape[2],
@@ -67,12 +67,13 @@ def _get_raster(output_dir, ds_name, dtype, shape,
 
 
 def _add_output_to_output_metadata_dict(flag, key, output_dir,
-        output_metadata_dict):
+        output_metadata_dict, product_id, extension):
     if not flag:
         return
     output_image_list = []
     output_metadata_dict[key] = \
-        [os.path.join(output_dir, f'rtc_product_{key}.tif'), output_image_list]
+        [os.path.join(output_dir, f'{product_id}_{key}.{extension}'),
+                      output_image_list]
 
 
 def correction_and_calibration(burst_in: Sentinel1BurstSlc,
@@ -145,12 +146,24 @@ def run(cfg):
 
     dem_interp_method_enum = cfg.groups.processing.dem_interpolation_method_enum
 
-
+    # read product path group / output format
+    product_id = cfg.groups.product_path_group.product_id
+    if product_id is None:
+        product_id = 'rtc_product'
     product_path = cfg.groups.product_path_group.product_path
     scratch_path = cfg.groups.product_path_group.scratch_path
-    output_dir = cfg.groups.product_path_group.sas_output_dir
+    output_dir = cfg.groups.product_path_group.output_dir
 
-
+    output_format = cfg.geocoding_params.output_format
+    if output_format == 'HDF5':
+        output_raster_format = 'GTiff'
+    else:
+        output_raster_format = cfg.geocoding_params.output_format
+    if output_raster_format == 'GTiff':
+        extension = 'tif'
+    else:
+        extension = 'bin'
+ 
     # unpack geocode run parameters
     geocode_namespace = cfg.groups.processing.geocoding
     geocode_algorithm = geocode_namespace.algorithm_type
@@ -170,8 +183,8 @@ def run(cfg):
     flag_save_projection_angle = geocode_namespace.save_projection_angle
     flag_save_simulated_radar_brightness = \
         geocode_namespace.save_simulated_radar_brightness
-    flag_save_directional_slope_angle = \
-        geocode_namespace.save_directional_slope_angle
+    flag_save_range_slope_angle = \
+        geocode_namespace.save_range_slope_angle
     flag_save_nlooks = geocode_namespace.save_nlooks
     flag_save_rtc = geocode_namespace.save_rtc
     flag_save_dem = geocode_namespace.save_dem
@@ -183,6 +196,8 @@ def run(cfg):
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
     rtc_min_value_db = rtc_namespace.rtc_min_value_db
     rtc_upsampling = rtc_namespace.dem_upsampling
+
+
 
 
     # Common initializations
@@ -197,17 +212,21 @@ def run(cfg):
                      flag_apply_abs_rad_correction) else 2
 
     # output mosaics
-    geo_filename = f'{output_dir}/'f'rtc_product.tif'
+    geo_filename = f'{output_dir}/'f'{product_id}.{extension}'
     output_imagery_list = []
     output_metadata_dict = {}
 
     _add_output_to_output_metadata_dict(
-        flag_save_nlooks, 'nlooks', output_dir, output_metadata_dict)
+        flag_save_nlooks, 'nlooks', output_dir, output_metadata_dict, 
+        product_id, extension)
     _add_output_to_output_metadata_dict(
-        flag_save_rtc, 'rtc', output_dir, output_metadata_dict)
+        flag_save_rtc, 'rtc', output_dir, output_metadata_dict,
+        product_id, extension)
+
     '''
     _add_output_to_output_metadata_dict(flag_save_dem, 'interpolated_dem',
-                                        output_dir, output_metadata_dict)
+                                        output_dir, output_metadata_dict, 
+                                        product_id, extension)
     '''
 
     mosaic_geogrid_dict = {}
@@ -255,7 +274,7 @@ def run(cfg):
             temp_slc_path = \
                 f'{burst_scratch_path}/rslc_{pol}_{temp_suffix}.vrt'
             temp_slc_corrected_path = \
-                f'{burst_scratch_path}/rslc_{pol}_corrected_{temp_suffix}.tif'
+                f'{burst_scratch_path}/rslc_{pol}_corrected_{temp_suffix}.{extension}'
             burst_pol.slc_to_vrt_file(temp_slc_path)
 
             if flag_apply_thermal_noise_correction or flag_apply_abs_rad_correction:
@@ -281,13 +300,13 @@ def run(cfg):
             temp_files_list.append(temp_vrt_path)
 
         # Generate output geocoded burst raster
-        geo_burst_filename = f'{burst_scratch_path}/geo_{temp_suffix}.tif'
+        geo_burst_filename = f'{burst_scratch_path}/geo_{temp_suffix}.{extension}'
 
         geo_burst_raster = isce3.io.Raster(
             geo_burst_filename,
             geogrid.width, geogrid.length,
             rdr_burst_raster.num_bands, gdal.GDT_Float32,
-            cfg.geocoding_params.output_format)
+            output_raster_format)
         temp_files_list.append(geo_burst_filename)
 
         # init Geocode object depending on raster type
@@ -320,11 +339,11 @@ def run(cfg):
 
         if flag_save_nlooks:
             temp_nlooks = (f'{burst_scratch_path}/geo'
-                           f'_nlooks_{temp_suffix}.tif')
+                           f'_nlooks_{temp_suffix}.{extension}')
             out_geo_nlooks_obj = isce3.io.Raster(
                 temp_nlooks,
                 geogrid.width, geogrid.length, 1,
-                gdal.GDT_Float32, cfg.geocoding_params.output_format)
+                gdal.GDT_Float32, output_raster_format)
             temp_files_list.append(temp_nlooks)
         else:
             temp_nlooks = None
@@ -332,11 +351,11 @@ def run(cfg):
 
         if flag_save_rtc:
             temp_rtc = (f'{burst_scratch_path}/geo'
-                        f'_rtc_anf_{temp_suffix}.tif')
+                        f'_rtc_anf_{temp_suffix}.{extension}')
             out_geo_rtc_obj = isce3.io.Raster(
                 temp_rtc,
                 geogrid.width, geogrid.length, 1,
-                gdal.GDT_Float32, cfg.geocoding_params.output_format)
+                gdal.GDT_Float32, output_raster_format)
             temp_files_list.append(temp_rtc)
         else:
             temp_rtc = None
@@ -345,7 +364,7 @@ def run(cfg):
         '''
         if flag_save_dem:
             temp_interpolated_dem = (f'{burst_scratch_path}/geo'
-                           f'_interpolated_dem.tif')
+                           f'_interpolated_dem.{extension}')
             if (output_mode == 
                     isce3.geocode.GeocodeOutputMode.AREA_PROJECTION):
                 interpolated_dem_width = geogrid.width + 1
@@ -357,7 +376,7 @@ def run(cfg):
                 temp_interpolated_dem, 
                 interpolated_dem_width, 
                 interpolated_dem_length, 1,
-                gdal.GDT_Float32, cfg.geocoding_params.output_format)
+                gdal.GDT_Float32, output_raster_format)
         else:
             temp_interpolated_dem = None
             out_geo_dem_obj = None
@@ -438,7 +457,7 @@ def run(cfg):
     if (flag_save_incidence_angle or flag_save_local_inc_angle or
             flag_save_projection_angle or
             flag_save_simulated_radar_brightness or flag_save_dem or
-            flag_save_directional_slope_angle):
+            flag_save_range_slope_angle):
         mosaic_width = int(np.round((mosaic_geogrid_dict['xf'] -
                                      mosaic_geogrid_dict['x0']) /
                            mosaic_geogrid_dict['dx']))
@@ -457,25 +476,28 @@ def run(cfg):
         shape = [layers_nbands, mosaic_length, mosaic_width]
 
         incidence_angle_raster = _get_raster(
-            output_dir, 'incidence_angle', gdal.GDT_Float32, shape, 
-            output_file_list, output_obj_list, flag_save_incidence_angle)
+            output_dir, f'{product_id}_incidence_angle', gdal.GDT_Float32,
+            shape, output_file_list, output_obj_list,
+            flag_save_incidence_angle, extension)
         local_incidence_angle_raster = _get_raster(
-            output_dir, 'local_incidence_angle', gdal.GDT_Float32, shape, 
-            output_file_list, output_obj_list, flag_save_local_inc_angle)
+            output_dir, f'{product_id}_local_incidence_angle',
+            gdal.GDT_Float32, shape, output_file_list, output_obj_list,
+            flag_save_local_inc_angle, extension)
         projection_angle_raster = _get_raster(
-            output_dir, 'projection_angle', gdal.GDT_Float32, shape, 
-            output_file_list, output_obj_list, flag_save_projection_angle)
+            output_dir, f'{product_id}_projection_angle', gdal.GDT_Float32,
+            shape, output_file_list, output_obj_list,
+            flag_save_projection_angle, extension)
         simulated_radar_brightness_raster = _get_raster(
-            output_dir, 'simulated_radar_brightness', gdal.GDT_Float32, shape,
-            output_file_list, output_obj_list,
-            flag_save_simulated_radar_brightness)
-        directional_slope_angle_raster = _get_raster(
-            output_dir, 'directional_slope_angle', gdal.GDT_Float32, shape,
-            output_file_list, output_obj_list,
-            flag_save_directional_slope_angle)
+            output_dir, f'{product_id}_simulated_radar_brightness',
+            gdal.GDT_Float32, shape, output_file_list, output_obj_list,
+            flag_save_simulated_radar_brightness, extension)
+        range_slope_angle_raster = _get_raster(
+            output_dir, f'{product_id}_range_slope_angle',
+            gdal.GDT_Float32, shape, output_file_list, output_obj_list,
+            flag_save_range_slope_angle, extension)
         interpolated_dem_raster = _get_raster(
-            output_dir, 'interpolated_dem', gdal.GDT_Float32, shape,
-            output_file_list, output_obj_list, flag_save_dem)
+            output_dir, f'{product_id}_interpolated_dem', gdal.GDT_Float32,
+            shape, output_file_list, output_obj_list, flag_save_dem, extension)
 
         # TODO review this (Doppler)!!!
         # native_doppler = burst.doppler.lut2d
@@ -501,7 +523,7 @@ def run(cfg):
                                     simulated_radar_brightness_raster =
                                         simulated_radar_brightness_raster,
                                     directional_slope_angle_raster =
-                                        directional_slope_angle_raster,
+                                        range_slope_angle_raster,
                                     interpolated_dem_raster =
                                         interpolated_dem_raster,
                                     dem_interp_method=dem_interp_method_enum)
@@ -514,7 +536,7 @@ def run(cfg):
 
     # mosaic sub-bursts
     geo_filename = (f'{output_dir}/'
-                        f'rtc_product.tif')
+                        f'{product_id}.{extension}')
     info_channel.log(f'mosaicking file: {geo_filename}')
 
     mosaic_kwargs = {}

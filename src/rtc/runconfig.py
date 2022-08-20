@@ -132,7 +132,7 @@ def validate_group_dict(group_cfg: dict, workflow_name) -> None:
     product_path_group = group_cfg['product_path_group']
     helpers.check_write_dir(product_path_group['product_path'])
     helpers.check_write_dir(product_path_group['scratch_path'])
-    helpers.check_write_dir(product_path_group['sas_output_file'])
+    helpers.check_write_dir(product_path_group['product_id'])
 
 
 def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
@@ -319,8 +319,8 @@ class RunConfig:
         return self.groups.input_file_group.safe_file_path
 
     @property
-    def sas_output_file(self):
-        return self.groups.product_path_group.sas_output_file
+    def product_id(self):
+        return self.groups.product_path_group.product_id
 
     @property
     def scratch_path(self):
