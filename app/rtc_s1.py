@@ -1,3 +1,7 @@
+'''
+RTC Workflow
+'''
+
 import os
 import time
 
@@ -6,24 +10,34 @@ import journal
 import numpy as np
 from osgeo import gdal
 
-from rtc.geo_runconfig import GeoRunConfig
-from rtc.yaml_argparse import YamlArgparse
-
-from osgeo import osr,gdal
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
-# TODO: remove PLAnT mosaicking and bands merging
-import plant
-def _mosaic(input_files, output_file, **kwargs):
-    plant.mosaic(input_files, output_file = output_file,
-                 no_average=True, force=True, **kwargs)
-
-def _merge_bands(input_files, output_file):
-    plant.util(input_files, output_file = output_file, force=True)
+from rtc.geo_runconfig import GeoRunConfig
+from rtc.yaml_argparse import YamlArgparse
+from rtc import mosaic_geobursts
 
 def snap_coord(val, snap, round_func):
+    '''
+    Returns the snapped values of the input value
+
+    Parameters:
+    -----------
+    val : float
+        Input value to snap
+    snap : float
+        Snapping step
+    round_func : function pointer
+        A function about how to take care of `val` i.e. round, ceil, floor
+
+    Return:
+    --------
+    snapped_value : float
+        snapped value of `var` by `snap`
+
+    '''
     snapped_value = round_func(float(val) / snap) * snap
     return snapped_value
+
 
 def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     xf = geogrid.start_x + geogrid.spacing_x * geogrid.width
@@ -55,7 +69,7 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 
 
 def _get_raster(output_dir, ds_name, dtype, shape,
-                output_file_list, output_obj_list, 
+                output_file_list, output_obj_list,
                 flag_save_vector_1):
     if flag_save_vector_1 is not True:
         return None
@@ -96,16 +110,13 @@ def correction_and_calibration(burst_in: Sentinel1BurstSlc,
     raster_slc_from = gdal.Open(path_slc_vrt)
     arr_slc_from = raster_slc_from.ReadAsArray()
 
-    # Generate the correction layer
-    arr_noise = burst_in.burst_noise.export_lut()
-
     # Apply the correction
     if flag_thermal_correction:
-        corrected_image = np.abs(arr_slc_from) ** 2 - arr_noise
+        corrected_image = np.abs(arr_slc_from) ** 2 - burst_in.thermal_noise_lut
         min_backscatter = 0
         max_backscatter = None
         corrected_image = np.clip(corrected_image, min_backscatter,
-                                max_backscatter)
+                                  max_backscatter)
     else:
         corrected_image=np.abs(arr_slc_from) ** 2
 
@@ -136,11 +147,11 @@ def correction_and_calibration(burst_in: Sentinel1BurstSlc,
 def run(cfg):
     '''
     Run geocode burst workflow with user-defined
-    args stored in dictionary runconfig *cfg*
+    args stored in dictionary runconfig `cfg`
 
     Parameters
     ---------
-    cfg: dict
+    cfg : dict
         Dictionary with user runconfig options
     '''
     info_channel = journal.info("rtc.run")
@@ -154,7 +165,6 @@ def run(cfg):
 
 
     dem_interp_method_enum = cfg.groups.processing.dem_interpolation_method_enum
-
 
 
     product_path = cfg.groups.product_path_group.product_path
@@ -226,6 +236,7 @@ def run(cfg):
 
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(scratch_path, exist_ok=True)
+    vrt_options_mosaic = gdal.BuildVRTOptions(separate=True)
 
     # iterate over sub-burts
     for burst_id, burst_pol_dict in cfg.bursts.items():
@@ -283,9 +294,10 @@ def run(cfg):
             input_file_list.append(input_burst_filename)
 
         # create multi-band VRT
-        temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.tif'
-        # gdal.BuildVRT(temp_vrt_path, input_file_list)
-        _merge_bands(input_file_list, temp_vrt_path)
+
+        #temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.tif'
+        temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.vrt'
+        gdal.BuildVRT(temp_vrt_path, input_file_list, options=vrt_options_mosaic)
         rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
         temp_files_list.append(temp_vrt_path)
 
@@ -559,15 +571,24 @@ def run(cfg):
     # mosaic_kwargs['bbox'] = [y_min, y_max, x_min, x_max]
     mosaic_kwargs['step_lat'] = dy
     mosaic_kwargs['step_lon'] = dx
-    _mosaic(output_imagery_list, geo_filename, interp='average',
-            **mosaic_kwargs)
+
+    nlooks_list = output_metadata_dict['nlooks'][1]
+    if mosaic_geobursts.check_reprojection(output_imagery_list, nlooks_list, cfg.geogrid):
+        print('Geocoded RTC backscatter images are not aligned for mosaic.')
+    else:
+        mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
+                                         geo_filename, cfg.geogrid)
+
     output_file_list.append(geo_filename)
 
     # mosaic other bands
     for key in output_metadata_dict.keys():
         output_file, input_files = output_metadata_dict[key]
         info_channel.log(f'mosaicking file: {output_file}')
-        _mosaic(input_files, output_file, **mosaic_kwargs)
+        #_mosaic(input_files, output_file, **mosaic_kwargs)
+        mosaic_geobursts.weighted_mosaic(input_files, nlooks_list,
+                                         output_file,
+                                         cfg.geogrid)
         output_file_list.append(output_file)
 
     info_channel.log('removing temporary files:')

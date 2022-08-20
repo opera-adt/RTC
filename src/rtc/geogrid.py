@@ -224,12 +224,13 @@ def get_point_epsg(lat, lon):
     Returns
     -------
     epsg: int
-        UTM zone
+        UTM zone, Polar stereographic (North / South)
     '''
     error_channel = journal.error('geogrid.get_point_epsg')
 
-    if lon >= 180.0:
-        lon = lon - 360.0
+    # "Warp" longitude value into [-180.0, 180.0]
+    if (lon >= 180.0) or (lon <= -180.0):
+        lon = (lon + 180.0) % 360.0 - 180.0
 
     if lat >= 75.0:
         return 3413
@@ -321,7 +322,7 @@ def generate_geogrids(bursts, geo_dict, dem):
             geogrid_burst = isce3.product.bbox_to_geogrid(
                 radar_grid, orbit, isce3.core.LUT2d(), x_spacing, y_spacing,
                 epsg)
-            
+
             if len(bursts) == 1 and None in [x_start, y_start, x_end, y_end]:
                 # Check and further initialize geogrid
                 geogrid_burst = assign_check_geogrid(
