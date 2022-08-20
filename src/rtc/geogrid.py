@@ -173,6 +173,29 @@ def check_snap_values(x_snap, y_snap, x_spacing, y_spacing):
         raise ValueError(err_str)
 
 
+def snap_coord(val, snap, round_func):
+    '''
+    Returns the snapped values of the input value
+
+    Parameters:
+    -----------
+    val : float
+        Input value to snap
+    snap : float
+        Snapping step
+    round_func : function pointer
+        A function used to round `val` i.e. round, ceil, floor
+
+    Return:
+    --------
+    snapped_value : float
+        snapped value of `var` by `snap`
+
+    '''
+    snapped_value = round_func(float(val) / snap) * snap
+    return snapped_value
+
+
 def snap_geogrid(geogrid, x_snap, y_snap):
     '''
     Snap geogrid based on user-defined snapping values
@@ -193,9 +216,6 @@ def snap_geogrid(geogrid, x_snap, y_snap):
     '''
     x_end = geogrid.start_x + geogrid.width * geogrid.spacing_x
     y_end = geogrid.start_y + geogrid.length * geogrid.spacing_y
-
-    snap_coord = lambda val, snap, round_func: round_func(
-        float(val) / snap) * snap
 
     if x_snap is not None:
         geogrid.start_x = snap_coord(geogrid.start_x, x_snap, np.floor)

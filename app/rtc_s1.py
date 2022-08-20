@@ -12,31 +12,10 @@ from osgeo import gdal
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
+from rtc.geogrid import snap_coord
 from rtc.geo_runconfig import GeoRunConfig
 from rtc.yaml_argparse import YamlArgparse
 from rtc import mosaic_geobursts
-
-def snap_coord(val, snap, round_func):
-    '''
-    Returns the snapped values of the input value
-
-    Parameters:
-    -----------
-    val : float
-        Input value to snap
-    snap : float
-        Snapping step
-    round_func : function pointer
-        A function about how to take care of `val` i.e. round, ceil, floor
-
-    Return:
-    --------
-    snapped_value : float
-        snapped value of `var` by `snap`
-
-    '''
-    snapped_value = round_func(float(val) / snap) * snap
-    return snapped_value
 
 
 def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
@@ -246,7 +225,6 @@ def run(cfg):
 
         t_burst_start = time.time()
 
-        date_str = burst.sensing_start.strftime("%Y%m%d")
         info_channel.log(f'processing burst: {burst_id}')
         geogrid = cfg.geogrids[burst_id]
 
@@ -259,7 +237,7 @@ def run(cfg):
         # update mosaic boundaries
         _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
 
-        burst_scratch_path = f'{scratch_path}/{burst_id}/{date_str}'
+        burst_scratch_path = f'{scratch_path}/{burst_id}/'
         os.makedirs(burst_scratch_path, exist_ok=True)
 
         radar_grid = burst.as_isce3_radargrid()
@@ -275,9 +253,9 @@ def run(cfg):
         input_file_list = []
         for pol, burst_pol in burst_pol_dict.items():
             temp_slc_path = \
-                f'{scratch_path}/{burst_id}_{pol}_{temp_suffix}.vrt'
+                f'{burst_scratch_path}/rslc_{pol}_{temp_suffix}.vrt'
             temp_slc_corrected_path = \
-                f'{scratch_path}/{burst_id}_{pol}_corrected_{temp_suffix}.tif'
+                f'{burst_scratch_path}/rslc_{pol}_corrected_{temp_suffix}.tif'
             burst_pol.slc_to_vrt_file(temp_slc_path)
 
             if flag_apply_thermal_noise_correction or flag_apply_abs_rad_correction:
@@ -294,16 +272,16 @@ def run(cfg):
             input_file_list.append(input_burst_filename)
 
         # create multi-band VRT
-
-        #temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.tif'
-        temp_vrt_path = f'{scratch_path}/{burst_id}_{temp_suffix}.vrt'
-        gdal.BuildVRT(temp_vrt_path, input_file_list, options=vrt_options_mosaic)
-        rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
-        temp_files_list.append(temp_vrt_path)
+        if len(input_file_list) == 1:
+            rdr_burst_raster = isce3.io.Raster(input_file_list[0])
+        else:
+            temp_vrt_path = f'{burst_scratch_path}/rslc_{temp_suffix}.vrt'
+            gdal.BuildVRT(temp_vrt_path, input_file_list, options=vrt_options_mosaic)
+            rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
+            temp_files_list.append(temp_vrt_path)
 
         # Generate output geocoded burst raster
-        geo_burst_filename = (f'{scratch_path}/'
-                              f'{burst_id}_{date_str}.tif')
+        geo_burst_filename = f'{burst_scratch_path}/geo_{temp_suffix}.tif'
 
         geo_burst_raster = isce3.io.Raster(
             geo_burst_filename,
@@ -341,7 +319,7 @@ def run(cfg):
                         geogrid.width, geogrid.length, geogrid.epsg)
 
         if flag_save_nlooks:
-            temp_nlooks = (f'{scratch_path}/{burst_id}_{date_str}_{pol}'
+            temp_nlooks = (f'{burst_scratch_path}/geo'
                            f'_nlooks_{temp_suffix}.tif')
             out_geo_nlooks_obj = isce3.io.Raster(
                 temp_nlooks,
@@ -353,7 +331,7 @@ def run(cfg):
             out_geo_nlooks_obj = None
 
         if flag_save_rtc:
-            temp_rtc = (f'{scratch_path}/{burst_id}_{date_str}_{pol}'
+            temp_rtc = (f'{burst_scratch_path}/geo'
                         f'_rtc_anf_{temp_suffix}.tif')
             out_geo_rtc_obj = isce3.io.Raster(
                 temp_rtc,
@@ -366,8 +344,8 @@ def run(cfg):
 
         '''
         if flag_save_dem:
-            temp_interpolated_dem = (f'{scratch_path}/'
-                           f'{burst_id}_{date_str}_{pol}_interpolated_dem.tif')
+            temp_interpolated_dem = (f'{burst_scratch_path}/geo'
+                           f'_interpolated_dem.tif')
             if (output_mode == 
                     isce3.geocode.GeocodeOutputMode.AREA_PROJECTION):
                 interpolated_dem_width = geogrid.width + 1
@@ -527,27 +505,7 @@ def run(cfg):
                                     interpolated_dem_raster =
                                         interpolated_dem_raster,
                                     dem_interp_method=dem_interp_method_enum)
-        '''
-                                     # epsg_los_and_along_track_vectors,
-                                     # interpolated_dem_raster,
-                                     # slant_range_raster,
-                                     # azimuth_time_raster,
-                                     # incidence_angle_raster,
-                                     # los_unit_vector_x_raster,
-                                     # los_unit_vector_y_raster,
-                                     # along_track_unit_vector_x_raster,
-                                     # along_track_unit_vector_y_raster,
-                                     # elevation_angle_raster,
-                                     # ground_track_velocity_raster,
-        '''
-        '''
-                                     # projection_angle_raster,
-                                     # simulated_radar_brightness_raster,
-                                     # dem_interp_method,
-                                     # args.threshold_geo2rdr,
-                                     # args.num_iter_geo2rdr,
-                                     # args.delta_range_geo2rdr)
-        '''
+
         # Flush data
         for obj in output_obj_list:
             del obj
@@ -573,11 +531,8 @@ def run(cfg):
     mosaic_kwargs['step_lon'] = dx
 
     nlooks_list = output_metadata_dict['nlooks'][1]
-    if mosaic_geobursts.check_reprojection(output_imagery_list, nlooks_list, cfg.geogrid):
-        print('Geocoded RTC backscatter images are not aligned for mosaic.')
-    else:
-        mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
-                                         geo_filename, cfg.geogrid)
+    mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
+                                     geo_filename, cfg.geogrid)
 
     output_file_list.append(geo_filename)
 

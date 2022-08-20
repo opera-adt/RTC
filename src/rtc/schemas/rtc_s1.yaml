@@ -11,7 +11,7 @@ runconfig:
            # Required. List of orbit (EOF) files
            orbit_file_path: list(str(), min=1)
            # Required. The unique burst ID to process
-           burst_id: list(str(), required=False)
+           burst_id: list(str(), min=1, required=False)
 
         dynamic_ancillary_file_group:
            # Digital Elevation Model.
@@ -22,10 +22,23 @@ runconfig:
            product_path: str()
            # Directory where SAS can write temporary data
            scratch_path: str()
+
+
+           # All files are saved within the output_directory following
+           # the scheme:
+           # {output_dir}/{product_id}.{ext}
+           # If the field product_id is left empty, the prefix "rtc_product"
+           # will be used instead
+
+           output_dir: str()
+           product_id: str()
+
+
+
            # Intermediate file name. SAS writes the output to this file.
            # PGE may rename the product according to file naming convention
-           sas_output_file: str()
-           sas_output_dir: str(required=True)
+           # sas_output_file: str()
+           # sas_output_dir: str(required=True)
 
         primary_executable:
           product_type: enum('RTC_S1')
