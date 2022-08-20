@@ -10,7 +10,7 @@ from osgeo import osr, gdal
 def check_reprojection(list_rtc_imagery: list, list_nlooks: list,
                              geogrid_mosaic) -> bool:
     '''
-    Check if the reprojection is necessary to mosaic the input list of the rasters
+    Check if the reprojection is required to mosaic the input list of the rasters
 
     Parameters:
     -----------
@@ -20,34 +20,44 @@ def check_reprojection(list_rtc_imagery: list, list_nlooks: list,
         path to the nlooks raster that corresponds to list_rtc
 
     Returns:
-    flag_rtn: bool
+    flag_requires_reprojection: bool
         True if reprojection is necessary to mosaic `list_rtc_imagery`;
         False if the images are aligned, so that no reprojection is necessary.
+        None if the mosaicking is not possible.
     '''
 
     # Accepted error in the coordinates as floating number. Used when checking the snapping.
     maxerr_coord = 1.0e-6
 
-    # Return value after this mosaicking eligibility check.
-    # It will turn to False if any of the checks below fails.
-    flag_rtn = False
+    # Return value after this reprojection requirement check.
+    # It will turn to `True` if reprojection is necessary,
+    # or `None` if mosaicking is not possible.
+    flag_requires_reprojection = False
 
     # Check the number of the raster files in list_rtc_imagery and list_nlooks
     num_rtc_imagery = len(list_rtc_imagery)
     num_nlooks = len(list_nlooks)
     if num_rtc_imagery != num_nlooks:
-        #raise ValueError(f'# RTC ({num_rtc}) and # nlooks ({num_nlooks}) does not match.')
-        print(f'# RTC ({num_rtc_imagery}) and # nlooks ({num_nlooks}) does not match.')
-        flag_rtn = True
+        print (f'# RTC ({num_rtc_imagery}) and # nlooks ({num_nlooks}) does not match.')
+        flag_requires_reprojection = None
 
     else:
-        # Variables to keep record of the geogrid-related information in the input rasters
-        str_proj_prev = None
-        spacing_x_prev = None
-        spacing_y_prev = None
-        numbands_prev = None
-        mod_x_prev = None
-        mod_y_prev = None
+        # Variables to check the image parameters the geogrid-related information in the input rasters
+
+        # Projection string of the 1st image in `list_rtc_imagery`
+        str_proj_0 = None
+
+        # x/y spacing of the 1st image in `list_rtc_imagery`
+        spacing_x_0 = None
+        spacing_y_0 = None
+
+        # Number of the bands of the 1st image in `list_rtc_imagery`
+        numbands_0 = None
+
+        # Modulo of the x and y coordinates of the 1st image in `list_rtc_imagery`
+        #  - To check if the images in the input lists are separated with multiples of the spacing
+        mod_x_0 = None
+        mod_y_0 = None
 
         for i, path_rtc_imagery in enumerate(list_rtc_imagery):
             path_nlooks = list_nlooks[i]
@@ -58,130 +68,137 @@ def check_reprojection(list_rtc_imagery: list, list_nlooks: list,
             geo_transformation_rtc_imagery = raster_rtc_imagery.GetGeoTransform()
             geo_transformation_nlooks = raster_nlooks.GetGeoTransform()
 
-            # Compare Geotransform - between RTC and corresponding nlooks
+            # Compare Geotransform - between RTC imagery and corresponding nlooks
             if geo_transformation_rtc_imagery != geo_transformation_nlooks:
                 print('GeoTransform does not match between '+\
                      f'{os.path.basename(path_rtc_imagery)} and {os.path.basename(path_nlooks)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            # Compare dimension - between RTC and corresponding nlooks
+            # Compare dimension - between RTC imagery and corresponding nlooks
             if (raster_rtc_imagery.RasterXSize != raster_nlooks.RasterXSize) or\
             (raster_rtc_imagery.RasterYSize != raster_nlooks.RasterYSize):
                 print('Dimension does not agree between '+\
                      f'{os.path.basename(path_rtc_imagery)} and {os.path.basename(path_nlooks)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            # Check number of bands - for all RTC
-            if numbands_prev is None:
-                numbands_prev = raster_rtc_imagery.RasterCount
-            elif numbands_prev != raster_rtc_imagery.RasterCount:
+            # Check number of bands - for all RTC imagery
+            if numbands_0 is None:
+                numbands_0 = raster_rtc_imagery.RasterCount
+            elif numbands_0 != raster_rtc_imagery.RasterCount:
                 print(f'Band number anomaly detected from {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = True
+                flag_requires_reprojection = None
+                break
 
-            # Check projection - for every RTC and nlooks
-            if str_proj_prev is None:
-                str_proj_prev = raster_rtc_imagery.GetProjection()
+            # Check projection - for all RTC imagery and nlooks
+            if str_proj_0 is None:
+                str_proj_0 = raster_rtc_imagery.GetProjection()
 
-            elif str_proj_prev != raster_rtc_imagery.GetProjection():
+            elif str_proj_0 != raster_rtc_imagery.GetProjection():
                 print(f'Map projection anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            elif str_proj_prev != raster_nlooks.GetProjection():
+            elif str_proj_0 != raster_nlooks.GetProjection():
                 print(f'Map projection anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
+            # spacing x - for all RTC imagery and nlooks
+            if spacing_x_0 is None:
+                spacing_x_0 = geo_transformation_rtc_imagery[1]
 
-            # spacing x - for all RTC and nlooks
-            if spacing_x_prev is None:
-                spacing_x_prev = geo_transformation_rtc_imagery[1]
-
-            elif spacing_x_prev != geo_transformation_rtc_imagery[1]:
+            elif spacing_x_0 != geo_transformation_rtc_imagery[1]:
                 print(f'spacing_x anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            elif spacing_x_prev != geo_transformation_nlooks[1]:
+            elif spacing_x_0 != geo_transformation_nlooks[1]:
                 print(f'spacing_y anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            # spacing y - for all RTC and nlooks
-            if spacing_y_prev is None:
-                spacing_y_prev = geo_transformation_rtc_imagery[5]
+            # spacing y - for all RTC imagery and nlooks
+            if spacing_y_0 is None:
+                spacing_y_0 = geo_transformation_rtc_imagery[5]
 
-            elif spacing_y_prev != geo_transformation_rtc_imagery[5]:
+            elif spacing_y_0 != geo_transformation_rtc_imagery[5]:
                 print(f'spacing_y anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            elif spacing_y_prev != geo_transformation_nlooks[5]:
+            elif spacing_y_0 != geo_transformation_nlooks[5]:
                 print(f'spacing_y anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            # snapping_x - by calculating the mod of the corner coords - for all RTC and nlooks
-            if mod_x_prev is None:
-                mod_x_prev = geo_transformation_rtc_imagery[0] % geo_transformation_rtc_imagery[1]
+            # separation_by_n_times_of_spacing_x for all RTC imagery and nlooks
+            if mod_x_0 is None:
+                mod_x_0 = geo_transformation_rtc_imagery[0] % geo_transformation_rtc_imagery[1]
 
-            elif abs(mod_x_prev - geo_transformation_rtc_imagery[0] % geo_transformation_rtc_imagery[1]) > maxerr_coord:
+            elif abs(mod_x_0 - geo_transformation_rtc_imagery[0] % geo_transformation_rtc_imagery[1]) > maxerr_coord:
                 print(f'snapping_x anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            elif abs(mod_x_prev - geo_transformation_nlooks[0] % geo_transformation_nlooks[1]) > maxerr_coord:
+            elif abs(mod_x_0 - geo_transformation_nlooks[0] % geo_transformation_nlooks[1]) > maxerr_coord:
                 print(f'snapping_x anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            # snapping_y - by calculating the mod of the corner coords - for all RTC and nlooks
-            if mod_y_prev is None:
-                mod_y_prev = geo_transformation_rtc_imagery[3] % geo_transformation_rtc_imagery[5]
+            # separation_by_n_times_of_spacing_y for all RTC imagery and nlooks
+            if mod_y_0 is None:
+                mod_y_0 = geo_transformation_rtc_imagery[3] % geo_transformation_rtc_imagery[5]
             
-            elif abs(mod_y_prev - geo_transformation_rtc_imagery[3] % geo_transformation_rtc_imagery[5]) > maxerr_coord:
+            elif abs(mod_y_0 - geo_transformation_rtc_imagery[3] % geo_transformation_rtc_imagery[5]) > maxerr_coord:
                 print(f'snapping_y anomaly detected from : {os.path.basename(path_rtc_imagery)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
-            elif abs(mod_y_prev - geo_transformation_nlooks[3] % geo_transformation_nlooks[5]) > maxerr_coord:
+            elif abs(mod_y_0 - geo_transformation_nlooks[3] % geo_transformation_nlooks[5]) > maxerr_coord:
                 print(f'snapping_y anomaly detected from : {os.path.basename(path_nlooks)}')
-                flag_rtn = True
+                flag_requires_reprojection = True
+                break
 
             raster_rtc_imagery = None
             raster_nlooks = None
 
         # `list_rtc_imagery` and `list_nooks` are looking good so far.
-        # Now check `geogrid_mosaic` with the parameters from the tests so far
+        # Now check `geogrid_mosaic` with the parameters from the previous tests
 
-        #Check spacing: Use spacing_x_prev, spacing_y_prev
-        if geogrid_mosaic is not None:
-            if spacing_x_prev != geogrid_mosaic.spacing_x:
+        #Check spacing: Use spacing_x_0, spacing_y_0
+        if (not flag_requires_reprojection) and (geogrid_mosaic is not None):
+            if spacing_x_0 != geogrid_mosaic.spacing_x:
                 print('spacing_x of the input rasters does not match with that of the mosaic geogrid')
-                flag_rtn = True
+                flag_requires_reprojection = True
 
-            if spacing_y_prev != geogrid_mosaic.spacing_y:
+            elif spacing_y_0 != geogrid_mosaic.spacing_y:
                 print('spacing_y of the input rasters does not match with that of the mosaic geogrid')
-                flag_rtn = True
+                flag_requires_reprojection = True
 
-            #Checo projection: Use str_proj_prev
-            srs_mosaic=osr.SpatialReference()
+            #Check projection: Use str_proj_0
+            srs_mosaic = osr.SpatialReference()
             srs_mosaic.ImportFromEPSG(geogrid_mosaic.epsg)
-            if str_proj_prev != srs_mosaic.ExportToWkt():
+            if str_proj_0 != srs_mosaic.ExportToWkt():
                 print('Projection of the rasters do not match with that of the mosaic geogrid')
-                flag_rtn = True
+                flag_requires_reprojection = True
 
-
-            #Check snapping: Use mod_x_prev, mod_y_prev
-            if abs(mod_y_prev - geogrid_mosaic.start_x % geogrid_mosaic.spacing_x) > maxerr_coord:
+            #Check the coord. separation in x and y: Use mod_x_0, mod_x_0
+            if abs(mod_x_0 - geogrid_mosaic.start_x % geogrid_mosaic.spacing_x) > maxerr_coord:
                 print('X coordinate of the raster corner do not align with the mosaic geogrid')
-                flag_rtn = True
+                flag_requires_reprojection = True
 
-            if abs(mod_y_prev - geogrid_mosaic.start_y % geogrid_mosaic.spacing_y) > maxerr_coord:
+            elif abs(mod_y_0 - geogrid_mosaic.start_y % geogrid_mosaic.spacing_y) > maxerr_coord:
                 print('Y coordinate of the raster corner do not align with the mosaic geogrid')
-                flag_rtn = True
+                flag_requires_reprojection = True
 
-
-
-        print('Passed the mosaic eligiblity test.')
-
-    return flag_rtn
+    return flag_requires_reprojection
 
 
 
 
-def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
+def weighted_mosaic(list_rtc_imagery, list_nlooks, geo_filename, geogrid_in=None):
     '''
     Mosaic the snapped S1 geobursts
     paremeters:
@@ -198,7 +215,7 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
 
     '''
 
-    num_raster = len(list_rtc)
+    num_raster = len(list_rtc_imagery)
     num_bands = None
     posting_x = None
     posting_y = None
@@ -206,7 +223,7 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
     list_geo_transform = np.zeros((num_raster, 6))
     list_dimension = np.zeros((num_raster, 2), dtype=np.int32)
 
-    for i, path_rtc in enumerate(list_rtc):
+    for i, path_rtc in enumerate(list_rtc_imagery):
         print(f'Loading geocoding info: {i+1} of {num_raster}')
         raster_in = gdal.Open(path_rtc, gdal.GA_ReadOnly)
         list_geo_transform[i, :] = raster_in.GetGeoTransform()
@@ -240,7 +257,7 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
         dim_mosaic = (int(np.ceil((ymin_mosaic - ymax_mosaic) / posting_y)),
                       int(np.ceil((xmax_mosaic - xmin_mosaic) / posting_x)))
 
-        with gdal.Open(list_rtc[0], gdal.GA_ReadOnly) as raster_in:
+        with gdal.Open(list_rtc_imagery[0], gdal.GA_ReadOnly) as raster_in:
             wkt_projection = raster_in.GetProjectionRef()
             #epsg_mosaic = None
 
@@ -266,7 +283,7 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
     arr_numerator = np.zeros((num_bands, dim_mosaic[0], dim_mosaic[1]))
     arr_denominator = np.zeros(dim_mosaic)
 
-    for i, path_rtc in enumerate(list_rtc):
+    for i, path_rtc in enumerate(list_rtc_imagery):
         path_nlooks = list_nlooks[i]
         print(f'Mosaicking: {i+1} of {num_raster}: {os.path.basename(path_rtc)}', end=' ')
 
@@ -300,17 +317,20 @@ def weighted_mosaic(list_rtc, list_nlooks, geo_filename, geogrid_in=None):
         raster_rtc = None
         raster_nlooks = None
 
+    # Retreive the datatype information from the first input image
+    reference_raster = gdal.Open(list_rtc_imagery[0], gdal.GA_ReadOnly)
+    datatype_mosaic = reference_raster.GetRasterBand(1).DataType
+    reference_raster = None
+
     # write out the array
     drv_out = gdal.GetDriverByName('Gtiff')
     raster_out = drv_out.Create(geo_filename,
                                 dim_mosaic[1], dim_mosaic[0], num_bands,
-                                gdal.GDT_Float32)
+                                datatype_mosaic)
 
     raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
 
-    #raster_srs_src = gdal.Open(list_rtc[0], 0)
     raster_out.SetProjection(wkt_projection)
-    #raster_srs_src = None
 
     for i_band in range(num_bands):
         arr_band_writeout = arr_numerator[i_band, :, :] / arr_denominator
