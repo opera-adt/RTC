@@ -110,8 +110,8 @@ runconfig:
               # Save the number of looks used to generate the RTC product
               save_nlooks: True
               
-              # Save the RTC area factor used to generate the RTC product
-              save_rtc: True
+              # Save the RTC area normalization factor used to generate the RTC product
+              save_rtc_anf: True
 
               # Save the interpolated DEM used to generate the RTC product
               save_dem: False

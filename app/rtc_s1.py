@@ -3,12 +3,14 @@ RTC Workflow
 '''
 
 import os
+from subprocess import call
 import time
 
 import isce3
 import journal
 import numpy as np
 from osgeo import gdal
+import h5py
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
@@ -16,6 +18,8 @@ from rtc.geogrid import snap_coord
 from rtc.geo_runconfig import GeoRunConfig
 from rtc.yaml_argparse import YamlArgparse
 from rtc import mosaic_geobursts
+
+from nisar.workflows.h5_prep import set_get_geo_info
 
 
 def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
@@ -47,9 +51,9 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
         assert(mosaic_geogrid_dict['epsg'] == geogrid.epsg)
 
 
-def _get_raster(output_dir, ds_name, dtype, shape,
-                output_file_list, output_obj_list,
-                flag_save_vector_1, extension):
+def _get_raster(output_dir, ds_name, ds_description, dtype, shape,
+                radar_grid_file_dict, output_obj_list, flag_save_vector_1,
+                extension):
     if flag_save_vector_1 is not True:
         return None
 
@@ -61,8 +65,8 @@ def _get_raster(output_dir, ds_name, dtype, shape,
         shape[0],
         dtype,
         "GTiff")
-    output_file_list.append(output_file)
     output_obj_list.append(raster_obj)
+    radar_grid_file_dict[output_file] = ds_description
     return raster_obj
 
 
@@ -76,12 +80,13 @@ def _add_output_to_output_metadata_dict(flag, key, output_dir,
                       output_image_list]
 
 
-def correction_and_calibration(burst_in: Sentinel1BurstSlc,
-                               path_slc_vrt: str,
-                               path_slc_out: str,
-                               flag_output_complex: bool = False,
-                               flag_thermal_correction: bool = True,
-                               flag_apply_abs_rad_correction: bool = True):
+def apply_slc_corrections(info_channel,
+                          burst_in: Sentinel1BurstSlc,
+                          path_slc_vrt: str,
+                          path_slc_out: str,
+                          flag_output_complex: bool = False,
+                          flag_thermal_correction: bool = True,
+                          flag_apply_abs_rad_correction: bool = True):
     '''Apply thermal correction stored in burst_in. Save the corrected signal
     back to ENVI format. Preserves the phase.'''
 
@@ -92,6 +97,7 @@ def correction_and_calibration(burst_in: Sentinel1BurstSlc,
 
     # Apply the correction
     if flag_thermal_correction:
+        info_channel.log(f'applying thermal noise correction to SLC')
         corrected_image = np.abs(arr_slc_from) ** 2 - burst_in.thermal_noise_lut
         min_backscatter = 0
         max_backscatter = None
@@ -100,6 +106,8 @@ def correction_and_calibration(burst_in: Sentinel1BurstSlc,
     else:
         corrected_image=np.abs(arr_slc_from) ** 2
 
+    if flag_apply_abs_rad_correction:
+        info_channel.log(f'applying absolute radiometric correction to SLC')
     if flag_output_complex:
         factor_mag = np.sqrt(corrected_image) / np.abs(arr_slc_from)
         factor_mag[np.isnan(factor_mag)] = 0.0
@@ -188,7 +196,7 @@ def run(cfg):
     flag_save_range_slope_angle = \
         geocode_namespace.save_range_slope_angle
     flag_save_nlooks = geocode_namespace.save_nlooks
-    flag_save_rtc = geocode_namespace.save_rtc
+    flag_save_rtc_anf = geocode_namespace.save_rtc_anf
     flag_save_dem = geocode_namespace.save_dem
 
     flag_call_radar_grid = (flag_save_incidence_angle or
@@ -203,6 +211,16 @@ def run(cfg):
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
     rtc_min_value_db = rtc_namespace.rtc_min_value_db
     rtc_upsampling = rtc_namespace.dem_upsampling
+    if (flag_apply_rtc and output_terrain_radiometry ==
+            isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
+        output_radiometry_str = "radar backscatter sigma0"
+    elif (flag_apply_rtc and output_terrain_radiometry ==
+            isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT):
+        output_radiometry_str = 'radar backscatter gamma0'
+    elif input_terrain_radiometry == isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT:
+        output_radiometry_str = 'radar backscatter beta0'
+    else:
+        output_radiometry_str = 'radar backscatter sigma0'
 
     # Common initializations
     dem_raster = isce3.io.Raster(cfg.dem)
@@ -222,10 +240,10 @@ def run(cfg):
     output_metadata_dict = {}
 
     _add_output_to_output_metadata_dict(
-        flag_save_nlooks, 'nlooks', output_dir, output_metadata_dict, 
+        flag_save_nlooks, 'nlooks', output_dir, output_metadata_dict,
         product_id, extension)
     _add_output_to_output_metadata_dict(
-        flag_save_rtc, 'rtc', output_dir, output_metadata_dict,
+        flag_save_rtc_anf, 'rtc', output_dir, output_metadata_dict,
         product_id, extension)
 
     mosaic_geogrid_dict = {}
@@ -240,14 +258,16 @@ def run(cfg):
 
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
+        
+        # ===========================================================
+        # start burst processing
+
+        t_burst_start = time.time()
+        info_channel.log(f'processing burst: {burst_id} ({burst_index+1}/'
+                         f'{n_bursts})')
 
         pols = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pols[0]]
-
-        t_burst_start = time.time()
-
-        info_channel.log(f'processing burst: {burst_id} ({burst_index+1}/'
-                         f'{n_bursts})')
 
         flag_bursts_files_are_temporary = \
             flag_hdf5 or (flag_mosaic and not n_bursts == 1)
@@ -261,7 +281,6 @@ def run(cfg):
             bursts_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(bursts_output_dir, exist_ok=True)
         
-
         geogrid = cfg.geogrids[burst_id]
 
         # snap coordinates
@@ -273,6 +292,7 @@ def run(cfg):
         # update mosaic boundaries
         _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
 
+        info_channel.log(f'reading burst SLC')
         radar_grid = burst.as_isce3_radargrid()
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
@@ -284,16 +304,20 @@ def run(cfg):
             mosaic_geogrid_dict['lookside'] = radar_grid.lookside
 
         input_file_list = []
+        pol_list = list(burst_pol_dict.keys())
         for pol, burst_pol in burst_pol_dict.items():
             temp_slc_path = \
                 f'{burst_scratch_path}/rslc_{pol}_{temp_suffix}.vrt'
-            temp_slc_corrected_path = \
-                f'{burst_scratch_path}/rslc_{pol}_corrected_{temp_suffix}.{extension}'
+            temp_slc_corrected_path = (
+                f'{burst_scratch_path}/rslc_{pol}_corrected_{temp_suffix}'
+                f'.{extension}')
             burst_pol.slc_to_vrt_file(temp_slc_path)
 
-            if flag_apply_thermal_noise_correction or flag_apply_abs_rad_correction:
-                correction_and_calibration(
-                    burst_pol, temp_slc_path, temp_slc_corrected_path,
+            if (flag_apply_thermal_noise_correction or
+                    flag_apply_abs_rad_correction):
+                apply_slc_corrections(
+                    info_channel, burst_pol, temp_slc_path,
+                    temp_slc_corrected_path,
                     flag_output_complex=False,
                     flag_thermal_correction=flag_apply_thermal_noise_correction,
                     flag_apply_abs_rad_correction=True)
@@ -360,27 +384,36 @@ def run(cfg):
                         geogrid.width, geogrid.length, geogrid.epsg)
 
         if flag_save_nlooks:
-            temp_nlooks = (f'{burst_scratch_path}/geo'
-                           f'_nlooks_{temp_suffix}.{extension}')
+            if flag_bursts_files_are_temporary:
+                nlooks_file = (f'{bursts_output_dir}/{product_id}'
+                               f'_nlooks_{temp_suffix}.{extension}')
+                temp_files_list.append(nlooks_file)
+            else:
+                nlooks_file = (f'{bursts_output_dir}/{product_id}'
+                               f'_nlooks.{extension}')
+                output_file_list.append(nlooks_file)
             out_geo_nlooks_obj = isce3.io.Raster(
-                temp_nlooks,
-                geogrid.width, geogrid.length, 1,
+                nlooks_file, geogrid.width, geogrid.length, 1,
                 gdal.GDT_Float32, output_raster_format)
-            temp_files_list.append(temp_nlooks)
         else:
-            temp_nlooks = None
+            nlooks_file = None
             out_geo_nlooks_obj = None
 
-        if flag_save_rtc:
-            temp_rtc = (f'{burst_scratch_path}/geo'
-                        f'_rtc_anf_{temp_suffix}.{extension}')
+        if flag_save_rtc_anf:
+            if flag_bursts_files_are_temporary:
+                rtc_anf_file = (f'{bursts_output_dir}/{product_id}'
+                               f'_rtc_anf_{temp_suffix}.{extension}')
+                temp_files_list.append(rtc_anf_file)
+            else:
+                rtc_anf_file = (f'{bursts_output_dir}/{product_id}'
+                               f'_rtc_anf.{extension}')
+                output_file_list.append(rtc_anf_file)
             out_geo_rtc_obj = isce3.io.Raster(
-                temp_rtc,
+                rtc_anf_file,
                 geogrid.width, geogrid.length, 1,
                 gdal.GDT_Float32, output_raster_format)
-            temp_files_list.append(temp_rtc)
         else:
-            temp_rtc = None
+            rtc_anf_file = None
             out_geo_rtc_obj = None
 
         # Extract burst boundaries and create sub_swaths object to mask
@@ -429,19 +462,23 @@ def run(cfg):
                         sub_swaths=sub_swaths)
 
         del geo_burst_raster
-        info_channel.log(f'file saved: {geo_burst_filename}')
+        if not flag_bursts_files_are_temporary:
+            info_channel.log(f'file saved: {geo_burst_filename}')
         output_imagery_list.append(geo_burst_filename)
 
         if flag_save_nlooks:
             del out_geo_nlooks_obj
-            info_channel.log(f'file saved: {temp_nlooks}')
-            output_metadata_dict['nlooks'][1].append(temp_nlooks)
+            if not flag_bursts_files_are_temporary:
+                info_channel.log(f'file saved: {nlooks_file}')
+            output_metadata_dict['nlooks'][1].append(nlooks_file)
     
-        if flag_save_rtc:
+        if flag_save_rtc_anf:
             del out_geo_rtc_obj
-            info_channel.log(f'file saved: {temp_rtc}')
-            output_metadata_dict['rtc'][1].append(temp_rtc)
+            if not flag_bursts_files_are_temporary:
+                info_channel.log(f'file saved: {rtc_anf_file}')
+            output_metadata_dict['rtc'][1].append(rtc_anf_file)
 
+        radar_grid_file_dict = {}
         if flag_call_radar_grid and not flag_mosaic:
             get_radar_grid(
                 geogrid, info_channel, dem_interp_method_enum, product_id,
@@ -449,23 +486,47 @@ def run(cfg):
                 flag_save_local_inc_angle, flag_save_projection_angle,
                 flag_save_simulated_radar_brightness,
                 flag_save_range_slope_angle, flag_save_dem,
-                dem_raster, output_file_list, mosaic_geogrid_dict, orbit)
+                dem_raster, radar_grid_file_dict,
+                mosaic_geogrid_dict, orbit,
+                verbose = not flag_bursts_files_are_temporary)
+            if flag_hdf5:
+                # files are temporary
+                temp_files_list += list(radar_grid_file_dict.values())
+            else:
+                output_file_list += list(radar_grid_file_dict.values())
+ 
+        if flag_hdf5 and not flag_mosaic:
+            output_hdf5_file = f'{output_dir}/{burst_id}/{product_id}.h5'
+            save_hdf5_file(
+                info_channel, output_hdf5_file, flag_apply_rtc,
+                clip_max, clip_min, output_radiometry_str, output_file_list,
+                geogrid, pol_list, geo_burst_filename, nlooks_file,
+                rtc_anf_file, radar_grid_file_dict)
 
-        if flag_hdf5:
-            print('save HDF5 (burst): ', output_file_list)
 
         t_burst_end = time.time()
         info_channel.log(
             f'elapsed time (burst): {t_burst_end - t_burst_start}')
 
+        # end burst processing
+        # ===========================================================
+
     if flag_call_radar_grid and flag_mosaic:
+        radar_grid_file_dict = {}
+
         get_radar_grid(cfg.geogrid, info_channel, dem_interp_method_enum, product_id,
                        output_dir, extension, flag_save_incidence_angle,
                        flag_save_local_inc_angle, flag_save_projection_angle,
                        flag_save_simulated_radar_brightness,
                        flag_save_range_slope_angle, flag_save_dem,
-                       dem_raster, output_file_list, mosaic_geogrid_dict,
-                       orbit)
+                       dem_raster, radar_grid_file_dict,
+                       mosaic_geogrid_dict,
+                       orbit, verbose = not flag_hdf5)
+        if flag_hdf5:
+            # files are temporary
+            temp_files_list += list(radar_grid_file_dict.values())
+        else:
+            output_file_list += list(radar_grid_file_dict.values())
 
     if flag_mosaic:
         # mosaic sub-bursts
@@ -476,7 +537,10 @@ def run(cfg):
         mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
                                      geo_filename, cfg.geogrid, verbose=False)
 
-        output_file_list.append(geo_filename)
+        if flag_hdf5:
+            temp_files_list.append(geo_filename)
+        else:
+            output_file_list.append(geo_filename)
 
         # mosaic other bands
         for key in output_metadata_dict.keys():
@@ -485,7 +549,26 @@ def run(cfg):
             mosaic_geobursts.weighted_mosaic(input_files, nlooks_list,
                                              output_file,
                                              cfg.geogrid, verbose=False)
-            output_file_list.append(output_file)
+            if flag_hdf5:
+                temp_files_list.append(output_file)
+            else:
+                output_file_list.append(output_file)
+
+        if flag_hdf5:
+            if flag_save_nlooks:
+                nlooks_mosaic_file = output_metadata_dict['nlooks'][0]
+            else:
+                nlooks_mosaic_file = None
+            if flag_save_rtc_anf:
+                rtc_anf_mosaic_file = output_metadata_dict['rtc'][0]
+            else:
+                rtc_anf_mosaic_file = None
+            output_hdf5_file = f'{output_dir}/{product_id}.h5'
+            save_hdf5_file(info_channel, output_hdf5_file, flag_apply_rtc,
+                           clip_max, clip_min, output_radiometry_str,
+                           output_file_list, cfg.geogrid, pol_list,
+                           geo_filename, nlooks_mosaic_file,
+                           rtc_anf_mosaic_file, radar_grid_file_dict)
 
     info_channel.log('removing temporary files:')
     for filename in temp_files_list:
@@ -498,11 +581,176 @@ def run(cfg):
     for filename in output_file_list:
         info_channel.log(f'    {filename}')
 
-    if flag_hdf5:
-        print('save HDF5 (mosaic): ', output_file_list)
 
     t_end = time.time()
     info_channel.log(f'elapsed time: {t_end - t_start}')
+
+
+def save_hdf5_file(info_channel, output_hdf5_file, flag_apply_rtc, clip_max,
+                   clip_min, output_radiometry_str,
+                   output_file_list, geogrid, pol_list, geo_burst_filename,
+                   nlooks_file, rtc_anf_file, radar_grid_file_dict):
+
+    hdf5_obj = h5py.File(output_hdf5_file, 'w')
+    hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
+    root_ds = f'/science/CSAR/RTC/grids/frequencyA'
+
+    h5_ds = os.path.join(root_ds, 'listOfPolarizations')
+    if h5_ds in hdf5_obj:
+        del hdf5_obj[h5_ds]
+    pol_list_s2 = np.array(pol_list, dtype='S2')
+    dset = hdf5_obj.create_dataset(h5_ds, data=pol_list_s2)
+    dset.attrs['description'] = np.string_(
+                'List of processed polarization layers')
+
+    h5_ds = os.path.join(root_ds, 'radiometricTerrainCorrectionFlag')
+    if h5_ds in hdf5_obj:
+        del hdf5_obj[h5_ds]
+    dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
+
+    # save geogrid coordinates
+    yds, xds = set_get_geo_info(hdf5_obj, root_ds, geogrid)
+
+    # save RTC imagery
+    _save_hdf5_dataset(geo_burst_filename, hdf5_obj, root_ds,
+                       yds, xds, pol_list,
+                       long_name=output_radiometry_str,
+                       units='',
+                       valid_min=clip_min,
+                       valid_max=clip_max)
+    # save nlooks
+    if nlooks_file:
+        _save_hdf5_dataset(nlooks_file, hdf5_obj, root_ds,
+                           yds, xds, 'numberOfLooks',
+                           long_name = 'number of looks',
+                           units = '',
+                           valid_min = 0)
+
+    # save rtc
+    if rtc_anf_file:
+        _save_hdf5_dataset(rtc_anf_file, hdf5_obj, root_ds,
+                           yds, xds, 'areaNormalizationFactor',
+                           long_name = 'RTC area factor',
+                           units = '',
+                           valid_min = 0)
+
+    for filename, descr in radar_grid_file_dict.items():
+         _save_hdf5_dataset(filename, hdf5_obj, root_ds, yds, xds, descr,
+                            long_name = '', units = '')
+
+    info_channel.log(f'file saved: {output_hdf5_file}')
+    output_file_list.append(output_hdf5_file)
+
+
+def _save_hdf5_dataset(ds_filename, h5py_obj, root_path,
+                       yds, xds, ds_name, standard_name=None,
+                       long_name=None, units=None, fill_value=None,
+                       valid_min=None, valid_max=None, compute_stats=True):
+    '''
+    write temporary raster file contents to HDF5
+
+    Parameters
+    ----------
+    ds_filename : string
+        source raster file
+    h5py_obj : h5py object
+        h5py object of destination HDF5
+    root_path : string
+        path of output raster data
+    yds : h5py dataset object
+        y-axis dataset
+    xds : h5py dataset object
+        x-axis dataset
+    ds_name : string
+        name of dataset to be added to root_path
+    standard_name : string, optional
+    long_name : string, optional
+    units : string, optional
+    fill_value : float, optional
+    valid_min : float, optional
+    valid_max : float, optional
+    '''
+    if not os.path.isfile(ds_filename):
+        return
+
+    stats_real_imag_vector = None
+    stats_vector = None
+    if compute_stats:
+        raster = isce3.io.Raster(ds_filename)
+
+        if (raster.datatype() == gdal.GDT_CFloat32 or
+                raster.datatype() == gdal.GDT_CFloat64):
+            stats_real_imag_vector = \
+                isce3.math.compute_raster_stats_real_imag(raster)
+        elif raster.datatype() == gdal.GDT_Float64:
+            stats_vector = isce3.math.compute_raster_stats_float64(raster)
+        else:
+            stats_vector = isce3.math.compute_raster_stats_float32(raster)
+
+    gdal_ds = gdal.Open(ds_filename)
+    nbands = gdal_ds.RasterCount
+    for band in range(nbands):
+        data = gdal_ds.GetRasterBand(band+1).ReadAsArray()
+
+        if isinstance(ds_name, str):
+            h5_ds = os.path.join(root_path, ds_name)
+        else:
+            h5_ds = os.path.join(root_path, ds_name[band])
+
+        if h5_ds in h5py_obj:
+            del h5py_obj[h5_ds]
+
+        dset = h5py_obj.create_dataset(h5_ds, data=data)
+        dset.dims[0].attach_scale(yds)
+        dset.dims[1].attach_scale(xds)
+        dset.attrs['grid_mapping'] = np.string_("projection")
+
+        if standard_name is not None:
+            dset.attrs['standard_name'] = np.string_(standard_name)
+
+        if long_name is not None:
+            dset.attrs['long_name'] = np.string_(long_name)
+
+        if units is not None:
+            dset.attrs['units'] = np.string_(units)
+
+        if fill_value is not None:
+            dset.attrs.create('_FillValue', data=fill_value)
+        elif 'cfloat' in gdal.GetDataTypeName(raster.datatype()).lower():
+            dset.attrs.create('_FillValue', data=np.nan + 1j * np.nan)
+        elif 'float' in gdal.GetDataTypeName(raster.datatype()).lower():
+            dset.attrs.create('_FillValue', data=np.nan)
+
+        if stats_vector is not None:
+            stats_obj = stats_vector[band]
+            dset.attrs.create('min_value', data=stats_obj.min)
+            dset.attrs.create('mean_value', data=stats_obj.mean)
+            dset.attrs.create('max_value', data=stats_obj.max)
+            dset.attrs.create('sample_standard_deviation', data=stats_obj.sample_stddev)
+
+        elif stats_real_imag_vector is not None:
+
+            stats_obj = stats_real_imag_vector[band]
+            dset.attrs.create('min_real_value', data=stats_obj.min_real)
+            dset.attrs.create('mean_real_value', data=stats_obj.mean_real)
+            dset.attrs.create('max_real_value', data=stats_obj.max_real)
+            dset.attrs.create('sample_standard_deviation_real',
+                              data=stats_obj.sample_stddev_real)
+
+            dset.attrs.create('min_imag_value', data=stats_obj.min_imag)
+            dset.attrs.create('mean_imag_value', data=stats_obj.mean_imag)
+            dset.attrs.create('max_imag_value', data=stats_obj.max_imag)
+            dset.attrs.create('sample_standard_deviation_imag',
+                              data=stats_obj.sample_stddev_imag)
+
+        if valid_min is not None:
+            dset.attrs.create('valid_min', data=valid_min)
+
+        if valid_max is not None:
+            dset.attrs.create('valid_max', data=valid_max)
+
+    del gdal_ds
+
 
 
 def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
@@ -510,34 +758,38 @@ def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
                    flag_save_local_inc_angle, flag_save_projection_angle,
                    flag_save_simulated_radar_brightness,
                    flag_save_range_slope_angle, flag_save_dem, dem_raster,
-                   output_file_list, mosaic_geogrid_dict, orbit):
+                   radar_grid_file_dict, mosaic_geogrid_dict, orbit,
+                   verbose = True):
     output_obj_list = []
     layers_nbands = 1
     shape = [layers_nbands, geogrid.length, geogrid.width]
 
     incidence_angle_raster = _get_raster(
-            output_dir, f'{product_id}_incidence_angle', gdal.GDT_Float32,
-            shape, output_file_list, output_obj_list,
-            flag_save_incidence_angle, extension)
+            output_dir, f'{product_id}_incidence_angle',
+            'incidenceAngle', gdal.GDT_Float32, shape, radar_grid_file_dict,
+            output_obj_list, flag_save_incidence_angle, extension)
     local_incidence_angle_raster = _get_raster(
             output_dir, f'{product_id}_local_incidence_angle',
-            gdal.GDT_Float32, shape, output_file_list, output_obj_list,
-            flag_save_local_inc_angle, extension)
+            'localIncidenceAngle', gdal.GDT_Float32, shape,
+            radar_grid_file_dict, output_obj_list, flag_save_local_inc_angle,
+            extension)
     projection_angle_raster = _get_raster(
-            output_dir, f'{product_id}_projection_angle', gdal.GDT_Float32,
-            shape, output_file_list, output_obj_list,
-            flag_save_projection_angle, extension)
+            output_dir, f'{product_id}_projection_angle',
+            'projectionAngle', gdal.GDT_Float32, shape, radar_grid_file_dict,
+            output_obj_list, flag_save_projection_angle, extension)
     simulated_radar_brightness_raster = _get_raster(
             output_dir, f'{product_id}_simulated_radar_brightness',
-            gdal.GDT_Float32, shape, output_file_list, output_obj_list,
+            'areaNormalizationFactorPsi', gdal.GDT_Float32, shape,
+            radar_grid_file_dict, output_obj_list, 
             flag_save_simulated_radar_brightness, extension)
     range_slope_angle_raster = _get_raster(
             output_dir, f'{product_id}_range_slope_angle',
-            gdal.GDT_Float32, shape, output_file_list, output_obj_list,
-            flag_save_range_slope_angle, extension)
+            'rangeSlope', gdal.GDT_Float32, shape, radar_grid_file_dict,
+            output_obj_list, flag_save_range_slope_angle, extension)
     interpolated_dem_raster = _get_raster(
-            output_dir, f'{product_id}_interpolated_dem', gdal.GDT_Float32,
-            shape, output_file_list, output_obj_list, flag_save_dem, extension)
+            output_dir, f'{product_id}_interpolated_dem',
+            'interpolatedDem', gdal.GDT_Float32, shape, radar_grid_file_dict,
+            output_obj_list, flag_save_dem, extension)
 
     # TODO review this (Doppler)!!!
     # native_doppler = burst.doppler.lut2d
@@ -571,6 +823,9 @@ def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
     # Flush data
     for obj in output_obj_list:
         del obj
+
+    if not verbose:
+        return
 
     for filename in output_file_list:
         info_channel.log(f'file saved: {filename}')

@@ -124,8 +124,8 @@ geocoding_options:
     # Save the number of looks used to generate the RTC product
     save_nlooks: bool(required=False)
 
-    # Save the RTC area factor used to generate the RTC product
-    save_rtc: bool(required=False)
+    # Save the RTC area normalization factor used to generate the RTC product
+    save_rtc_anf: bool(required=False)
 
     # Save the interpolated DEM used to generate the RTC product
     save_dem: bool(required=False)
@@ -140,7 +140,7 @@ geocoding_options:
     upsample_radargrid: bool(required=False)
 
     # Format of output file
-    output_format: enum('ENVI', 'GTiff', 'COG', required=False)
+    output_format: enum('HDF5', 'ENVI', 'GTiff', 'COG', required=False)
 
     # Product EPSG code. Same as DEM if not provided
     output_epsg: int(min=1024, max=32767, required=False)
