@@ -1,0 +1,27 @@
+name: isce3_rtc
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.9,<3.10
+  - cmake
+  - eigen
+  - fftw
+  - gdal
+  - gmock
+  - gtest
+  - gcc_linux-64 < 10
+  - gxx_linux-64 < 10
+  - gfortran_linux-64
+  - h5py
+  - hdf5
+  - libgcc-ng
+  - libstdcxx-ng
+  - numpy
+  - pybind11
+  - pyre
+  - pytest
+  - cython
+  - ruamel.yaml
+  - scipy
+  - shapely
+  - yamale
