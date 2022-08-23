@@ -498,7 +498,10 @@ def run(cfg):
                 output_file_list += list(radar_grid_file_dict.values())
  
         if flag_hdf5 and not flag_mosaic:
-            output_hdf5_file = f'{output_dir}/{burst_id}/{product_id}.h5'
+            hdf5_file_output_dir = os.path.join(output_dir, burst_id)
+            os.makedirs(hdf5_file_output_dir, exist_ok=True)
+            output_hdf5_file =  os.path.join(hdf5_file_output_dir,
+                                             f'{product_id}.h5')
             save_hdf5_file(
                 info_channel, output_hdf5_file, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str, output_file_list,
@@ -565,7 +568,7 @@ def run(cfg):
                 rtc_anf_mosaic_file = output_metadata_dict['rtc'][0]
             else:
                 rtc_anf_mosaic_file = None
-            output_hdf5_file = f'{output_dir}/{product_id}.h5'
+            output_hdf5_file = os.path.join(output_dir, f'{product_id}.h5')
             save_hdf5_file(info_channel, output_hdf5_file, flag_apply_rtc,
                            clip_max, clip_min, output_radiometry_str,
                            output_file_list, cfg.geogrid, pol_list,
