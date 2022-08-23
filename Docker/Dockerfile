@@ -54,7 +54,7 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/insta
 
 RUN cd ${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/build &&\
     cmake -DCMAKE_INSTALL_PREFIX=${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/install -DWITH_CUDA=OFF ${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/src/isce3 &&\
-    make -j16 VERBOSE=ON &&\
+    make -j32 VERBOSE=ON &&\
     make install &&\
     cd /home/rtc_user/miniconda3/envs/isce3_rtc/lib &&\
     ln -s $ISCEHOME/tools/isce_${POSTFIX_ISCE3}/install/lib64/libisce3.so &&\
@@ -70,6 +70,7 @@ RUN echo "Installing OPERA s1-reader and RTC" &&\
     python -m pip install ./s1-reader &&\
     cd $HOME/OPERA &&\
     pip install ./RTC &&\
+    chmod -R 755 /home/rtc_user &&\
     mkdir /home/rtc_user/scratch &&\
     echo 'conda activate isce3_rtc' >>/home/rtc_user/.bashrc
 
