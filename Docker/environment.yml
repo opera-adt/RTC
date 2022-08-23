@@ -25,3 +25,4 @@ dependencies:
   - scipy
   - shapely
   - yamale
+  - backoff
