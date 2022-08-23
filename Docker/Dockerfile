@@ -70,6 +70,7 @@ RUN echo "Installing OPERA s1-reader and RTC" &&\
     python -m pip install ./s1-reader &&\
     cd $HOME/OPERA &&\
     pip install ./RTC &&\
+    chmod -R 755 /home/rtc_user &&\
     mkdir /home/rtc_user/scratch &&\
     echo 'conda activate isce3_rtc' >>/home/rtc_user/.bashrc
 
