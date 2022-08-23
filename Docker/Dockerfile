@@ -13,8 +13,6 @@ COPY . /home/rtc_user/OPERA/RTC
 RUN chown -R rtc_user:rtc_user /home/rtc_user/OPERA
 USER rtc_user 
 
-
-
 ENV CONDA_PREFIX=/home/rtc_user/miniconda3
 
 WORKDIR /home/rtc_user
@@ -27,7 +25,6 @@ ENV POSTFIX_ISCE3="rtc2"
 ENV ISCEHOME=/home/rtc_user
 
 RUN ${CONDA_PREFIX}/bin/conda init bash
-
 
 #Install ISCE3 from source code
 RUN echo "Installing Conda environment for ISCE3" &&\
@@ -50,14 +47,14 @@ ENV CC=${CONDA_PREFIX}/envs/isce3_rtc/bin/x86_64-conda-linux-gnu-gcc
 ENV CXX=${CONDA_PREFIX}/envs/isce3_rtc/bin/x86_64-conda-linux-gnu-g++
 ENV PATH=$PATH:${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/install/bin
 ENV PYTHONPATH=$PYTHONPATH:${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/install/packages
-ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/install/lib64
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/install/lib
 
 RUN cd ${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/build &&\
     cmake -DCMAKE_INSTALL_PREFIX=${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/install -DWITH_CUDA=OFF ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/src/isce3 &&\
     make -j16 VERBOSE=ON &&\
     make install &&\
     cd /home/rtc_user/miniconda3/envs/isce3_rtc/lib &&\
-    #ln -s ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/install/lib64/libisce3.so &&\
+    ln -s ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/install/lib/libisce3.so &&\
     echo 'ISCE3 installation successful!'
 
 RUN echo "Installing OPERA s1-reader and RTC" &&\
