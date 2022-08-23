@@ -1,8 +1,3 @@
-##### General instruction: ######
-#docker build -f ./Dockerfile -t opera-adt/rtc:interface . #To build the docker image
-
-#TODO Try to integrate environment.yml and requirements.txt
-
 FROM ubuntu:22.04
 
 LABEL author="OPERA ADT" \
@@ -13,9 +8,6 @@ RUN apt-get -y update &&\
     apt-get -y install curl git zip make &&\
     adduser --disabled-password rtc_user
 
-#COPY Docker/environment.yml /home/rtc_user/
-#COPY Docker/requirements.txt /home/rtc_user/
-#USER root
 RUN mkdir -p /home/rtc_user/OPERA/RTC
 COPY . /home/rtc_user/OPERA/RTC
 RUN chown -R rtc_user:rtc_user /home/rtc_user/OPERA
@@ -31,7 +23,6 @@ RUN curl -sSL https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64
     rm ${HOME}/miniconda.sh
 
 ENV PATH=${CONDA_PREFIX}/bin:${PATH}
-#ENV LD_LIBRARY_PATH=${CONDA_PREFIX}/lib:$LD_LIBRARY_PATH
 ENV POSTFIX_ISCE3="rtc2"
 ENV ISCEHOME=/home/rtc_user
 
