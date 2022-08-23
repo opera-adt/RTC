@@ -35,11 +35,11 @@ RUN echo "Installing Conda environment for ISCE3" &&\
     mkdir -p ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/build &&\
     mkdir -p ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/install &&\
     cd ${ISCEHOME} &&\
-    curl -sSL https://github.com/gshiroma/isce3/archive/refs/heads/opera_rtc.zip -o isce3_compass_rtc_workflow.zip &&\
-    unzip -d ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3} isce3_compass_rtc_workflow.zip &&\
+    curl -sSL https://github.com/gshiroma/isce3/archive/refs/heads/opera_rtc.zip -o isce3_opera_rtc.zip &&\
+    unzip -d ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3} isce3_opera_rtc.zip &&\
     cd ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/src &&\
     ln -s ../isce3-opera_rtc isce3 &&\
-    rm ${ISCEHOME}/isce3_compass_rtc_workflow.zip &&\
+    rm ${ISCEHOME}/isce3_opera_rtc.zip &&\
     cd ${HOME} &&\
     conda env create --file /home/rtc_user/OPERA/RTC/Docker/environment.yml &&\
     cd ${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/src
