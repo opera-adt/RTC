@@ -21,7 +21,7 @@ RUN curl -sSL https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64
     rm ${HOME}/miniconda.sh
 
 ENV PATH=${CONDA_PREFIX}/bin:${PATH}
-ENV POSTFIX_ISCE3="rtc2"
+ENV POSTFIX_ISCE3="rtc"
 ENV ISCEHOME=/home/rtc_user
 
 RUN ${CONDA_PREFIX}/bin/conda init bash
