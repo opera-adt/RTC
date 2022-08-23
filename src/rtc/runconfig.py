@@ -132,7 +132,6 @@ def validate_group_dict(group_cfg: dict, workflow_name) -> None:
     product_path_group = group_cfg['product_path_group']
     helpers.check_write_dir(product_path_group['product_path'])
     helpers.check_write_dir(product_path_group['scratch_path'])
-    helpers.check_write_dir(product_path_group['product_id'])
 
 
 def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
