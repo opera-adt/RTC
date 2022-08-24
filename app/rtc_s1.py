@@ -657,8 +657,7 @@ def populate_identification_group(h5py_obj: h5py.File,
                                   root_path: str = '/science/CSAR/identification'):
     'DOCSTRING PLEASE.'
 
-    #Manifests the field names to populate and its datatype
-    #Also extract the data to populate
+    #Manifests the field names. Also extract the data to populate
     dict_field_and_data = {
         'absoluteOrbitNumber' : int(burst_in.burst_id.split('_')[0][1:]),
         'trackNumber' : int(burst_in.burst_id.split('_')[1]),
