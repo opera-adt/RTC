@@ -665,7 +665,7 @@ def populate_identification_group(h5py_obj: h5py.File,
         #'frameNumber' : int,  # TBD
         'missionId' : burst_in.platform_id
     }
-    #TODO Extend `dict_field_identification` for other fields in identification group
+    #TODO Extend `dict_field_and_data` above for other fields in identification group
 
     for fieldname, data in dict_field_and_data.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
