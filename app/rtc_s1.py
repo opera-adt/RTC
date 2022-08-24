@@ -674,7 +674,7 @@ def populate_identification_group(h5py_obj: h5py.File,
         else:
             dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data)
 
-        # TODO Add the description, etc.
+        # TODO Add the description, etc. into the dset
 
 
 
