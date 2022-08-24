@@ -496,7 +496,7 @@ def run(cfg):
                 temp_files_list += list(radar_grid_file_dict.values())
             else:
                 output_file_list += list(radar_grid_file_dict.values())
- 
+
         if flag_hdf5 and not flag_mosaic:
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
@@ -506,7 +506,7 @@ def run(cfg):
                 info_channel, output_hdf5_file, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str, output_file_list,
                 geogrid, pol_list, geo_burst_filename, nlooks_file,
-                rtc_anf_file, radar_grid_file_dict)
+                rtc_anf_file, radar_grid_file_dict, burst, cfg)
 
 
         t_burst_end = time.time()
@@ -594,10 +594,14 @@ def run(cfg):
 def save_hdf5_file(info_channel, output_hdf5_file, flag_apply_rtc, clip_max,
                    clip_min, output_radiometry_str,
                    output_file_list, geogrid, pol_list, geo_burst_filename,
-                   nlooks_file, rtc_anf_file, radar_grid_file_dict):
+                   nlooks_file, rtc_anf_file, radar_grid_file_dict,
+                   burst=None, cfg=None):
 
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
+
+    populate_identification_group(hdf5_obj, burst, cfg)
+
     root_ds = f'/science/CSAR/RTC/grids/frequencyA'
 
     h5_ds = os.path.join(root_ds, 'listOfPolarizations')
@@ -645,6 +649,35 @@ def save_hdf5_file(info_channel, output_hdf5_file, flag_apply_rtc, clip_max,
 
     info_channel.log(f'file saved: {output_hdf5_file}')
     output_file_list.append(output_hdf5_file)
+
+
+def populate_identification_group(h5py_obj: h5py.File,
+                                  burst_in: Sentinel1BurstSlc = None,
+                                  cfg_in: GeoRunConfig = None,
+                                  root_path: str = '/science/CSAR/identification'):
+    'DOCSTRING PLEASE.'
+
+    #Manifests the field names to populate and its datatype
+    #Also extract the data to populate
+    dict_field_and_data = {
+        'absoluteOrbitNumber' : int(burst_in.burst_id.split('_')[0][1:]),
+        'trackNumber' : int(burst_in.burst_id.split('_')[1]),
+        #'frameNumber' : int,  # TBD
+        'missionId' : burst_in.platform_id
+    }
+    #TODO Extend `dict_field_identification` for other fields in identification group
+
+    for fieldname, data in dict_field_and_data.items():
+        path_dataset_in_h5 = os.path.join(root_path, fieldname)
+        if data is str:
+            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data))
+        else:
+            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data)
+
+        # TODO Add the description, etc.
+
+
+
 
 
 def _save_hdf5_dataset(ds_filename, h5py_obj, root_path,
