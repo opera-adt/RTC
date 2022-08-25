@@ -182,7 +182,7 @@ def run(cfg):
         extension = 'tif'
     else:
         extension = 'bin'
-    
+
     # unpack geocode run parameters
     geocode_namespace = cfg.groups.processing.geocoding
     geocode_algorithm = geocode_namespace.algorithm_type
@@ -500,7 +500,7 @@ def run(cfg):
                 temp_files_list += list(radar_grid_file_dict.values())
             else:
                 output_file_list += list(radar_grid_file_dict.values())
- 
+
         if flag_hdf5 and not flag_mosaic:
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
@@ -510,7 +510,7 @@ def run(cfg):
                 info_channel, output_hdf5_file, orbit, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str, output_file_list,
                 geogrid, pol_list, geo_burst_filename, nlooks_file,
-                rtc_anf_file, radar_grid_file_dict)
+                rtc_anf_file, radar_grid_file_dict, burst, cfg)
 
 
         t_burst_end = time.time()
@@ -599,10 +599,14 @@ def run(cfg):
 def save_hdf5_file(info_channel, output_hdf5_file, orbit, flag_apply_rtc, clip_max,
                    clip_min, output_radiometry_str,
                    output_file_list, geogrid, pol_list, geo_burst_filename,
-                   nlooks_file, rtc_anf_file, radar_grid_file_dict):
+                   nlooks_file, rtc_anf_file, radar_grid_file_dict,
+                   burst=None, cfg=None):
 
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
+
+    populate_metadata_group(hdf5_obj, burst, cfg)
+
     root_ds = f'/science/CSAR/RTC/grids/frequencyA'
 
     # save orbit
@@ -675,6 +679,120 @@ def save_orbit(orbit, orbit_group):
     d = orbit_group.require_dataset("orbitType", (), "S10", data=np.string_("POE"))
     d.attrs["description"] = np.string_("PrOE (or) NOE (or) MOE (or) POE"
                                         " (or) Custom")
+
+
+def populate_metadata_group(h5py_obj: h5py.File,
+                                  burst_in: Sentinel1BurstSlc = None,
+                                  cfg_in: GeoRunConfig = None,
+                                  root_path: str = '/science/CSAR'):
+    '''Populate RTC metadata based on Sentinel1BurstSlc and GeoRunConfig
+
+    Parameters:
+    -----------
+    h5py_obj : h5py.File
+        HDF5 object into which write the metadata
+    burst_in : Sentinel1BurstCls
+        Source burst of the RTC
+    cfg_in : GeoRunConfig
+        A class that contains the information defined in runconfig
+    root_path : str
+        Root path inside the HDF5 object on which the metadata will be placed
+    '''
+
+    # Manifests the field names, corresponding values from RTC workflow, and the description.
+    # To extend this, add the lines with the format below:
+    # 'field_name' : [corresponding_variables_in_workflow, description]
+    dict_field_and_data = {
+        'identification/absoluteOrbitNumber' :
+            [burst_in.abs_orbit_number, 'Absolute orbit number'],
+        # NOTE: The field below does not exist on opera_rtc.xml
+        # 'identification/relativeOrbitNumber' :
+        #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
+        'identification/trackNumber' :
+            [int(burst_in.burst_id.split('_')[1]), 'Track number'],
+        'identification/missionId' :
+            [burst_in.platform_id, 'Mission identifier'],
+        # NOTE maybe `SLC` has to be sth. like RTC?
+        'identification/productType' :
+            ['SLC', 'Product type'],
+        # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
+        'identification/lookDirection' :
+            ['Right', 'Look direction can be left or right'],
+        'identification/orbitPassDirection' :
+            [burst_in.orbit_direction, 'Orbit direction can be ascending or descending'],
+        # NOTE: using the same date format as `s1_reader.as_datetime()`
+        'identification/zeroDopplerStartTime' :
+            [burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'),
+             'Azimuth start time of product'],
+        'identification/zeroDopplerEndTime' :
+            [burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'),
+            'Azimuth stop time of product'],
+        'identification/listOfFrequencies' :
+             [['A'], 'List of frequency layers available in the product'],  # TBC
+        'identification/isGeocoded' :
+            [True, 'Flag to indicate radar geometry or geocoded product'],
+        'identification/isUrgentObservation' :
+            [False, 'List of booleans indicating if datatakes are nominal or urgent'],
+        'identification/diagnosticModeFlag' :
+            [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
+        'identification/processingType' :
+            ['UNDEFINED', 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+        # 'identification/frameNumber' :  # TBD
+        # 'identification/productVersion' : # Defined by RTC SAS
+        # 'identification/plannedDatatakeId' :
+        # 'identification/plannedObservationId' :
+
+        # 'RTC/grids/frequencyA/yCoordinateSpacing':
+        # 'grids/frequencyA/xCoordinateSpacing'
+        'RTC/grids/frequencyA/rangeBandwidth' :
+            [burst_in.range_bandwidth, 'Processed range bandwidth in Hz'],
+        # 'frequencyA/azimuthBandwidth':
+        'RTC/grids/frequencyA/centerFrequency':
+            [burst_in.radar_center_frequency, 'Center frequency of the processed image in Hz'],
+        'RTC/grids/frequencyA/slantRangeSpacing':
+            [burst_in.range_pixel_spacing,
+             'Slant range spacing of grid. '
+             'Same as difference between consecutive samples in slantRange array'],
+        'RTC/grids/frequencyA/zeroDopplerTimeSpacing' :
+            [burst_in.azimuth_time_interval,
+             'Time interval in the along track direction for raster layers. This is same '
+             'as the spacing between consecutive entries in the zeroDopplerTime array'],
+        'RTC/grids/frequencyA/faradayRotationFlag' :
+            [False, 'Flag to indicate if Faraday Rotation correction was applied'],
+        'RTC/grids/frequencyA/polarizationOrientationFlag' :
+            [False, 'Flag to indicate if Polarization Orientation correction was applied'],
+
+        'RTC/metadata/processingInformation/algorithms/demInterpolation' :
+            [cfg_in.groups.processing.dem_interpolation_method, 'DEM interpolation method'],
+        'RTC/metadata/processingInformation/algorithms/geocoding' :
+            [cfg_in.groups.processing.geocoding.algorithm_type, 'Geocoding algorithm'],
+        'RTC/metadata/processingInformation/algorithms/ISCEVersion' :
+            [isce3.__version__, 'ISCE version used for processing'],
+
+        'RTC/metadata/processingInformation/inputs/l1SlcGranules' :
+            [cfg_in.safe_files, 'List of input L1 RSLC products used'],
+        'RTC/metadata/processingInformation/inputs/orbitFiles' :
+            [cfg_in.orbit_path, 'List of input orbit files used'],
+        'RTC/metadata/processingInformation/inputs/auxcalFiles' :
+            [[burst_in.burst_calibration.basename_cads, burst_in.burst_noise.basename_nads],
+             'List of input calibration files used'],
+        'RTC/metadata/processingInformation/inputs/configFiles' :
+            [geo_parser.run_config_path, 'List of input config files used'],
+        'RTC/metadata/processingInformation/inputs/demFiles' :
+            [cfg_in.dem, 'List of input dem files used']
+
+    }
+    for fieldname, data in dict_field_and_data.items():
+        path_dataset_in_h5 = os.path.join(root_path, fieldname)
+        if data[0] is str:
+            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data[0]))
+        else:
+            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data[0])
+
+        dset.attrs['description'] = np.string_(data[1])
+
+
+
 
 
 def _save_hdf5_dataset(ds_filename, h5py_obj, root_path,
