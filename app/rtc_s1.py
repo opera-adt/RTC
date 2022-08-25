@@ -669,10 +669,12 @@ def save_orbit(orbit, orbit_group):
     orbit_group["velocity"].attrs["description"] = np.string_("Velocity vector"
         " record. This record contains the platform velocity data with"
         " respect to WGS84 G1762 reference frame")
+
     # Orbit source/type
-    d = orbit_group.require_dataset("orbitType", (), "S10", data=np.string_(type))
-    # d.attrs["description"] = np.string_("PrOE (or) NOE (or) MOE (or) POE"
-    #                                     " (or) Custom")
+    # TODO: Update orbit type:
+    d = orbit_group.require_dataset("orbitType", (), "S10", data=np.string_("POE"))
+    d.attrs["description"] = np.string_("PrOE (or) NOE (or) MOE (or) POE"
+                                        " (or) Custom")
 
 
 def _save_hdf5_dataset(ds_filename, h5py_obj, root_path,
