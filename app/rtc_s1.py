@@ -23,6 +23,7 @@ from rtc import mosaic_geobursts
 
 from nisar.workflows.h5_prep import set_get_geo_info
 
+BASE_DS = f'/science/CSAR'
 
 def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     xf = geogrid.start_x + geogrid.spacing_x * geogrid.width
@@ -141,7 +142,7 @@ def run(cfg):
 
     Parameters
     ---------
-    cfg : dict
+    cfg: dict
         Dictionary with user runconfig options
     '''
     info_channel = journal.info("rtc.run")
@@ -185,8 +186,12 @@ def run(cfg):
 
     # unpack geocode run parameters
     geocode_namespace = cfg.groups.processing.geocoding
-    geocode_algorithm = geocode_namespace.algorithm_type
-    output_mode = geocode_namespace.output_mode
+
+    if cfg.groups.processing.geocoding.algorithm_type == "area_projection":
+        geocode_algorithm = isce3.geocode.GeocodeOutputMode.AREA_PROJECTION
+    else:
+        geocode_algorithm = isce3.geocode.GeocodeOutputMode.INTERP
+
     memory_mode = geocode_namespace.memory_mode
     geogrid_upsampling = geocode_namespace.geogrid_upsampling
     abs_cal_factor = geocode_namespace.abs_rad_cal
@@ -211,8 +216,15 @@ def run(cfg):
 
     # unpack RTC run parameters
     rtc_namespace = cfg.groups.processing.rtc
+
+    # only 2 RTC algorithms supported: area_projection (default) &
+    # bilinear_distribution
+    if rtc_namespace.algorithm_type == "bilinear_distribution":
+        rtc_algorithm = isce3.geometry.RtcAlgorithm.RTC_BILINEAR_DISTRIBUTION
+    else:
+        rtc_algorithm = isce3.geometry.RtcAlgorithm.RTC_AREA_PROJECTION
+
     output_terrain_radiometry = rtc_namespace.output_type
-    rtc_algorithm = rtc_namespace.algorithm_type
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
     rtc_min_value_db = rtc_namespace.rtc_min_value_db
     rtc_upsampling = rtc_namespace.dem_upsampling
@@ -381,7 +393,7 @@ def run(cfg):
         geo_obj.numiter_geo2rdr = maxiter
 
         # set data interpolator based on the geocode algorithm
-        if output_mode == isce3.geocode.GeocodeOutputMode.INTERP:
+        if geocode_algorithm == isce3.geocode.GeocodeOutputMode.INTERP:
             geo_obj.data_interpolator = geocode_algorithm
 
         geo_obj.geogrid(geogrid.start_x, geogrid.start_y,
@@ -443,7 +455,7 @@ def run(cfg):
                         input_raster=rdr_burst_raster,
                         output_raster=geo_burst_raster,
                         dem_raster=dem_raster,
-                        output_mode=output_mode,
+                        output_mode=geocode_algorithm,
                         geogrid_upsampling=geogrid_upsampling,
                         flag_apply_rtc=flag_apply_rtc,
                         input_terrain_radiometry=input_terrain_radiometry,
@@ -604,13 +616,18 @@ def save_hdf5_file(info_channel, output_hdf5_file, orbit, flag_apply_rtc, clip_m
 
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
+    hdf5_obj.attrs["contact"] = np.string_("operaops@jpl.nasa.gov")
+    hdf5_obj.attrs["institution"] = np.string_("NASA JPL")
+    hdf5_obj.attrs["mission_name"] = np.string_("OPERA")
+    hdf5_obj.attrs["reference_document"] = np.string_("TBD")
+    hdf5_obj.attrs["title"] = np.string_("OPERA L2 RTC-S1 Product")
 
     populate_metadata_group(hdf5_obj, burst, cfg)
 
-    root_ds = f'/science/CSAR/RTC/grids/frequencyA'
+    root_ds = f'{BASE_DS}/RTC/grids/frequencyA'
 
     # save orbit
-    orbit_group = hdf5_obj.require_group("/science/CSAR/RTC/metadata/orbit")
+    orbit_group = hdf5_obj.require_group(f'{BASE_DS}/RTC/metadata/orbit')
     save_orbit(orbit, orbit_group)
 
     # save grids metadata
@@ -684,67 +701,70 @@ def save_orbit(orbit, orbit_group):
 def populate_metadata_group(h5py_obj: h5py.File,
                                   burst_in: Sentinel1BurstSlc = None,
                                   cfg_in: GeoRunConfig = None,
-                                  root_path: str = '/science/CSAR'):
+                                  root_path: str = BASE_DS):
     '''Populate RTC metadata based on Sentinel1BurstSlc and GeoRunConfig
 
     Parameters:
     -----------
-    h5py_obj : h5py.File
+    h5py_obj: h5py.File
         HDF5 object into which write the metadata
-    burst_in : Sentinel1BurstCls
+    burst_in: Sentinel1BurstCls
         Source burst of the RTC
-    cfg_in : GeoRunConfig
+    cfg_in: GeoRunConfig
         A class that contains the information defined in runconfig
-    root_path : str
+    root_path: str
         Root path inside the HDF5 object on which the metadata will be placed
     '''
+    orbit_files = [os.path.basename(f) for f in cfg_in.orbit_path]
+    l1_slc_granules = [os.path.basename(f) for f in cfg_in.safe_files]
+    dem_files = [os.path.basename(cfg_in.dem)]
 
     # Manifests the field names, corresponding values from RTC workflow, and the description.
     # To extend this, add the lines with the format below:
-    # 'field_name' : [corresponding_variables_in_workflow, description]
+    # 'field_name': [corresponding_variables_in_workflow, description]
     dict_field_and_data = {
-        'identification/absoluteOrbitNumber' :
+        'identification/absoluteOrbitNumber':
             [burst_in.abs_orbit_number, 'Absolute orbit number'],
         # NOTE: The field below does not exist on opera_rtc.xml
-        # 'identification/relativeOrbitNumber' :
+        # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
-        'identification/trackNumber' :
+        'identification/trackNumber':
             [int(burst_in.burst_id.split('_')[1]), 'Track number'],
-        'identification/missionId' :
+        'identification/missionId':
             [burst_in.platform_id, 'Mission identifier'],
         # NOTE maybe `SLC` has to be sth. like RTC?
-        'identification/productType' :
+        'identification/productType':
             ['SLC', 'Product type'],
         # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
-        'identification/lookDirection' :
+        'identification/lookDirection':
             ['Right', 'Look direction can be left or right'],
-        'identification/orbitPassDirection' :
+        'identification/orbitPassDirection':
             [burst_in.orbit_direction, 'Orbit direction can be ascending or descending'],
         # NOTE: using the same date format as `s1_reader.as_datetime()`
-        'identification/zeroDopplerStartTime' :
+        'identification/zeroDopplerStartTime':
             [burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'),
              'Azimuth start time of product'],
-        'identification/zeroDopplerEndTime' :
+        'identification/zeroDopplerEndTime':
             [burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'),
             'Azimuth stop time of product'],
-        'identification/listOfFrequencies' :
+        'identification/listOfFrequencies':
              [['A'], 'List of frequency layers available in the product'],  # TBC
-        'identification/isGeocoded' :
+        'identification/isGeocoded':
             [True, 'Flag to indicate radar geometry or geocoded product'],
-        'identification/isUrgentObservation' :
+        'identification/isUrgentObservation':
             [False, 'List of booleans indicating if datatakes are nominal or urgent'],
-        'identification/diagnosticModeFlag' :
+        'identification/diagnosticModeFlag':
             [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
-        'identification/processingType' :
+        'identification/processingType':
             ['UNDEFINED', 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
-        # 'identification/frameNumber' :  # TBD
-        # 'identification/productVersion' : # Defined by RTC SAS
-        # 'identification/plannedDatatakeId' :
-        # 'identification/plannedObservationId' :
+        # 'identification/frameNumber':  # TBD
+        # 'identification/productVersion': # Defined by RTC SAS
+        # 'identification/plannedDatatakeId':
+        # 'identification/plannedObservationId':
 
         # 'RTC/grids/frequencyA/yCoordinateSpacing':
         # 'grids/frequencyA/xCoordinateSpacing'
-        'RTC/grids/frequencyA/rangeBandwidth' :
+        'RTC/grids/frequencyA/rangeBandwidth':
             [burst_in.range_bandwidth, 'Processed range bandwidth in Hz'],
         # 'frequencyA/azimuthBandwidth':
         'RTC/grids/frequencyA/centerFrequency':
@@ -753,33 +773,36 @@ def populate_metadata_group(h5py_obj: h5py.File,
             [burst_in.range_pixel_spacing,
              'Slant range spacing of grid. '
              'Same as difference between consecutive samples in slantRange array'],
-        'RTC/grids/frequencyA/zeroDopplerTimeSpacing' :
+        'RTC/grids/frequencyA/zeroDopplerTimeSpacing':
             [burst_in.azimuth_time_interval,
              'Time interval in the along track direction for raster layers. This is same '
              'as the spacing between consecutive entries in the zeroDopplerTime array'],
-        'RTC/grids/frequencyA/faradayRotationFlag' :
+        'RTC/grids/frequencyA/faradayRotationFlag':
             [False, 'Flag to indicate if Faraday Rotation correction was applied'],
-        'RTC/grids/frequencyA/polarizationOrientationFlag' :
+        'RTC/grids/frequencyA/polarizationOrientationFlag':
             [False, 'Flag to indicate if Polarization Orientation correction was applied'],
 
-        'RTC/metadata/processingInformation/algorithms/demInterpolation' :
+        'RTC/metadata/processingInformation/algorithms/demInterpolation':
             [cfg_in.groups.processing.dem_interpolation_method, 'DEM interpolation method'],
-        'RTC/metadata/processingInformation/algorithms/geocoding' :
+        'RTC/metadata/processingInformation/algorithms/geocoding':
             [cfg_in.groups.processing.geocoding.algorithm_type, 'Geocoding algorithm'],
-        'RTC/metadata/processingInformation/algorithms/ISCEVersion' :
+        'RTC/metadata/processingInformation/algorithms/radiometricTerrainCorrection':
+            [cfg_in.groups.processing.rtc.algorithm_type,
+            'Radiometric terrain correction (RTC) algorithm'],
+        'RTC/metadata/processingInformation/algorithms/ISCEVersion':
             [isce3.__version__, 'ISCE version used for processing'],
 
-        'RTC/metadata/processingInformation/inputs/l1SlcGranules' :
-            [cfg_in.safe_files, 'List of input L1 RSLC products used'],
-        'RTC/metadata/processingInformation/inputs/orbitFiles' :
-            [cfg_in.orbit_path, 'List of input orbit files used'],
-        'RTC/metadata/processingInformation/inputs/auxcalFiles' :
+        'RTC/metadata/processingInformation/inputs/l1SlcGranules':
+            [l1_slc_granules, 'List of input L1 RSLC products used'],
+        'RTC/metadata/processingInformation/inputs/orbitFiles':
+            [orbit_files, 'List of input orbit files used'],
+        'RTC/metadata/processingInformation/inputs/auxcalFiles':
             [[burst_in.burst_calibration.basename_cads, burst_in.burst_noise.basename_nads],
              'List of input calibration files used'],
-        'RTC/metadata/processingInformation/inputs/configFiles' :
+        'RTC/metadata/processingInformation/inputs/configFiles':
             [geo_parser.run_config_path, 'List of input config files used'],
-        'RTC/metadata/processingInformation/inputs/demFiles' :
-            [cfg_in.dem, 'List of input dem files used']
+        'RTC/metadata/processingInformation/inputs/demFiles':
+            [dem_files, 'List of input dem files used']
 
     }
     for fieldname, data in dict_field_and_data.items():
@@ -804,24 +827,24 @@ def _save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
     Parameters
     ----------
-    ds_filename : string
+    ds_filename: string
         source raster file
-    h5py_obj : h5py object
+    h5py_obj: h5py object
         h5py object of destination HDF5
-    root_path : string
+    root_path: string
         path of output raster data
-    yds : h5py dataset object
+    yds: h5py dataset object
         y-axis dataset
-    xds : h5py dataset object
+    xds: h5py dataset object
         x-axis dataset
-    ds_name : string
+    ds_name: string
         name of dataset to be added to root_path
-    standard_name : string, optional
-    long_name : string, optional
-    units : string, optional
-    fill_value : float, optional
-    valid_min : float, optional
-    valid_max : float, optional
+    standard_name: string, optional
+    long_name: string, optional
+    units: string, optional
+    fill_value: float, optional
+    valid_min: float, optional
+    valid_max: float, optional
     '''
     if not os.path.isfile(ds_filename):
         return
@@ -1025,22 +1048,6 @@ def _load_parameters(cfg):
     else:
         rtc_namespace.output_type = \
             isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT
-
-    geocode_algorithm = cfg.groups.processing.geocoding.algorithm_type
-    if geocode_algorithm == "area_projection":
-        output_mode = isce3.geocode.GeocodeOutputMode.AREA_PROJECTION
-    else:
-        output_mode = isce3.geocode.GeocodeOutputMode.INTERP
-    geocode_namespace.output_mode = output_mode
-
-    # only 2 RTC algorithms supported: area_projection (default) &
-    # bilinear_distribution
-    if rtc_namespace.algorithm_type == "bilinear_distribution":
-        rtc_namespace.algorithm_type = \
-            isce3.geometry.RtcAlgorithm.RTC_BILINEAR_DISTRIBUTION
-    else:
-        rtc_namespace.algorithm_type = \
-            isce3.geometry.RtcAlgorithm.RTC_AREA_PROJECTION
 
     if rtc_namespace.input_terrain_radiometry == "sigma0":
         rtc_namespace.input_terrain_radiometry = \
