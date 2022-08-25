@@ -34,6 +34,9 @@ runconfig:
            output_dir: str()
            product_id: str()
            mosaic_bursts: bool(required=False)
+      
+           # Format of output file
+           output_format: enum('HDF5', 'ENVI', 'GTiff', 'COG', required=False)
 
         primary_executable:
           product_type: enum('RTC_S1')
@@ -64,6 +67,15 @@ processing_options:
 
    dem_interpolation_method: enum('sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic', required=False)
 
+   # Apply absolute radiometric correction
+   apply_absolute_radiometric_correction: bool(required=False)
+
+   # Apply thermal noise correction
+   apply_thermal_noise_correction: bool(required=False)
+
+   # Apply RTC
+   apply_rtc: bool(required=False)
+
    # Radiometric Terrain Correction (RTC)
    rtc: include('rtc_options', required=False)
 
@@ -88,17 +100,9 @@ rtc_options:
 
 
 geocoding_options:
+
     # Algorithm type, area projection or interpolation: sinc, bilinear, bicubic, nearest, and biquintic
     algorithm_type: enum('area_projection', 'sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic', required=False)
-
-    # Apply RTC
-    apply_rtc: bool(required=False)
-
-    # Apply thermal noise correction
-    apply_thermal_noise_correction: bool(required=False)
-
-    # Apply absolute radioemtric correction
-    apply_abs_rad_cal: bool(required=False)
 
     # Memory mode
     memory_mode: enum('auto', 'single_block', 'geogrid', 'geogrid_and_radargrid', required=False)
@@ -112,23 +116,28 @@ geocoding_options:
     # Save the local-incidence angle
     save_local_inc_angle: bool(required=False)
 
-    # Save the local-incidence angle
+    # Save the projection angle
     save_projection_angle: bool(required=False)
 
-    # Save the simulated radar brightness
-    save_simulated_radar_brightness: bool(required=False)
+    # Save the RTC area normalization factor (ANF) computed with
+    # the projection angle method
+    save_rtc_anf_psi: bool(required=False)
 
     # Save the range slope angle
-    save_range_slope_angle: bool(required=False)
+    save_range_slope: bool(required=False)
 
     # Save the number of looks used to generate the RTC product
     save_nlooks: bool(required=False)
 
-    # Save the RTC area normalization factor used to generate the RTC product
+    # Save the RTC area normalization factor (ANF) used to generate
+    # the RTC product
     save_rtc_anf: bool(required=False)
 
     # Save the interpolated DEM used to generate the RTC product
     save_dem: bool(required=False)
+
+    # OPTIONAL - Absolute radiometric correction
+    abs_rad_cal: num(required=False)
 
     # Clip values above threshold
     clip_max: num(required=False)
@@ -138,9 +147,6 @@ geocoding_options:
 
     # Double SLC sampling in the range direction
     upsample_radargrid: bool(required=False)
-
-    # Format of output file
-    output_format: enum('HDF5', 'ENVI', 'GTiff', 'COG', required=False)
 
     # Product EPSG code. Same as DEM if not provided
     output_epsg: int(min=1024, max=32767, required=False)

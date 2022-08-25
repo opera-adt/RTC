@@ -35,6 +35,10 @@ runconfig:
           product_id:
           mosaic_bursts: False
 
+          # Format of output file
+          output_format: HDF5
+
+
       primary_executable:
           product_type: RTC_S1
 
@@ -46,6 +50,15 @@ runconfig:
 
           dem_interpolation_method: biquintic
 
+          # Apply absolute radiometric correction
+          apply_absolute_radiometric_correction: True
+ 
+          # Apply thermal noise correction
+          apply_thermal_noise_correction: True
+
+          # OPTIONAL - Apply RTC
+          apply_rtc: True
+ 
           # OPTIONAL - to control behavior of RTC module
           # (only applicable if geocode.apply_rtc is True)
           rtc:
@@ -76,16 +89,7 @@ runconfig:
               # OPTIONAL - Algorithm type, area projection or
               # interpolation: sinc, bilinear, bicubic, nearest, and biquintic
               algorithm_type: area_projection
-
-              # OPTIONAL - Apply RTC
-              apply_rtc: True
-
-              # Apply thermal noise correction
-              apply_thermal_noise_correction: True
-
-              # Apply absolute radioemtric correction
-              apply_abs_rad_cal: True
-      
+    
               # OPTIONAL - Choices: "single_block", "geogrid", "geogrid_and_radargrid", and "auto" (default)
               memory_mode:
 
@@ -101,20 +105,25 @@ runconfig:
               # Save the projection angle
               save_projection_angle: False
 
-              # Save the simulated radar brightness
-              save_simulated_radar_brightness: False
+              # Save the RTC area normalization factor (ANF) computed with
+              # the projection angle method
+              save_rtc_anf_psi: False
 
               # Save the range slope angle
-              save_range_slope_angle: False
+              save_range_slope: False
 
               # Save the number of looks used to generate the RTC product
               save_nlooks: True
               
-              # Save the RTC area normalization factor used to generate the RTC product
+              # Save the RTC area normalization factor (ANF) used to generate
+              # the RTC product
               save_rtc_anf: True
 
               # Save the interpolated DEM used to generate the RTC product
               save_dem: False
+
+              # OPTIONAL - Absolute radiometric correction
+              abs_rad_cal: 1
 
               # OPTIONAL - Clip values above threshold
               clip_max:
@@ -125,7 +134,6 @@ runconfig:
               # Double SLC sampling in the range direction
               upsample_radargrid: False
 
-              output_format: GTiff
               output_epsg:
               x_posting: 30
               y_posting: 30
