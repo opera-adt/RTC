@@ -124,7 +124,7 @@ geocoding_options:
     save_rtc_anf_psi: bool(required=False)
 
     # Save the range slope angle
-    save_range_slope_angle: bool(required=False)
+    save_range_slope: bool(required=False)
 
     # Save the number of looks used to generate the RTC product
     save_nlooks: bool(required=False)

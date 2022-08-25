@@ -198,8 +198,8 @@ def run(cfg):
     flag_save_local_inc_angle = geocode_namespace.save_local_inc_angle
     flag_save_projection_angle = geocode_namespace.save_projection_angle
     flag_save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
-    flag_save_range_slope_angle = \
-        geocode_namespace.save_range_slope_angle
+    flag_save_range_slope = \
+        geocode_namespace.save_range_slope
     flag_save_nlooks = geocode_namespace.save_nlooks
     flag_save_rtc_anf = geocode_namespace.save_rtc_anf
     flag_save_dem = geocode_namespace.save_dem
@@ -207,7 +207,7 @@ def run(cfg):
     flag_call_radar_grid = (flag_save_incidence_angle or
         flag_save_local_inc_angle or flag_save_projection_angle or
         flag_save_rtc_anf_psi or flag_save_dem or
-        flag_save_range_slope_angle)
+        flag_save_range_slope)
 
     # unpack RTC run parameters
     rtc_namespace = cfg.groups.processing.rtc
@@ -491,7 +491,7 @@ def run(cfg):
                 bursts_output_dir, extension, flag_save_incidence_angle,
                 flag_save_local_inc_angle, flag_save_projection_angle,
                 flag_save_rtc_anf_psi,
-                flag_save_range_slope_angle, flag_save_dem,
+                flag_save_range_slope, flag_save_dem,
                 dem_raster, radar_grid_file_dict,
                 mosaic_geogrid_dict, orbit,
                 verbose = not flag_bursts_files_are_temporary)
@@ -527,7 +527,7 @@ def run(cfg):
                        output_dir, extension, flag_save_incidence_angle,
                        flag_save_local_inc_angle, flag_save_projection_angle,
                        flag_save_rtc_anf_psi,
-                       flag_save_range_slope_angle, flag_save_dem,
+                       flag_save_range_slope, flag_save_dem,
                        dem_raster, radar_grid_file_dict,
                        mosaic_geogrid_dict,
                        orbit, verbose = not flag_hdf5)
@@ -766,7 +766,7 @@ def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
                    output_dir, extension, flag_save_incidence_angle,
                    flag_save_local_inc_angle, flag_save_projection_angle,
                    flag_save_rtc_anf_psi,
-                   flag_save_range_slope_angle, flag_save_dem, dem_raster,
+                   flag_save_range_slope, flag_save_dem, dem_raster,
                    radar_grid_file_dict, mosaic_geogrid_dict, orbit,
                    verbose = True):
     output_obj_list = []
@@ -791,10 +791,10 @@ def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
             'areaNormalizationFactorPsi', gdal.GDT_Float32, shape,
             radar_grid_file_dict, output_obj_list, 
             flag_save_rtc_anf_psi, extension)
-    range_slope_angle_raster = _get_raster(
-            output_dir, f'{product_id}_range_slope_angle',
+    range_slope_raster = _get_raster(
+            output_dir, f'{product_id}_range_slope',
             'rangeSlope', gdal.GDT_Float32, shape, radar_grid_file_dict,
-            output_obj_list, flag_save_range_slope_angle, extension)
+            output_obj_list, flag_save_range_slope, extension)
     interpolated_dem_raster = _get_raster(
             output_dir, f'{product_id}_interpolated_dem',
             'interpolatedDem', gdal.GDT_Float32, shape, radar_grid_file_dict,
@@ -824,7 +824,7 @@ def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
                                      simulated_radar_brightness_raster =
                                         rtc_anf_psi_raster,
                                      directional_slope_angle_raster =
-                                        range_slope_angle_raster,
+                                        range_slope_raster,
                                      interpolated_dem_raster =
                                         interpolated_dem_raster,
                                      dem_interp_method=dem_interp_method_enum)

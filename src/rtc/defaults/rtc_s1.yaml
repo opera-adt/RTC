@@ -110,7 +110,7 @@ runconfig:
               save_rtc_anf_psi: False
 
               # Save the range slope angle
-              save_range_slope_angle: False
+              save_range_slope: False
 
               # Save the number of looks used to generate the RTC product
               save_nlooks: True
