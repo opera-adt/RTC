@@ -175,7 +175,7 @@ def run(cfg):
         extension = 'tif'
     else:
         extension = 'bin'
-    
+
     # unpack geocode run parameters
     geocode_namespace = cfg.groups.processing.geocoding
     geocode_algorithm = geocode_namespace.algorithm_type
@@ -655,42 +655,55 @@ def populate_identification_group(h5py_obj: h5py.File,
                                   burst_in: Sentinel1BurstSlc = None,
                                   cfg_in: GeoRunConfig = None,
                                   root_path: str = '/science/CSAR/identification'):
-    'DOCSTRING PLEASE.'
+    '''Populate RTC metadata based on Sentinel1BurstSlc and GeoRunConfig
 
-    #Manifests the field names. Also extract the data to populate
+    Parameters:
+    -----------
+    h5py_obj : h5py.File
+        HDF5 object into which write the metadata
+    burst_in : Sentinel1BurstCls
+        Source burst of the RTC
+    cfg_in : GeoRunConfig
+        A class that contains the information defined in runconfig
+    root_path : str
+        Root path inside the HDF5 object on which the metadata will be placed
+    '''
+
+
+    # Manifests the field names, corresponding values from RTC workflow, and the description.
+    # The dict below can be extended by keep adding the field names, corresponding values, and the description.
     dict_field_and_data = {
-        'absoluteOrbitNumber' : burst_in.abs_orbit_number,
+        'absoluteOrbitNumber' : [burst_in.abs_orbit_number, 'Absolute orbit number'],
         #'relativeOrbitNumber' : int(burst_in.burst_id.split('_')[0][1:]),
-        'relativeOrbitNumber' : int(burst_in.burst_id[1:4]),
-        'trackNumber' : int(burst_in.burst_id.split('_')[1]),
+        'relativeOrbitNumber' : [int(burst_in.burst_id[1:4]), 'Relative orbit number'],  # NOTE: This field does not exist on opera_rtc.xml
+        'trackNumber' : [int(burst_in.burst_id.split('_')[1]), 'Track number'],
         #'frameNumber' :  # TBD
-        'missionId' : burst_in.platform_id,
+        'missionId' : [burst_in.platform_id, 'Mission identifier'],
         'productType' : 'SLC',  # NOTE maybe it has to be sth. like RTC?
         #'productVersion' : # Defined by RTC SAS
-        'lookDirection' : 'RIGHT',
-        'orbitPassDirection' : burst_in.orbit_direction,
+        'lookDirection' : ['RIGHT', 'Look direction can be left or right'],  # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
+        'orbitPassDirection' : [burst_in.orbit_direction, 'Orbit direction can be ascending or descending'],
         # NOTE: using the same date format as `s1_reader.as_datetime()``
-        'zeroDopplerStartTime' : burst_in.sensing_start.strftime('"%Y-%m-%dT%H:%M:%S.%f"'),  
-        'zeroDopplerEndTime' : burst_in.sensing_stop.strftime('"%Y-%m-%dT%H:%M:%S.%f"'),
+        'zeroDopplerStartTime' : [burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'), 'Azimuth start time of product'],
+        'zeroDopplerEndTime' : [burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'), 'Azimuth stop time of product'],
         #'plannedDatatakeId' :
         #'plannedObservationId' :
         #'isUrgentObservation' :
-        'listOfFrequencies' :  ['A'],  # TBC
+        'listOfFrequencies' :  [['A'], 'List of frequency layers available in the product'],  # TBC
         #'diagnosticModeFlag' :
-        'isGeocoded' : True
+        'isGeocoded' : [True, 'Flag to indicate radar geometry or geocoded product']
         #'processingType' :
-
     }
     #TODO Extend `dict_field_and_data` above for other fields in identification group
-
+    #TODO Condsier extending this function to other groups than identification
     for fieldname, data in dict_field_and_data.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
-        if data is str:
-            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data))
+        if data[0] is str:
+            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data[0]))
         else:
-            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data)
+            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data[0])
 
-        # TODO Add the description, etc. into the dset
+        dset.attrs['description'] = np.string_(data[1])
 
 
 
