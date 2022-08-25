@@ -151,8 +151,15 @@ def run(cfg):
     temp_suffix = f'temp_{time_stamp}'
     info_channel.log("Starting geocode burst")
 
-
-    dem_interp_method_enum = cfg.groups.processing.dem_interpolation_method_enum
+    # unpack processing parameters
+    processing_namespace = cfg.groups.processing
+    dem_interp_method_enum = \
+        processing_namespace.dem_interpolation_method_enum
+    flag_apply_rtc = processing_namespace.apply_rtc
+    flag_apply_thermal_noise_correction = \
+        processing_namespace.apply_thermal_noise_correction
+    flag_apply_abs_rad_correction = \
+        processing_namespace.apply_absolute_radiometric_correction
 
     # read product path group / output format
     product_id = cfg.groups.product_path_group.product_id
@@ -163,7 +170,7 @@ def run(cfg):
     output_dir = cfg.groups.product_path_group.output_dir
     flag_mosaic = cfg.groups.product_path_group.mosaic_bursts
 
-    output_format = cfg.geocoding_params.output_format
+    output_format = cfg.groups.product_path_group.output_format
     flag_hdf5 = output_format == 'HDF5'
     if flag_hdf5:
         output_raster_format = 'GTiff'
@@ -178,12 +185,9 @@ def run(cfg):
     geocode_namespace = cfg.groups.processing.geocoding
     geocode_algorithm = geocode_namespace.algorithm_type
     output_mode = geocode_namespace.output_mode
-    flag_apply_rtc = geocode_namespace.apply_rtc
-    flag_apply_thermal_noise_correction = \
-        geocode_namespace.apply_thermal_noise_correction
-    flag_apply_abs_rad_correction=True
     memory_mode = geocode_namespace.memory_mode
     geogrid_upsampling = geocode_namespace.geogrid_upsampling
+    abs_cal_factor = geocode_namespace.abs_rad_cal
     clip_max = geocode_namespace.clip_max
     clip_min = geocode_namespace.clip_min
     # geogrids = geocode_namespace.geogrids
@@ -191,8 +195,7 @@ def run(cfg):
     flag_save_incidence_angle = geocode_namespace.save_incidence_angle
     flag_save_local_inc_angle = geocode_namespace.save_local_inc_angle
     flag_save_projection_angle = geocode_namespace.save_projection_angle
-    flag_save_simulated_radar_brightness = \
-        geocode_namespace.save_simulated_radar_brightness
+    flag_save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
     flag_save_range_slope_angle = \
         geocode_namespace.save_range_slope_angle
     flag_save_nlooks = geocode_namespace.save_nlooks
@@ -201,7 +204,7 @@ def run(cfg):
 
     flag_call_radar_grid = (flag_save_incidence_angle or
         flag_save_local_inc_angle or flag_save_projection_angle or
-        flag_save_simulated_radar_brightness or flag_save_dem or
+        flag_save_rtc_anf_psi or flag_save_dem or
         flag_save_range_slope_angle)
 
     # unpack RTC run parameters
@@ -447,6 +450,7 @@ def run(cfg):
                         rtc_min_value_db=rtc_min_value_db,
                         rtc_upsampling=rtc_upsampling,
                         rtc_algorithm=rtc_algorithm,
+                        abs_cal_factor=abs_cal_factor,
                         flag_upsample_radar_grid=flag_upsample_radar_grid,
                         clip_min = clip_min,
                         clip_max = clip_max,
@@ -484,7 +488,7 @@ def run(cfg):
                 geogrid, info_channel, dem_interp_method_enum, product_id,
                 bursts_output_dir, extension, flag_save_incidence_angle,
                 flag_save_local_inc_angle, flag_save_projection_angle,
-                flag_save_simulated_radar_brightness,
+                flag_save_rtc_anf_psi,
                 flag_save_range_slope_angle, flag_save_dem,
                 dem_raster, radar_grid_file_dict,
                 mosaic_geogrid_dict, orbit,
@@ -520,7 +524,7 @@ def run(cfg):
         get_radar_grid(cfg.geogrid, info_channel, dem_interp_method_enum, product_id,
                        output_dir, extension, flag_save_incidence_angle,
                        flag_save_local_inc_angle, flag_save_projection_angle,
-                       flag_save_simulated_radar_brightness,
+                       flag_save_rtc_anf_psi,
                        flag_save_range_slope_angle, flag_save_dem,
                        dem_raster, radar_grid_file_dict,
                        mosaic_geogrid_dict,
@@ -759,7 +763,7 @@ def _save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
                    output_dir, extension, flag_save_incidence_angle,
                    flag_save_local_inc_angle, flag_save_projection_angle,
-                   flag_save_simulated_radar_brightness,
+                   flag_save_rtc_anf_psi,
                    flag_save_range_slope_angle, flag_save_dem, dem_raster,
                    radar_grid_file_dict, mosaic_geogrid_dict, orbit,
                    verbose = True):
@@ -780,11 +784,11 @@ def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
             output_dir, f'{product_id}_projection_angle',
             'projectionAngle', gdal.GDT_Float32, shape, radar_grid_file_dict,
             output_obj_list, flag_save_projection_angle, extension)
-    simulated_radar_brightness_raster = _get_raster(
-            output_dir, f'{product_id}_simulated_radar_brightness',
+    rtc_anf_psi_raster = _get_raster(
+            output_dir, f'{product_id}_rtc_anf_psi',
             'areaNormalizationFactorPsi', gdal.GDT_Float32, shape,
             radar_grid_file_dict, output_obj_list, 
-            flag_save_simulated_radar_brightness, extension)
+            flag_save_rtc_anf_psi, extension)
     range_slope_angle_raster = _get_raster(
             output_dir, f'{product_id}_range_slope_angle',
             'rangeSlope', gdal.GDT_Float32, shape, radar_grid_file_dict,
@@ -816,7 +820,7 @@ def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
                                      projection_angle_raster =
                                         projection_angle_raster,
                                      simulated_radar_brightness_raster =
-                                        simulated_radar_brightness_raster,
+                                        rtc_anf_psi_raster,
                                      directional_slope_angle_raster =
                                         range_slope_angle_raster,
                                      interpolated_dem_raster =
