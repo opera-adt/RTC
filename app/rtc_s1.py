@@ -605,7 +605,7 @@ def save_hdf5_file(info_channel, output_hdf5_file, orbit, flag_apply_rtc, clip_m
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
 
-    populate_identification_group(hdf5_obj, burst, cfg)
+    populate_metadata_group(hdf5_obj, burst, cfg)
 
     root_ds = f'/science/CSAR/RTC/grids/frequencyA'
 
@@ -679,7 +679,7 @@ def save_orbit(orbit, orbit_group):
     #                                     " (or) Custom")
 
 
-def populate_identification_group(h5py_obj: h5py.File,
+def populate_metadata_group(h5py_obj: h5py.File,
                                   burst_in: Sentinel1BurstSlc = None,
                                   cfg_in: GeoRunConfig = None,
                                   root_path: str = '/science/CSAR'):
@@ -698,50 +698,86 @@ def populate_identification_group(h5py_obj: h5py.File,
     '''
 
     # Manifests the field names, corresponding values from RTC workflow, and the description.
-    # The dict below can be extended by keep adding the field names, corresponding values, and the description.
+    # To extend this, add the lines with the format below:
+    # 'field_name' : [corresponding_variables_in_workflow, description]
     dict_field_and_data = {
-        'identification/absoluteOrbitNumber' :[burst_in.abs_orbit_number, 'Absolute orbit number'],
+        'identification/absoluteOrbitNumber' :
+            [burst_in.abs_orbit_number, 'Absolute orbit number'],
         # NOTE: The field below does not exist on opera_rtc.xml
-        #'identification/relativeOrbitNumber' : [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
-        'identification/trackNumber' : [int(burst_in.burst_id.split('_')[1]), 'Track number'],
-        'identification/missionId' : [burst_in.platform_id, 'Mission identifier'],
+        # 'identification/relativeOrbitNumber' :
+        #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
+        'identification/trackNumber' :
+            [int(burst_in.burst_id.split('_')[1]), 'Track number'],
+        'identification/missionId' :
+            [burst_in.platform_id, 'Mission identifier'],
         # NOTE maybe `SLC` has to be sth. like RTC?
-        'identification/productType' : ['SLC', 'Product type'],
+        'identification/productType' :
+            ['SLC', 'Product type'],
         # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
-        'identification/lookDirection' : ['Right', 'Look direction can be left or right'],
-        'identification/orbitPassDirection' : [burst_in.orbit_direction, 'Orbit direction can be ascending or descending'],
+        'identification/lookDirection' :
+            ['Right', 'Look direction can be left or right'],
+        'identification/orbitPassDirection' :
+            [burst_in.orbit_direction, 'Orbit direction can be ascending or descending'],
         # NOTE: using the same date format as `s1_reader.as_datetime()`
-        'identification/zeroDopplerStartTime' : [burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'), 'Azimuth start time of product'],
-        'identification/zeroDopplerEndTime' : [burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'), 'Azimuth stop time of product'],
-        'identification/listOfFrequencies' :  [['A'], 'List of frequency layers available in the product'],  # TBC
-        'identification/isGeocoded' : [True, 'Flag to indicate radar geometry or geocoded product'],
-        'identification/isUrgentObservation' : [False, 'List of booleans indicating if datatakes are nominal or urgent'],
-        'identification/diagnosticModeFlag' : [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
-        'identification/processingType' : ['UNDEFINED', 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
-        #'identification/frameNumber' :  # TBD
-        #'identification/productVersion' : # Defined by RTC SAS
-        #'identification/plannedDatatakeId' :
-        #'identification/plannedObservationId' :
-        
-        #'RTC/grids/frequencyA/yCoordinateSpacing':
-        #'grids/frequencyA/xCoordinateSpacing'
-        'RTC/grids/frequencyA/rangeBandwidth' : [burst_in.range_bandwidth, 'Processed range bandwidth in Hz'],
-        #'frequencyA/azimuthBandwidth':
-        'RTC/grids/frequencyA/centerFrequency': [burst_in.radar_center_frequency, 'Center frequency of the processed image in Hz'],
-        'RTC/grids/frequencyA/slantRangeSpacing': [burst_in.range_pixel_spacing, 'Slant range spacing of grid. Same as difference between consecutive samples in slantRange array'],
-        'RTC/grids/frequencyA/zeroDopplerTimeSpacing' : [burst_in.azimuth_time_interval, 'Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array'],
-        'RTC/grids/frequencyA/faradayRotationFlag' : [False, 'Flag to indicate if Faraday Rotation correction was applied'],
-        'RTC/grids/frequencyA/polarizationOrientationFlag' : [False, 'Flag to indicate if Polarization Orientation correction was applied'],
+        'identification/zeroDopplerStartTime' :
+            [burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'),
+             'Azimuth start time of product'],
+        'identification/zeroDopplerEndTime' :
+            [burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'),
+            'Azimuth stop time of product'],
+        'identification/listOfFrequencies' :
+             [['A'], 'List of frequency layers available in the product'],  # TBC
+        'identification/isGeocoded' :
+            [True, 'Flag to indicate radar geometry or geocoded product'],
+        'identification/isUrgentObservation' :
+            [False, 'List of booleans indicating if datatakes are nominal or urgent'],
+        'identification/diagnosticModeFlag' :
+            [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
+        'identification/processingType' :
+            ['UNDEFINED', 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+        # 'identification/frameNumber' :  # TBD
+        # 'identification/productVersion' : # Defined by RTC SAS
+        # 'identification/plannedDatatakeId' :
+        # 'identification/plannedObservationId' :
 
-        'RTC/metadata/processingInformation/algorithms/demInterpolation' : [cfg_in.groups.processing.dem_interpolation_method, 'DEM interpolation method'],
-        'RTC/metadata/processingInformation/algorithms/geocoding' : [cfg_in.groups.processing.geocoding.algorithm_type, 'Geocoding algorithm'],
-        'RTC/metadata/processingInformation/algorithms/ISCEVersion' : [isce3.__version__, 'ISCE version used for processing'],
-        
-        'RTC/metadata/processingInformation/inputs/l1SlcGranules' : [cfg_in.safe_files, 'List of input L1 RSLC products used'],
-        'RTC/metadata/processingInformation/inputs/orbitFiles' : [cfg_in.orbit_path, 'List of input orbit files used'],
-        'RTC/metadata/processingInformation/inputs/auxcalFiles' : [[burst_in.burst_calibration.basename_cads, burst_in.burst_noise.basename_nads], 'List of input calibration files used'],
-        'RTC/metadata/processingInformation/inputs/configFiles' : [geo_parser.run_config_path, 'List of input config files used'],
-        'RTC/metadata/processingInformation/inputs/demFiles' : [cfg_in.dem, 'List of input dem files used']
+        # 'RTC/grids/frequencyA/yCoordinateSpacing':
+        # 'grids/frequencyA/xCoordinateSpacing'
+        'RTC/grids/frequencyA/rangeBandwidth' :
+            [burst_in.range_bandwidth, 'Processed range bandwidth in Hz'],
+        # 'frequencyA/azimuthBandwidth':
+        'RTC/grids/frequencyA/centerFrequency':
+            [burst_in.radar_center_frequency, 'Center frequency of the processed image in Hz'],
+        'RTC/grids/frequencyA/slantRangeSpacing':
+            [burst_in.range_pixel_spacing,
+             'Slant range spacing of grid. '
+             'Same as difference between consecutive samples in slantRange array'],
+        'RTC/grids/frequencyA/zeroDopplerTimeSpacing' :
+            [burst_in.azimuth_time_interval,
+             'Time interval in the along track direction for raster layers. This is same '
+             'as the spacing between consecutive entries in the zeroDopplerTime array'],
+        'RTC/grids/frequencyA/faradayRotationFlag' :
+            [False, 'Flag to indicate if Faraday Rotation correction was applied'],
+        'RTC/grids/frequencyA/polarizationOrientationFlag' :
+            [False, 'Flag to indicate if Polarization Orientation correction was applied'],
+
+        'RTC/metadata/processingInformation/algorithms/demInterpolation' :
+            [cfg_in.groups.processing.dem_interpolation_method, 'DEM interpolation method'],
+        'RTC/metadata/processingInformation/algorithms/geocoding' :
+            [cfg_in.groups.processing.geocoding.algorithm_type, 'Geocoding algorithm'],
+        'RTC/metadata/processingInformation/algorithms/ISCEVersion' :
+            [isce3.__version__, 'ISCE version used for processing'],
+
+        'RTC/metadata/processingInformation/inputs/l1SlcGranules' :
+            [cfg_in.safe_files, 'List of input L1 RSLC products used'],
+        'RTC/metadata/processingInformation/inputs/orbitFiles' :
+            [cfg_in.orbit_path, 'List of input orbit files used'],
+        'RTC/metadata/processingInformation/inputs/auxcalFiles' :
+            [[burst_in.burst_calibration.basename_cads, burst_in.burst_noise.basename_nads],
+             'List of input calibration files used'],
+        'RTC/metadata/processingInformation/inputs/configFiles' :
+            [geo_parser.run_config_path, 'List of input config files used'],
+        'RTC/metadata/processingInformation/inputs/demFiles' :
+            [cfg_in.dem, 'List of input dem files used']
 
     }
     for fieldname, data in dict_field_and_data.items():
