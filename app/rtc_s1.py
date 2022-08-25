@@ -507,7 +507,7 @@ def run(cfg):
             output_hdf5_file =  os.path.join(hdf5_file_output_dir,
                                              f'{product_id}.h5')
             save_hdf5_file(
-                info_channel, output_hdf5_file, flag_apply_rtc,
+                info_channel, output_hdf5_file, orbit, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str, output_file_list,
                 geogrid, pol_list, geo_burst_filename, nlooks_file,
                 rtc_anf_file, radar_grid_file_dict)
@@ -573,7 +573,8 @@ def run(cfg):
             else:
                 rtc_anf_mosaic_file = None
             output_hdf5_file = os.path.join(output_dir, f'{product_id}.h5')
-            save_hdf5_file(info_channel, output_hdf5_file, flag_apply_rtc,
+            save_hdf5_file(info_channel, output_hdf5_file, orbit,
+                           flag_apply_rtc,
                            clip_max, clip_min, output_radiometry_str,
                            output_file_list, cfg.geogrid, pol_list,
                            geo_filename, nlooks_mosaic_file,
@@ -595,7 +596,7 @@ def run(cfg):
     info_channel.log(f'elapsed time: {t_end - t_start}')
 
 
-def save_hdf5_file(info_channel, output_hdf5_file, flag_apply_rtc, clip_max,
+def save_hdf5_file(info_channel, output_hdf5_file, orbit, flag_apply_rtc, clip_max,
                    clip_min, output_radiometry_str,
                    output_file_list, geogrid, pol_list, geo_burst_filename,
                    nlooks_file, rtc_anf_file, radar_grid_file_dict):
@@ -604,6 +605,11 @@ def save_hdf5_file(info_channel, output_hdf5_file, flag_apply_rtc, clip_max,
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
     root_ds = f'/science/CSAR/RTC/grids/frequencyA'
 
+    # save orbit
+    orbit_group = hdf5_obj.require_group("/science/CSAR/RTC/metadata/orbit")
+    save_orbit(orbit, orbit_group)
+
+    # save grids metadata
     h5_ds = os.path.join(root_ds, 'listOfPolarizations')
     if h5_ds in hdf5_obj:
         del hdf5_obj[h5_ds]
@@ -649,6 +655,24 @@ def save_hdf5_file(info_channel, output_hdf5_file, flag_apply_rtc, clip_max,
 
     info_channel.log(f'file saved: {output_hdf5_file}')
     output_file_list.append(output_hdf5_file)
+
+
+def save_orbit(orbit, orbit_group):
+    orbit.save_to_h5(orbit_group)
+    # Add description attributes.
+    orbit_group["time"].attrs["description"] = np.string_("Time vector record. This"
+        " record contains the time corresponding to position, velocity,"
+        " acceleration records")
+    orbit_group["position"].attrs["description"] = np.string_("Position vector"
+        " record. This record contains the platform position data with"
+        " respect to WGS84 G1762 reference frame")
+    orbit_group["velocity"].attrs["description"] = np.string_("Velocity vector"
+        " record. This record contains the platform velocity data with"
+        " respect to WGS84 G1762 reference frame")
+    # Orbit source/type
+    d = orbit_group.require_dataset("orbitType", (), "S10", data=np.string_(type))
+    # d.attrs["description"] = np.string_("PrOE (or) NOE (or) MOE (or) POE"
+    #                                     " (or) Custom")
 
 
 def _save_hdf5_dataset(ds_filename, h5py_obj, root_path,
