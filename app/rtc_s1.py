@@ -174,7 +174,14 @@ def run(cfg):
     flag_mosaic = cfg.groups.product_path_group.mosaic_bursts
 
     output_format = cfg.groups.product_path_group.output_format
-    flag_hdf5 = output_format == 'HDF5'
+
+    flag_hdf5 = (output_format == 'HDF5' or output_format == 'NETCDF')
+
+    if output_format == 'NETCDF':
+        hdf5_file_extension = 'nc'
+    else:
+        hdf5_file_extension = 'h5'
+
     if flag_hdf5:
         output_raster_format = 'GTiff'
     else:
@@ -516,8 +523,8 @@ def run(cfg):
         if flag_hdf5 and not flag_mosaic:
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
-            output_hdf5_file =  os.path.join(hdf5_file_output_dir,
-                                             f'{product_id}.h5')
+            output_hdf5_file =  os.path.join(
+                hdf5_file_output_dir, f'{product_id}.{hdf5_file_extension}')
             save_hdf5_file(
                 info_channel, output_hdf5_file, orbit, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str, output_file_list,
@@ -584,7 +591,9 @@ def run(cfg):
                 rtc_anf_mosaic_file = output_metadata_dict['rtc'][0]
             else:
                 rtc_anf_mosaic_file = None
-            output_hdf5_file = os.path.join(output_dir, f'{product_id}.h5')
+            output_hdf5_file = \
+                os.path.join(output_dir,
+                             f'{product_id}.{hdf5_file_extension}')
             save_hdf5_file(info_channel, output_hdf5_file, orbit,
                            flag_apply_rtc,
                            clip_max, clip_min, output_radiometry_str,
