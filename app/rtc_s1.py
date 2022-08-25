@@ -674,27 +674,26 @@ def populate_identification_group(h5py_obj: h5py.File,
     # The dict below can be extended by keep adding the field names, corresponding values, and the description.
     dict_field_and_data = {
         'absoluteOrbitNumber' : [burst_in.abs_orbit_number, 'Absolute orbit number'],
-        #'relativeOrbitNumber' : int(burst_in.burst_id.split('_')[0][1:]),
         'relativeOrbitNumber' : [int(burst_in.burst_id[1:4]), 'Relative orbit number'],  # NOTE: This field does not exist on opera_rtc.xml
         'trackNumber' : [int(burst_in.burst_id.split('_')[1]), 'Track number'],
-        #'frameNumber' :  # TBD
         'missionId' : [burst_in.platform_id, 'Mission identifier'],
         'productType' : 'SLC',  # NOTE maybe it has to be sth. like RTC?
-        #'productVersion' : # Defined by RTC SAS
         'lookDirection' : ['RIGHT', 'Look direction can be left or right'],  # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'orbitPassDirection' : [burst_in.orbit_direction, 'Orbit direction can be ascending or descending'],
-        # NOTE: using the same date format as `s1_reader.as_datetime()``
+        # NOTE: using the same date format as `s1_reader.as_datetime()`
         'zeroDopplerStartTime' : [burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'), 'Azimuth start time of product'],
         'zeroDopplerEndTime' : [burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'), 'Azimuth stop time of product'],
+        'listOfFrequencies' :  [['A'], 'List of frequency layers available in the product'],  # TBC
+        'isGeocoded' : [True, 'Flag to indicate radar geometry or geocoded product']
+        #'relativeOrbitNumber' : int(burst_in.burst_id.split('_')[0][1:]),
+        #'frameNumber' :  # TBD
+        #'productVersion' : # Defined by RTC SAS
         #'plannedDatatakeId' :
         #'plannedObservationId' :
         #'isUrgentObservation' :
-        'listOfFrequencies' :  [['A'], 'List of frequency layers available in the product'],  # TBC
         #'diagnosticModeFlag' :
-        'isGeocoded' : [True, 'Flag to indicate radar geometry or geocoded product']
         #'processingType' :
     }
-    #TODO Extend `dict_field_and_data` above for other fields in identification group
     #TODO Condsier extending this function to other groups than identification
     for fieldname, data in dict_field_and_data.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
