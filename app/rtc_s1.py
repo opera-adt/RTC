@@ -659,10 +659,27 @@ def populate_identification_group(h5py_obj: h5py.File,
 
     #Manifests the field names. Also extract the data to populate
     dict_field_and_data = {
-        'absoluteOrbitNumber' : int(burst_in.burst_id.split('_')[0][1:]),
+        'absoluteOrbitNumber' : burst_in.abs_orbit_number,
+        #'relativeOrbitNumber' : int(burst_in.burst_id.split('_')[0][1:]),
+        'relativeOrbitNumber' : int(burst_in.burst_id[1:4]),
         'trackNumber' : int(burst_in.burst_id.split('_')[1]),
-        #'frameNumber' : int,  # TBD
-        'missionId' : burst_in.platform_id
+        #'frameNumber' :  # TBD
+        'missionId' : burst_in.platform_id,
+        'productType' : 'SLC',  # NOTE maybe it has to be sth. like RTC?
+        #'productVersion' : # Defined by RTC SAS
+        'lookDirection' : 'RIGHT',
+        'orbitPassDirection' : burst_in.orbit_direction,
+        # NOTE: using the same date format as `s1_reader.as_datetime()``
+        'zeroDopplerStartTime' : burst_in.sensing_start.strftime('"%Y-%m-%dT%H:%M:%S.%f"'),  
+        'zeroDopplerEndTime' : burst_in.sensing_stop.strftime('"%Y-%m-%dT%H:%M:%S.%f"'),
+        #'plannedDatatakeId' :
+        #'plannedObservationId' :
+        #'isUrgentObservation' :
+        'listOfFrequencies' :  ['A'],  # TBC
+        #'diagnosticModeFlag' :
+        'isGeocoded' : True
+        #'processingType' :
+
     }
     #TODO Extend `dict_field_and_data` above for other fields in identification group
 
