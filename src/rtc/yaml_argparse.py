@@ -25,8 +25,7 @@ class YamlArgparse():
                             help='Enable full formatting of log messages')
 
         # parse arguments
-        self.args = parser.parse_args()
+        args = parser.parse_args()
 
-    @property
-    def run_config_path(self) -> str:
-        return self.args.run_config_path
+        return args
+
