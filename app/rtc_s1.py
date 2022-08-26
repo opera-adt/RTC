@@ -5,25 +5,125 @@ RTC Workflow
 '''
 
 import os
+import sys
 from subprocess import call
 import time
 
 import isce3
-import journal
+import logging
 import numpy as np
 from osgeo import gdal
 import h5py
+import argparse
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
 from rtc.geogrid import snap_coord
-from rtc.geo_runconfig import GeoRunConfig
+from rtc.runconfig import RunConfig
 from rtc.yaml_argparse import YamlArgparse
 from rtc import mosaic_geobursts
 
 from nisar.workflows.h5_prep import set_get_geo_info
 
 BASE_DS = f'/science/CSAR'
+FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
+FREQ_GRID_DS = f'{BASE_DS}/{FREQ_GRID_SUB_PATH}'
+
+logger = logging.getLogger('rtc_s1')
+
+class Logger(object):
+    """
+    Class to redirect stdout and stderr to the logger
+    """
+    def __init__(self, logger, level, prefix=''):
+       """
+       Class constructor
+       """
+       self.logger = logger
+       self.level = level
+       self.prefix = prefix
+       self.buffer = ''
+
+    def write(self, message):
+
+        # Add message to the buffer until "\n" is found
+        if '\n' not in message:
+            self.buffer += message
+            return
+
+        message = self.buffer + message
+
+        # check if there is any character after the last \n
+        # if so, move it to the buffer
+        message_list = message.split('\n')
+        if not message.endswith('\n'):
+            self.buffer = message_list[-1]
+            message_list = message_list[:-1]
+        else:
+            self.buffer = ''
+
+        # print all characters before the last \n
+        for line in message_list:
+            if not line:
+                continue
+            self.logger.log(self.level, self.prefix + line)
+
+    def flush(self):
+        self.logger.log(self.level, self.buffer)
+        self.buffer = ''
+
+
+def create_logger(log_file, full_log_formatting=None):
+    """Create logger object for a log file
+
+       Parameters
+       ----------
+       log_file: str
+              Log file
+       full_log_formatting : bool
+              Flag to enable full formatting of logged messages
+
+       Returns
+       -------
+       logger : logging.Logger
+              Logger object
+    """
+    # create logger
+    logger.setLevel(logging.DEBUG)
+
+    # create console handler and set level to debug
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+
+    # create formatter
+    # configure full log format, if enabled
+    if full_log_formatting:
+        msgfmt = ('%(asctime)s.%(msecs)03d, %(levelname)s, DSWx-HLS, '
+                  '%(module)s, 999999, %(pathname)s:%(lineno)d, "%(message)s"')
+
+        formatter = logging.Formatter(msgfmt, "%Y-%m-%d %H:%M:%S")
+    else:
+        formatter = logging.Formatter('%(message)s')
+
+    # add formatter to ch
+    ch.setFormatter(formatter)
+
+    # add ch to logger
+    logger.addHandler(ch)
+
+    if log_file:
+        file_handler = logging.FileHandler(log_file)
+
+        file_handler.setFormatter(formatter)
+
+        # add file handler to logger
+        logger.addHandler(file_handler)
+
+    sys.stdout = Logger(logger, logging.INFO)
+    sys.stderr = Logger(logger, logging.ERROR, prefix='[StdErr] ')
+
+    return logger
+
 
 def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     xf = geogrid.start_x + geogrid.spacing_x * geogrid.width
@@ -83,8 +183,7 @@ def _add_output_to_output_metadata_dict(flag, key, output_dir,
                       output_image_list]
 
 
-def apply_slc_corrections(info_channel,
-                          burst_in: Sentinel1BurstSlc,
+def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
                           path_slc_vrt: str,
                           path_slc_out: str,
                           flag_output_complex: bool = False,
@@ -100,7 +199,7 @@ def apply_slc_corrections(info_channel,
 
     # Apply the correction
     if flag_thermal_correction:
-        info_channel.log(f'applying thermal noise correction to SLC')
+        logger.info(f'applying thermal noise correction to burst SLC(s)')
         corrected_image = np.abs(arr_slc_from) ** 2 - burst_in.thermal_noise_lut
         min_backscatter = 0
         max_backscatter = None
@@ -110,7 +209,7 @@ def apply_slc_corrections(info_channel,
         corrected_image=np.abs(arr_slc_from) ** 2
 
     if flag_apply_abs_rad_correction:
-        info_channel.log(f'applying absolute radiometric correction to SLC')
+        logger.info(f'applying absolute radiometric correction to burst SLC(s)')
     if flag_output_complex:
         factor_mag = np.sqrt(corrected_image) / np.abs(arr_slc_from)
         factor_mag[np.isnan(factor_mag)] = 0.0
@@ -145,14 +244,12 @@ def run(cfg):
     cfg: dict
         Dictionary with user runconfig options
     '''
-    info_channel = journal.info("rtc.run")
-
 
     # Start tracking processing time
     t_start = time.time()
     time_stamp = str(float(time.time()))
     temp_suffix = f'temp_{time_stamp}'
-    info_channel.log("Starting geocode burst")
+    logger.info("Starting geocode burst")
 
     # unpack processing parameters
     processing_namespace = cfg.groups.processing
@@ -168,7 +265,7 @@ def run(cfg):
     product_id = cfg.groups.product_path_group.product_id
     if product_id is None:
         product_id = 'rtc_product'
-    product_path = cfg.groups.product_path_group.product_path
+
     scratch_path = cfg.groups.product_path_group.scratch_path
     output_dir = cfg.groups.product_path_group.output_dir
     flag_mosaic = cfg.groups.product_path_group.mosaic_bursts
@@ -185,7 +282,8 @@ def run(cfg):
     if flag_hdf5:
         output_raster_format = 'GTiff'
     else:
-        output_raster_format = cfg.geocoding_params.output_format
+        output_raster_format = output_format
+
     if output_raster_format == 'GTiff':
         extension = 'tif'
     else:
@@ -280,6 +378,9 @@ def run(cfg):
     n_bursts = len(cfg.bursts.items())
     print('number of bursts to process:', n_bursts)
 
+    hdf5_obj = None
+    output_hdf5_file = os.path.join(output_dir,
+                                    f'{product_id}.{hdf5_file_extension}')
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
         
@@ -287,8 +388,8 @@ def run(cfg):
         # start burst processing
 
         t_burst_start = time.time()
-        info_channel.log(f'processing burst: {burst_id} ({burst_index+1}/'
-                         f'{n_bursts})')
+        logger.info(f'processing burst: {burst_id} ({burst_index+1}/'
+                    f'{n_bursts})')
 
         pols = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pols[0]]
@@ -316,7 +417,7 @@ def run(cfg):
         # update mosaic boundaries
         _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
 
-        info_channel.log(f'reading burst SLC')
+        logger.info(f'reading burst SLC(s)')
         radar_grid = burst.as_isce3_radargrid()
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
@@ -340,10 +441,12 @@ def run(cfg):
             if (flag_apply_thermal_noise_correction or
                     flag_apply_abs_rad_correction):
                 apply_slc_corrections(
-                    info_channel, burst_pol, temp_slc_path,
+                    burst_pol,
+                    temp_slc_path,
                     temp_slc_corrected_path,
                     flag_output_complex=False,
-                    flag_thermal_correction=flag_apply_thermal_noise_correction,
+                    flag_thermal_correction =
+                        flag_apply_thermal_noise_correction,
                     flag_apply_abs_rad_correction=True)
                 input_burst_filename = temp_slc_corrected_path
             else:
@@ -488,25 +591,25 @@ def run(cfg):
 
         del geo_burst_raster
         if not flag_bursts_files_are_temporary:
-            info_channel.log(f'file saved: {geo_burst_filename}')
+            logger.info(f'file saved: {geo_burst_filename}')
         output_imagery_list.append(geo_burst_filename)
 
         if flag_save_nlooks:
             del out_geo_nlooks_obj
             if not flag_bursts_files_are_temporary:
-                info_channel.log(f'file saved: {nlooks_file}')
+                logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
     
         if flag_save_rtc_anf:
             del out_geo_rtc_obj
             if not flag_bursts_files_are_temporary:
-                info_channel.log(f'file saved: {rtc_anf_file}')
+                logger.info(f'file saved: {rtc_anf_file}')
             output_metadata_dict['rtc'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
         if flag_call_radar_grid and not flag_mosaic:
             get_radar_grid(
-                geogrid, info_channel, dem_interp_method_enum, product_id,
+                geogrid, dem_interp_method_enum, product_id,
                 bursts_output_dir, extension, flag_save_incidence_angle,
                 flag_save_local_inc_angle, flag_save_projection_angle,
                 flag_save_rtc_anf_psi,
@@ -525,15 +628,17 @@ def run(cfg):
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
             output_hdf5_file =  os.path.join(
                 hdf5_file_output_dir, f'{product_id}.{hdf5_file_extension}')
+            hdf5_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
             save_hdf5_file(
-                info_channel, output_hdf5_file, orbit, flag_apply_rtc,
+                hdf5_obj, output_hdf5_file, orbit, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str, output_file_list,
                 geogrid, pol_list, geo_burst_filename, nlooks_file,
-                rtc_anf_file, radar_grid_file_dict, burst, cfg)
-
+                rtc_anf_file, radar_grid_file_dict)
+        elif flag_hdf5 and flag_mosaic and burst_index == 0:
+            hdf5_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
 
         t_burst_end = time.time()
-        info_channel.log(
+        logger.info(
             f'elapsed time (burst): {t_burst_end - t_burst_start}')
 
         # end burst processing
@@ -542,7 +647,7 @@ def run(cfg):
     if flag_call_radar_grid and flag_mosaic:
         radar_grid_file_dict = {}
 
-        get_radar_grid(cfg.geogrid, info_channel, dem_interp_method_enum, product_id,
+        get_radar_grid(cfg.geogrid, dem_interp_method_enum, product_id,
                        output_dir, extension, flag_save_incidence_angle,
                        flag_save_local_inc_angle, flag_save_projection_angle,
                        flag_save_rtc_anf_psi,
@@ -559,7 +664,7 @@ def run(cfg):
     if flag_mosaic:
         # mosaic sub-bursts
         geo_filename = f'{output_dir}/{product_id}.{extension}'
-        info_channel.log(f'mosaicking file: {geo_filename}')
+        logger.info(f'mosaicking file: {geo_filename}')
 
         nlooks_list = output_metadata_dict['nlooks'][1]
         mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
@@ -573,7 +678,7 @@ def run(cfg):
         # mosaic other bands
         for key in output_metadata_dict.keys():
             output_file, input_files = output_metadata_dict[key]
-            info_channel.log(f'mosaicking file: {output_file}')
+            logger.info(f'mosaicking file: {output_file}')
             mosaic_geobursts.weighted_mosaic(input_files, nlooks_list,
                                              output_file,
                                              cfg.geogrid, verbose=False)
@@ -591,38 +696,119 @@ def run(cfg):
                 rtc_anf_mosaic_file = output_metadata_dict['rtc'][0]
             else:
                 rtc_anf_mosaic_file = None
-            output_hdf5_file = \
-                os.path.join(output_dir,
-                             f'{product_id}.{hdf5_file_extension}')
-            save_hdf5_file(info_channel, output_hdf5_file, orbit,
+
+            # Update metadata datasets that depend on all bursts
+            sensing_start = None
+            sensing_stop = None
+            for burst_id, burst_pol_dict in cfg.bursts.items():
+                pols = list(burst_pol_dict.keys())
+                burst = burst_pol_dict[pols[0]]
+                print('this burst:')
+                if sensing_start is not None:
+                    print('    ', sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'))
+                if sensing_stop is not None:
+                    print('    ', sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'))
+                if (sensing_start is None or
+                        burst.sensing_start < sensing_start):
+                    sensing_start = burst.sensing_start
+                    print('updated sensing start')
+                if sensing_stop is None or burst.sensing_stop > sensing_stop:
+                    sensing_stop = burst.sensing_stop
+                    print('updated sensing stop')
+
+
+            print('(before) start:', str(hdf5_obj[f'{BASE_DS}/identification/zeroDopplerStartTime'][()]))
+            print('(before) end:', str(hdf5_obj[f'{BASE_DS}/identification/zeroDopplerEndTime'][()]))
+            sensing_start_ds = f'{BASE_DS}/identification/zeroDopplerStartTime'
+            sensing_end_ds = f'{BASE_DS}/identification/zeroDopplerEndTime'
+            del hdf5_obj[sensing_start_ds]
+            del hdf5_obj[sensing_end_ds]
+            hdf5_obj[sensing_start_ds] = \
+                sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f')
+            hdf5_obj[sensing_end_ds] = \
+                sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f')
+
+            print('(after) start:', str(hdf5_obj[f'{BASE_DS}/identification/zeroDopplerStartTime'][()]))
+            print('(after) end:', str(hdf5_obj[f'{BASE_DS}/identification/zeroDopplerEndTime'][()]))
+
+            save_hdf5_file(hdf5_obj,
+                           output_hdf5_file, orbit,
                            flag_apply_rtc,
                            clip_max, clip_min, output_radiometry_str,
                            output_file_list, cfg.geogrid, pol_list,
                            geo_filename, nlooks_mosaic_file,
                            rtc_anf_mosaic_file, radar_grid_file_dict)
 
-    info_channel.log('removing temporary files:')
+    logger.info('removing temporary files:')
     for filename in temp_files_list:
         if not os.path.isfile(filename):
             continue
         os.remove(filename)
-        info_channel.log(f'    {filename}')
+        logger.info(f'    {filename}')
 
-    info_channel.log('output files:')
+    logger.info('output files:')
     for filename in output_file_list:
-        info_channel.log(f'    {filename}')
+        logger.info(f'    {filename}')
 
 
     t_end = time.time()
-    info_channel.log(f'elapsed time: {t_end - t_start}')
+    logger.info(f'elapsed time: {t_end - t_start}')
 
 
-def save_hdf5_file(info_channel, output_hdf5_file, orbit, flag_apply_rtc, clip_max,
+def save_hdf5_file(hdf5_obj, output_hdf5_file, orbit, flag_apply_rtc, clip_max,
                    clip_min, output_radiometry_str,
                    output_file_list, geogrid, pol_list, geo_burst_filename,
-                   nlooks_file, rtc_anf_file, radar_grid_file_dict,
-                   burst=None, cfg=None):
+                   nlooks_file, rtc_anf_file, radar_grid_file_dict):
 
+    # save grids metadata
+    h5_ds = os.path.join(FREQ_GRID_DS, 'listOfPolarizations')
+    if h5_ds in hdf5_obj:
+        del hdf5_obj[h5_ds]
+    pol_list_s2 = np.array(pol_list, dtype='S2')
+    dset = hdf5_obj.create_dataset(h5_ds, data=pol_list_s2)
+    dset.attrs['description'] = np.string_(
+                'List of processed polarization layers')
+
+    h5_ds = os.path.join(FREQ_GRID_DS, 'radiometricTerrainCorrectionFlag')
+    if h5_ds in hdf5_obj:
+        del hdf5_obj[h5_ds]
+    dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
+
+    # save geogrid coordinates
+    yds, xds = set_get_geo_info(hdf5_obj, FREQ_GRID_DS, geogrid)
+
+    # save RTC imagery
+    _save_hdf5_dataset(geo_burst_filename, hdf5_obj, FREQ_GRID_DS,
+                       yds, xds, pol_list,
+                       long_name=output_radiometry_str,
+                       units='',
+                       valid_min=clip_min,
+                       valid_max=clip_max)
+    # save nlooks
+    if nlooks_file:
+        _save_hdf5_dataset(nlooks_file, hdf5_obj, FREQ_GRID_DS,
+                           yds, xds, 'numberOfLooks',
+                           long_name = 'number of looks',
+                           units = '',
+                           valid_min = 0)
+
+    # save rtc
+    if rtc_anf_file:
+        _save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
+                           yds, xds, 'areaNormalizationFactor',
+                           long_name = 'RTC area factor',
+                           units = '',
+                           valid_min = 0)
+
+    for filename, descr in radar_grid_file_dict.items():
+         _save_hdf5_dataset(filename, hdf5_obj, FREQ_GRID_DS, yds, xds, descr,
+                            long_name = '', units = '')
+
+    logger.info(f'file saved: {output_hdf5_file}')
+    output_file_list.append(output_hdf5_file)
+
+
+def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
     hdf5_obj.attrs["contact"] = np.string_("operaops@jpl.nasa.gov")
@@ -633,58 +819,10 @@ def save_hdf5_file(info_channel, output_hdf5_file, orbit, flag_apply_rtc, clip_m
 
     populate_metadata_group(hdf5_obj, burst, cfg)
 
-    root_ds = f'{BASE_DS}/RTC/grids/frequencyA'
-
     # save orbit
     orbit_group = hdf5_obj.require_group(f'{BASE_DS}/RTC/metadata/orbit')
     save_orbit(orbit, orbit_group)
-
-    # save grids metadata
-    h5_ds = os.path.join(root_ds, 'listOfPolarizations')
-    if h5_ds in hdf5_obj:
-        del hdf5_obj[h5_ds]
-    pol_list_s2 = np.array(pol_list, dtype='S2')
-    dset = hdf5_obj.create_dataset(h5_ds, data=pol_list_s2)
-    dset.attrs['description'] = np.string_(
-                'List of processed polarization layers')
-
-    h5_ds = os.path.join(root_ds, 'radiometricTerrainCorrectionFlag')
-    if h5_ds in hdf5_obj:
-        del hdf5_obj[h5_ds]
-    dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
-
-    # save geogrid coordinates
-    yds, xds = set_get_geo_info(hdf5_obj, root_ds, geogrid)
-
-    # save RTC imagery
-    _save_hdf5_dataset(geo_burst_filename, hdf5_obj, root_ds,
-                       yds, xds, pol_list,
-                       long_name=output_radiometry_str,
-                       units='',
-                       valid_min=clip_min,
-                       valid_max=clip_max)
-    # save nlooks
-    if nlooks_file:
-        _save_hdf5_dataset(nlooks_file, hdf5_obj, root_ds,
-                           yds, xds, 'numberOfLooks',
-                           long_name = 'number of looks',
-                           units = '',
-                           valid_min = 0)
-
-    # save rtc
-    if rtc_anf_file:
-        _save_hdf5_dataset(rtc_anf_file, hdf5_obj, root_ds,
-                           yds, xds, 'areaNormalizationFactor',
-                           long_name = 'RTC area factor',
-                           units = '',
-                           valid_min = 0)
-
-    for filename, descr in radar_grid_file_dict.items():
-         _save_hdf5_dataset(filename, hdf5_obj, root_ds, yds, xds, descr,
-                            long_name = '', units = '')
-
-    info_channel.log(f'file saved: {output_hdf5_file}')
-    output_file_list.append(output_hdf5_file)
+    return hdf5_obj
 
 
 def save_orbit(orbit, orbit_group):
@@ -708,10 +846,10 @@ def save_orbit(orbit, orbit_group):
 
 
 def populate_metadata_group(h5py_obj: h5py.File,
-                                  burst_in: Sentinel1BurstSlc = None,
-                                  cfg_in: GeoRunConfig = None,
-                                  root_path: str = BASE_DS):
-    '''Populate RTC metadata based on Sentinel1BurstSlc and GeoRunConfig
+                            burst_in: Sentinel1BurstSlc,
+                            cfg_in: RunConfig,
+                            root_path: str = BASE_DS):
+    '''Populate RTC metadata based on Sentinel1BurstSlc and RunConfig
 
     Parameters:
     -----------
@@ -719,7 +857,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         HDF5 object into which write the metadata
     burst_in: Sentinel1BurstCls
         Source burst of the RTC
-    cfg_in: GeoRunConfig
+    cfg_in: RunConfig
         A class that contains the information defined in runconfig
     root_path: str
         Root path inside the HDF5 object on which the metadata will be placed
@@ -771,24 +909,22 @@ def populate_metadata_group(h5py_obj: h5py.File,
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
 
-        # 'RTC/grids/frequencyA/yCoordinateSpacing':
-        # 'grids/frequencyA/xCoordinateSpacing'
-        'RTC/grids/frequencyA/rangeBandwidth':
+        f'{FREQ_GRID_SUB_PATH}/rangeBandwidth':
             [burst_in.range_bandwidth, 'Processed range bandwidth in Hz'],
         # 'frequencyA/azimuthBandwidth':
-        'RTC/grids/frequencyA/centerFrequency':
+        f'{FREQ_GRID_SUB_PATH}/centerFrequency':
             [burst_in.radar_center_frequency, 'Center frequency of the processed image in Hz'],
-        'RTC/grids/frequencyA/slantRangeSpacing':
+        f'{FREQ_GRID_SUB_PATH}/slantRangeSpacing':
             [burst_in.range_pixel_spacing,
              'Slant range spacing of grid. '
              'Same as difference between consecutive samples in slantRange array'],
-        'RTC/grids/frequencyA/zeroDopplerTimeSpacing':
+        f'{FREQ_GRID_SUB_PATH}/zeroDopplerTimeSpacing':
             [burst_in.azimuth_time_interval,
              'Time interval in the along track direction for raster layers. This is same '
              'as the spacing between consecutive entries in the zeroDopplerTime array'],
-        'RTC/grids/frequencyA/faradayRotationFlag':
+        f'{FREQ_GRID_SUB_PATH}/faradayRotationFlag':
             [False, 'Flag to indicate if Faraday Rotation correction was applied'],
-        'RTC/grids/frequencyA/polarizationOrientationFlag':
+        f'{FREQ_GRID_SUB_PATH}/polarizationOrientationFlag':
             [False, 'Flag to indicate if Polarization Orientation correction was applied'],
 
         'RTC/metadata/processingInformation/algorithms/demInterpolation':
@@ -809,10 +945,9 @@ def populate_metadata_group(h5py_obj: h5py.File,
             [[burst_in.burst_calibration.basename_cads, burst_in.burst_noise.basename_nads],
              'List of input calibration files used'],
         'RTC/metadata/processingInformation/inputs/configFiles':
-            [geo_parser.run_config_path, 'List of input config files used'],
+            [cfg_in.run_config_path, 'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demFiles':
             [dem_files, 'List of input dem files used']
-
     }
     for fieldname, data in dict_field_and_data.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
@@ -822,9 +957,6 @@ def populate_metadata_group(h5py_obj: h5py.File,
             dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data[0])
 
         dset.attrs['description'] = np.string_(data[1])
-
-
-
 
 
 def _save_hdf5_dataset(ds_filename, h5py_obj, root_path,
@@ -938,7 +1070,7 @@ def _save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
 
 
-def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
+def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
                    output_dir, extension, flag_save_incidence_angle,
                    flag_save_local_inc_angle, flag_save_projection_angle,
                    flag_save_rtc_anf_psi,
@@ -1011,9 +1143,6 @@ def get_radar_grid(geogrid, info_channel, dem_interp_method_enum, product_id,
 
     if not verbose:
         return
-
-    for filename in output_file_list:
-        info_channel.log(f'file saved: {filename}')
 
 
 def _load_parameters(cfg):
@@ -1090,14 +1219,46 @@ def _load_parameters(cfg):
     cfg.groups.processing.dem_interpolation_method_enum = \
         dem_interp_method_enum
 
+
+def get_rtc_s1_parser():
+    '''Initialize YamlArgparse class and parse CLI arguments for OPERA RTC.
+    '''
+    parser = argparse.ArgumentParser(description='',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('run_config_path',
+                        type=str,
+                        nargs='?',
+                        default=None,
+                        help='Path to run config file')
+
+    parser.add_argument('--log',
+                        '--log-file',
+                        dest='log_file',
+                        type=str,
+                        help='Log file')
+
+    parser.add_argument('--full-log-format',
+                        dest='full_log_formatting',
+                        action='store_true',
+                        default=False,
+                        help='Enable full formatting of log messages')
+
+    return parser
+
+
 if __name__ == "__main__":
     '''Run geocode rtc workflow from command line'''
     # load arguments from command line
-    geo_parser = YamlArgparse()
+    parser  = get_rtc_s1_parser()
+    
+    # parse arguments
+    args = parser.parse_args()
+
+    # create logger
+    create_logger(args.log_file, args.full_log_formatting)
 
     # Get a runconfig dict from command line argumens
-    cfg = GeoRunConfig.load_from_yaml(geo_parser.run_config_path,
-                                      'rtc_s1')
+    cfg = RunConfig.load_from_yaml(args.run_config_path, 'rtc_s1')
 
     _load_parameters(cfg)
 
