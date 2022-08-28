@@ -42,7 +42,7 @@ RUN echo "Installing Conda environment for ISCE3" &&\
     ln -s ../isce3-opera_rtc isce3 &&\
     rm ${ISCEHOME}/isce3_opera_rtc.zip &&\
     cd ${HOME} &&\
-    conda env create --file /home/rtc_user/OPERA/RTC/Docker/environment.yml &&\
+    conda create --name isce3_rtc --file ./OPERA/RTC/Docker/specfile.txt &&\
     chmod -R 755 ${CONDA_PREFIX}/envs/isce3_rtc &&\
     cd ${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/src
 
