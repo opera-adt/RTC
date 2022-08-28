@@ -21,7 +21,7 @@ from rtc.runconfig import RunConfig
 from rtc.mosaic_geobursts import weighted_mosaic
 from rtc.core import create_logger
 from rtc.h5_prep import save_hdf5_file, create_hdf5_file, \
-    save_hdf5_dataset
+    save_hdf5_dataset, BASE_DS
 
 logger = logging.getLogger('rtc_s1')
 
