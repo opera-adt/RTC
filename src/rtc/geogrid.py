@@ -18,7 +18,7 @@ def assign_check_geogrid(geogrid, x_start=None, y_start=None,
 
     Parameters
     ----------
-    geogrid: isce3.product.bbox_to_geogrid
+    geogrid: isce3.product.GeoGridParameters
         ISCE3 object defining the geogrid
     x_start: float
         Geogrid top-left X coordinate
@@ -31,7 +31,7 @@ def assign_check_geogrid(geogrid, x_start=None, y_start=None,
 
     Returns
     -------
-    geogrid: isce3.product.bbox_to_geogrid
+    geogrid: isce3.product.GeoGridParameters
         ISCE3 geogrid initialized with user-defined inputs
     '''
 
@@ -64,7 +64,7 @@ def intersect_geogrid(geogrid, x_start=None, y_start=None,
 
     Parameters
     ----------
-    geogrid: isce3.product.bbox_to_geogrid
+    geogrid: isce3.product.GeoGridParameters
         ISCE3 object defining the geogrid
     x_start: float
         Geogrid top-left X coordinate
@@ -77,7 +77,7 @@ def intersect_geogrid(geogrid, x_start=None, y_start=None,
 
     Returns
     -------
-    geogrid: isce3.product.bbox_to_geogrid
+    geogrid: isce3.product.GeoGridParameters
         ISCE3 geogrid
     '''
 
@@ -111,7 +111,7 @@ def check_geogrid_endpoints(geogrid, x_end=None, y_end=None):
 
     Parameters
     -----------
-    geogrid: isce3.product.bbox_to_geogrid
+    geogrid: isce3.product.GeoGridParameters
         ISCE3 object defining the geogrid
     x_end: float
         Geogrid bottom right X coordinate
@@ -201,7 +201,7 @@ def snap_geogrid(geogrid, x_snap, y_snap):
 
     Parameters
     ----------
-    geogrid: isce3.product.bbox_to_geogrid
+    geogrid: isce3.product.GeoGridParameters
         ISCE3 object definining the geogrid
     x_snap: float
         Snap value along X-direction
@@ -210,7 +210,7 @@ def snap_geogrid(geogrid, x_snap, y_snap):
 
     Returns
     -------
-    geogrid: isce3.product.bbox_to_geogrid
+    geogrid: isce3.product.GeoGridParameters
         ISCE3 object containing the snapped geogrid
     '''
     x_end = geogrid.start_x + geogrid.width * geogrid.spacing_x

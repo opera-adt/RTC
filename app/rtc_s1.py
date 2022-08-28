@@ -5,8 +5,6 @@ RTC Workflow
 '''
 
 import os
-import sys
-from subprocess import call
 import time
 
 import isce3
@@ -18,12 +16,12 @@ import argparse
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
+from nisar.workflows.h5_prep import set_get_geo_info
+
 from rtc.geogrid import snap_coord
 from rtc.runconfig import RunConfig
-from rtc.yaml_argparse import YamlArgparse
-from rtc import mosaic_geobursts
-
-from nisar.workflows.h5_prep import set_get_geo_info
+from rtc.mosaic_geobursts import weighted_mosaic
+from rtc.core import create_logger
 
 BASE_DS = f'/science/CSAR'
 FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
@@ -31,101 +29,20 @@ FREQ_GRID_DS = f'{BASE_DS}/{FREQ_GRID_SUB_PATH}'
 
 logger = logging.getLogger('rtc_s1')
 
-class Logger(object):
-    """
-    Class to redirect stdout and stderr to the logger
-    """
-    def __init__(self, logger, level, prefix=''):
-       """
-       Class constructor
-       """
-       self.logger = logger
-       self.level = level
-       self.prefix = prefix
-       self.buffer = ''
 
-    def write(self, message):
-
-        # Add message to the buffer until "\n" is found
-        if '\n' not in message:
-            self.buffer += message
-            return
-
-        message = self.buffer + message
-
-        # check if there is any character after the last \n
-        # if so, move it to the buffer
-        message_list = message.split('\n')
-        if not message.endswith('\n'):
-            self.buffer = message_list[-1]
-            message_list = message_list[:-1]
-        else:
-            self.buffer = ''
-
-        # print all characters before the last \n
-        for line in message_list:
-            if not line:
-                continue
-            self.logger.log(self.level, self.prefix + line)
-
-    def flush(self):
-        self.logger.log(self.level, self.buffer)
-        self.buffer = ''
-
-
-def create_logger(log_file, full_log_formatting=None):
-    """Create logger object for a log file
+def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
+    """Updates mosaic boundaries and check if pixel spacing
+       and EPSG code are consistent between burst
+       and mosaic geogrid
 
        Parameters
        ----------
-       log_file: str
-              Log file
-       full_log_formatting : bool
-              Flag to enable full formatting of logged messages
+       mosaic_geogrid_dict: dict
+              Dictionary containing mosaic geogrid parameters
+       geogrid : isce3.product.GeoGridParameters
+              Burst geogrid
 
-       Returns
-       -------
-       logger : logging.Logger
-              Logger object
     """
-    # create logger
-    logger.setLevel(logging.DEBUG)
-
-    # create console handler and set level to debug
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
-
-    # create formatter
-    # configure full log format, if enabled
-    if full_log_formatting:
-        msgfmt = ('%(asctime)s.%(msecs)03d, %(levelname)s, DSWx-HLS, '
-                  '%(module)s, 999999, %(pathname)s:%(lineno)d, "%(message)s"')
-
-        formatter = logging.Formatter(msgfmt, "%Y-%m-%d %H:%M:%S")
-    else:
-        formatter = logging.Formatter('%(message)s')
-
-    # add formatter to ch
-    ch.setFormatter(formatter)
-
-    # add ch to logger
-    logger.addHandler(ch)
-
-    if log_file:
-        file_handler = logging.FileHandler(log_file)
-
-        file_handler.setFormatter(formatter)
-
-        # add file handler to logger
-        logger.addHandler(file_handler)
-
-    sys.stdout = Logger(logger, logging.INFO)
-    sys.stderr = Logger(logger, logging.ERROR, prefix='[StdErr] ')
-
-    return logger
-
-
-def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     xf = geogrid.start_x + geogrid.spacing_x * geogrid.width
     yf = geogrid.start_y + geogrid.spacing_y * geogrid.length
     if ('x0' not in mosaic_geogrid_dict.keys() or
@@ -672,8 +589,8 @@ def run(cfg):
         logger.info(f'mosaicking file: {geo_filename}')
 
         nlooks_list = output_metadata_dict['nlooks'][1]
-        mosaic_geobursts.weighted_mosaic(output_imagery_list, nlooks_list,
-                                     geo_filename, cfg.geogrid, verbose=False)
+        weighted_mosaic(output_imagery_list, nlooks_list,
+                        geo_filename, cfg.geogrid, verbose=False)
 
         if flag_hdf5:
             temp_files_list.append(geo_filename)
@@ -684,9 +601,8 @@ def run(cfg):
         for key in output_metadata_dict.keys():
             output_file, input_files = output_metadata_dict[key]
             logger.info(f'mosaicking file: {output_file}')
-            mosaic_geobursts.weighted_mosaic(input_files, nlooks_list,
-                                             output_file,
-                                             cfg.geogrid, verbose=False)
+            weighted_mosaic(input_files, nlooks_list, output_file,
+                            cfg.geogrid, verbose=False)
             if flag_hdf5:
                 temp_files_list.append(output_file)
             else:
