@@ -3,12 +3,12 @@ Collection of function for determining and setting the geogrid
 '''
 
 import numpy as np
-import journal
+import logging
 
 from nisar.workflows.geogrid import _grid_size
 import isce3
 
-
+logger = logging.getLogger('rtc_s1')
 
 def assign_check_geogrid(geogrid, x_start=None, y_start=None,
                          x_end=None, y_end=None):
@@ -149,27 +149,26 @@ def check_snap_values(x_snap, y_snap, x_spacing, y_spacing):
     y_spacing: float
         Spacing of the geogrid along Y-direction
     '''
-    error_channel = journal.error('geogrid.check_snap_values')
 
     # Check that snap values in X/Y-directions are positive
     if x_snap is not None and x_snap <= 0:
         err_str = f'Snap value in X direction must be > 0 (x_snap: {x_snap})'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
     if y_snap is not None and y_snap <= 0:
         err_str = f'Snap value in Y direction must be > 0 (y_snap: {y_snap})'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
 
     # Check that snap values in X/Y are integer multiples of the geogrid
     # spacings in X/Y directions
     if x_snap is not None and x_snap % x_spacing != 0.0:
         err_str = 'x_snap must be exact multiple of spacing in X direction (x_snap % x_spacing !=0)'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
     if y_snap is not None and y_snap % y_spacing != 0.0:
         err_str = 'y_snap must be exact multiple of spacing in Y direction (y_snap % y_spacing !=0)'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
 
 
@@ -246,7 +245,6 @@ def get_point_epsg(lat, lon):
     epsg: int
         UTM zone, Polar stereographic (North / South)
     '''
-    error_channel = journal.error('geogrid.get_point_epsg')
 
     # "Warp" longitude value into [-180.0, 180.0]
     if (lon >= 180.0) or (lon <= -180.0):
@@ -262,13 +260,11 @@ def get_point_epsg(lat, lon):
         return 32701 + int(np.round((lon + 177) / 6.0))
     else:
         err_str = "'Could not determine EPSG for {0}, {1}'.format(lon, lat))"
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
 
 
 def generate_geogrids(bursts, geo_dict, dem):
-
-    error_channel = journal.error('geogrid.generate_geogrids')
 
     dem_raster = isce3.io.Raster(dem)
 
@@ -306,7 +302,7 @@ def generate_geogrids(bursts, geo_dict, dem):
     if x_spacing is not None and x_spacing <= 0:
         err_str = 'Pixel spacing in X/longitude direction needs to be positive'
         err_str += f' (x_spacing: {x_spacing})'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
     elif x_spacing is None and epsg == 4326:
         x_spacing = -0.00027
@@ -317,7 +313,7 @@ def generate_geogrids(bursts, geo_dict, dem):
     if y_spacing_positive is not None and y_spacing_positive <= 0:
         err_str = 'Pixel spacing in Y/latitude direction needs to be positive'
         err_str += f'(y_spacing: {y_spacing_positive})'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
     elif y_spacing_positive is None and epsg == 4326:
         y_spacing = -0.00027

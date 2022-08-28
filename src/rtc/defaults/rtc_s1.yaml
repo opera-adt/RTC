@@ -36,7 +36,7 @@ runconfig:
           mosaic_bursts: False
 
           # Format of output file
-          output_format: HDF5
+          output_format: NETCDF
 
 
       primary_executable:

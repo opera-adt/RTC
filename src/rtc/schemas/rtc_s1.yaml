@@ -36,7 +36,7 @@ runconfig:
            mosaic_bursts: bool(required=False)
       
            # Format of output file
-           output_format: enum('HDF5', 'ENVI', 'GTiff', 'COG', required=False)
+           output_format: enum('HDF5', 'NETCDF', 'ENVI', 'GTiff', 'COG', required=False)
 
         primary_executable:
           product_type: enum('RTC_S1')

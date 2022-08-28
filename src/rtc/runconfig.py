@@ -5,17 +5,21 @@ from types import SimpleNamespace
 import sys
 
 import isce3
-import journal
+from isce3.product import GeoGridParameters
+
+import logging
 import yamale
 from ruamel.yaml import YAML
 
 from rtc import helpers
 from rtc.radar_grid import file_to_rdr_grid
+from rtc.geogrid import generate_geogrids
 from rtc.wrap_namespace import wrap_namespace, unwrap_to_dict
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from s1reader.s1_orbit import get_orbit_file_from_list
 from s1reader.s1_reader import load_bursts
 
+logger = logging.getLogger('rtc_s1')
 
 def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
     """Initialize RunConfig class with options from given yaml file.
@@ -27,7 +31,6 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
     workflow_name: str
         Name of the workflow for which uploading default options
     """
-    error_channel = journal.error('runconfig.load_validate_yaml')
     try:
         # Load schema corresponding to 'workflow_name' and to validate against
         if workflow_name == 's1_cslc_geo' or workflow_name == 'rtc_s1':            
@@ -39,7 +42,7 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
             parser='ruamel')
     except:
         err_str = f'unable to load schema for workflow {workflow_name}.'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
 
     # load yaml file or string from command line
@@ -48,7 +51,7 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
             data = yamale.make_data(yaml_path, parser='ruamel')
         except yamale.YamaleError as yamale_err:
             err_str = f'Yamale unable to load {workflow_name} runconfig yaml {yaml_path} for validation.'
-            error_channel.log(err_str)
+            logger.error(err_str)
             raise yamale.YamaleError(err_str) from yamale_err
     else:
         raise FileNotFoundError
@@ -58,7 +61,7 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
         yamale.validate(schema, data)
     except yamale.YamaleError as yamale_err:
         err_str = f'Validation fail for {workflow_name} runconfig yaml {yaml_path}.'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise yamale.YamaleError(err_str) from yamale_err
 
     # load default runconfig
@@ -87,7 +90,6 @@ def validate_group_dict(group_cfg: dict, workflow_name) -> None:
     group_cfg : dict
         Dictionary storing runconfig options to validate
     """
-    error_channel = journal.error('runconfig.validate_group_dict')
 
     # Check 'input_file_group' section of runconfig
     input_group = group_cfg['input_file_group']
@@ -106,7 +108,7 @@ def validate_group_dict(group_cfg: dict, workflow_name) -> None:
         # Raise error if given co-pol file and expecting cross-pol or dual-pol
         if run_pol_mode != 'co-pol' and safe_pol_mode in ['SV', 'SH']:
             err_str = f'{run_pol_mode} polarization lacks cross-pol in {safe_file}'
-            error_channel.log(err_str)
+            logger.error(err_str)
             raise ValueError(err_str)
 
     # Check SAFE file pols consistency. i.e. no *H/*V with *V/*H respectively
@@ -115,7 +117,7 @@ def validate_group_dict(group_cfg: dict, workflow_name) -> None:
         for safe_pol_mode in safe_pol_modes[1:]:
             if safe_pol_mode[1] != first_safe_pol_mode:
                 err_str = 'SH/SV SAFE file mixed with DH/DV'
-                error_channel.log(err_str)
+                logger.error(err_str)
                 raise ValueError(err_str)
 
     for orbit_file in input_group['orbit_file_path']:
@@ -147,7 +149,6 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
     _ : list[Sentinel1BurstSlc]
         List of bursts loaded according to given configuration.
     '''
-    error_channel = journal.error('runconfig.correlate_burst_to_orbit')
 
     # dict to store list of bursts keyed by burst_ids
     bursts = {}
@@ -161,7 +162,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
 
         if not orbit_path:
             err_str = f"No orbit file correlates to safe file: {os.path.basename(safe_file)}"
-            error_channel.log(err_str)
+            logger.error(err_str)
             raise ValueError(err_str)
 
         # from SAFE file mode, create dict of runconfig pol mode to polarization(s)
@@ -217,7 +218,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
     # check if no bursts were found
     if not bursts:
         err_str = "Could not find any of the burst IDs in the provided safe files"
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
 
     return bursts
@@ -250,6 +251,37 @@ def get_ref_radar_grid_info(ref_path, burst_id):
     return ReferenceRadarInfo(ref_rdr_path, ref_rdr_grid)
 
 
+def check_geocode_dict(geocode_cfg: dict) -> None:
+
+    # check output EPSG
+    output_epsg = geocode_cfg['output_epsg']
+    if output_epsg is not None:
+        # check 1024 <= output_epsg <= 32767:
+        if output_epsg < 1024 or 32767 < output_epsg:
+            err_str = f'output epsg {output_epsg} in YAML out of bounds'
+            logger.error(err_str)
+            raise ValueError(err_str)
+
+    for xy in 'xy':
+        # check posting value in current axis
+        posting_key = f'{xy}_posting'
+        if geocode_cfg[posting_key] is not None:
+            posting = geocode_cfg[posting_key]
+            if posting <= 0:
+                err_str = '{xy} posting from config of {posting} <= 0'
+                logger.error(err_str)
+                raise ValueError(err_str)
+
+        # check snap value in current axis
+        snap_key = f'{xy}_snap'
+        if geocode_cfg[snap_key] is not None:
+            snap = geocode_cfg[snap_key]
+            if snap <= 0:
+                err_str = '{xy} snap from config of {snap} <= 0'
+                logger.error(err_str)
+                raise ValueError(err_str)
+
+
 @dataclass(frozen=True)
 class ReferenceRadarInfo:
     path: str
@@ -268,6 +300,51 @@ class RunConfig:
     # dict of reference radar paths and grids values keyed on burst ID
     # (empty/unused if rdr2geo)
     reference_radar_info: ReferenceRadarInfo
+    # run config path
+    run_config_path: str
+    # output product geogrid
+    geogrid: GeoGridParameters
+    # dict of geogrids associated to burst IDs
+    geogrids: dict[str, GeoGridParameters]
+
+
+    @classmethod
+    def load_from_yaml(cls, yaml_path: str, workflow_name: str) -> RunConfig:
+        """Initialize RunConfig class with options from given yaml file.
+
+        Parameters
+        ----------
+        yaml_path : str
+            Path to yaml file containing the options to load
+        workflow_name: str
+            Name of the workflow for which uploading default options
+        """
+        cfg = load_validate_yaml(yaml_path, workflow_name)
+        groups_cfg = cfg['runconfig']['groups']
+
+        geocoding_dict = groups_cfg['processing']['geocoding']
+        check_geocode_dict(geocoding_dict)
+
+        # Convert runconfig dict to SimpleNamespace
+        sns = wrap_namespace(groups_cfg)
+
+        # Load bursts
+        bursts = runconfig_to_bursts(sns)
+
+        # Load geogrids
+        dem_file = groups_cfg['dynamic_ancillary_file_group']['dem_file']
+        geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict,
+                                                  dem_file)
+
+        # Empty reference dict for base runconfig class constructor
+        empty_ref_dict = {}
+
+        return cls(cfg['runconfig']['name'], sns, bursts, empty_ref_dict,
+                   yaml_path, geogrid_all, geogrids)
+
+    @property
+    def geocoding_params(self) -> dict:
+        return self.groups.processing.geocoding
 
     @property
     def burst_id(self) -> list[str]:
