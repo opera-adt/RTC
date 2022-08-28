@@ -154,7 +154,7 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
         assert(mosaic_geogrid_dict['epsg'] == geogrid.epsg)
 
 
-def _get_raster(output_dir, ds_name, ds_hdf5, dtype, shape,
+def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
                 radar_grid_file_dict, output_obj_list, flag_save_vector_1,
                 extension):
     if flag_save_vector_1 is not True:
@@ -194,8 +194,8 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
 
     # Load the SLC of the burst
     burst_in.slc_to_vrt_file(path_slc_vrt)
-    raster_slc_from = gdal.Open(path_slc_vrt)
-    arr_slc_from = raster_slc_from.ReadAsArray()
+    slc_gdal_ds = gdal.Open(path_slc_vrt)
+    arr_slc_from = slc_gdal_ds.ReadAsArray()
 
     # Apply the correction
     if flag_thermal_correction:
@@ -1077,29 +1077,29 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
     layers_nbands = 1
     shape = [layers_nbands, geogrid.length, geogrid.width]
 
-    incidence_angle_raster = _get_raster(
+    incidence_angle_raster = _create_raster_obj(
             output_dir, f'{product_id}_incidence_angle',
             'incidenceAngle', gdal.GDT_Float32, shape, radar_grid_file_dict,
             output_obj_list, flag_save_incidence_angle, extension)
-    local_incidence_angle_raster = _get_raster(
+    local_incidence_angle_raster = _create_raster_obj(
             output_dir, f'{product_id}_local_incidence_angle',
             'localIncidenceAngle', gdal.GDT_Float32, shape,
             radar_grid_file_dict, output_obj_list, flag_save_local_inc_angle,
             extension)
-    projection_angle_raster = _get_raster(
+    projection_angle_raster = _create_raster_obj(
             output_dir, f'{product_id}_projection_angle',
             'projectionAngle', gdal.GDT_Float32, shape, radar_grid_file_dict,
             output_obj_list, flag_save_projection_angle, extension)
-    rtc_anf_psi_raster = _get_raster(
+    rtc_anf_psi_raster = _create_raster_obj(
             output_dir, f'{product_id}_rtc_anf_psi',
             'areaNormalizationFactorPsi', gdal.GDT_Float32, shape,
             radar_grid_file_dict, output_obj_list, 
             flag_save_rtc_anf_psi, extension)
-    range_slope_raster = _get_raster(
+    range_slope_raster = _create_raster_obj(
             output_dir, f'{product_id}_range_slope',
             'rangeSlope', gdal.GDT_Float32, shape, radar_grid_file_dict,
             output_obj_list, flag_save_range_slope, extension)
-    interpolated_dem_raster = _get_raster(
+    interpolated_dem_raster = _create_raster_obj(
             output_dir, f'{product_id}_interpolated_dem',
             'interpolatedDem', gdal.GDT_Float32, shape, radar_grid_file_dict,
             output_obj_list, flag_save_dem, extension)
