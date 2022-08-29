@@ -56,7 +56,7 @@ ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/ins
 
 RUN cd ${ISCEHOME}/tools/isce_$POSTFIX_ISCE3/build &&\
     cmake -DCMAKE_INSTALL_PREFIX=${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/install -DWITH_CUDA=OFF ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/src/isce3 &&\
-    make -j16 VERBOSE=ON &&\
+    make -j32 VERBOSE=ON &&\
     make install &&\
     rm -r ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/build &&\
     rm -r ${ISCEHOME}/tools/isce_${POSTFIX_ISCE3}/isce3-opera_rtc &&\
