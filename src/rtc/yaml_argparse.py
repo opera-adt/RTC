@@ -1,20 +1,31 @@
 import argparse
 
 class YamlArgparse():
-    def __init__(self, add_grid_type=False):
-        '''Initialize YamlArgparse class and parse CLI arguments for OPERA RTC.'''
-        parser = argparse.ArgumentParser(description='', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument('run_config_path', type=str, nargs='?', default=None, help='Path to run config file')
+    def __init__(self):
+        '''Initialize YamlArgparse class and parse CLI arguments for OPERA RTC.
+        '''
+        parser = argparse.ArgumentParser(description='',
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument('run_config_path',
+                            type=str,
+                            nargs='?',
+                            default=None,
+                            help='Path to run config file')
 
-        # additional arguments for s1_cslc.py
-        if add_grid_type:
-            parser.add_argument('-g','--grid','--grid-type', dest='grid_type', type=str,
-                                default='geo', choices=['geo', 'radar'],
-                                help='Grid (coordinates) type of the output CSLC')
+        parser.add_argument('--log',
+                            '--log-file',
+                            dest='log_file',
+                            type=str,
+                            help='Log file')
+
+        parser.add_argument('--full-log-format',
+                            dest='full_log_formatting',
+                            action='store_true',
+                            default=False,
+                            help='Enable full formatting of log messages')
 
         # parse arguments
-        self.args = parser.parse_args()
+        args = parser.parse_args()
 
-    @property
-    def run_config_path(self) -> str:
-        return self.args.run_config_path
+        return args
+

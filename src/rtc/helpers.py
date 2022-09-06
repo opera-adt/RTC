@@ -3,11 +3,12 @@
 import os
 
 import isce3
-import journal
+import logging
 from osgeo import gdal
 
 import rtc
 
+logger = logging.getLogger('rtc_s1')
 
 WORKFLOW_SCRIPTS_DIR = os.path.dirname(rtc.__file__)
 
@@ -24,10 +25,9 @@ def check_file_path(file_path: str) -> None:
     file_path : str
         Path to file to be checked
     """
-    error_channel = journal.error('helpers.check_file_path')
     if not os.path.exists(file_path):
         err_str = f'{file_path} not found'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise FileNotFoundError(err_str)
 
 
@@ -39,10 +39,9 @@ def check_directory(file_path: str) -> None:
     file_path: str
        Path to directory to be checked
     """
-    error_channel = journal.error('helpers.check_directory')
     if not os.path.isdir(file_path):
         err_str = f'{file_path} not found'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise FileNotFoundError(err_str)
 
 def get_file_polarization_mode(file_path: str) -> str:
@@ -112,8 +111,6 @@ def check_write_dir(dst_path: str):
     if not dst_path:
         dst_path = '.'
 
-    error_channel = journal.error('helpers.check_write_dir')
-
     # check if scratch path exists
     dst_path_ok = os.path.isdir(dst_path)
 
@@ -122,14 +119,14 @@ def check_write_dir(dst_path: str):
             os.makedirs(dst_path, exist_ok=True)
         except OSError:
             err_str = f"Unable to create {dst_path}"
-            error_channel.log(err_str)
+            logger.error(err_str)
             raise OSError(err_str)
 
     # check if path writeable
     write_ok = os.access(dst_path, os.W_OK)
     if not write_ok:
         err_str = f"{dst_path} scratch directory lacks write permission."
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise PermissionError(err_str)
 
 
@@ -141,16 +138,15 @@ def check_dem(dem_path: str):
     dem_path : str
         File path to DEM for which to check GDAL-compatibility
     """
-    error_channel = journal.error('helpers.check_dem')
     try:
         gdal.Open(dem_path, gdal.GA_ReadOnly)
     except:
         err_str = f'{dem_path} cannot be opened by GDAL'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
 
     epsg = isce3.io.Raster(dem_path).get_epsg()
     if not 1024 <= epsg <= 32767:
         err_str = f'DEM epsg of {epsg} out of bounds'
-        error_channel.log(err_str)
+        logger.error(err_str)
         raise ValueError(err_str)
