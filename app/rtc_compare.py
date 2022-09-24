@@ -1,5 +1,5 @@
 '''
-Compare the two RTC products if they are equivalent
+Compare two RTC products if they are equivalent
 Part of the codes are copied from PROTEUS SAS
 '''
 
