@@ -118,15 +118,9 @@ def main():
     file_1 = args.input_file[0]
     file_2 = args.input_file[1]
 
-    hdf5_in_1 = h5py.File(file_1,'r')
-    hdf5_in_2 = h5py.File(file_2,'r')
-
-    compare_hdf5(hdf5_in_1, hdf5_in_2)
-    compare_hdf5(hdf5_in_2, hdf5_in_1)
-
-    hdf5_in_1.close()
-    hdf5_in_2.close()
-
+    with h5py.File(file_1,'r') as hdf5_in_1, h5py.File(file_2,'r') as hdf5_in_2:
+        compare_hdf5(hdf5_in_1, hdf5_in_2)
+        compare_hdf5(hdf5_in_2, hdf5_in_1)
 
 if __name__ == '__main__':
     main()
