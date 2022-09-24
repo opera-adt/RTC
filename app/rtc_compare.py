@@ -46,7 +46,8 @@ def compare_hdf5(hdf_obj_1, hdf_obj_2, key_in='/', compare_attr=True):
             if key_1 in hdf_obj_2[key_in].keys():
                 compare_hdf5(hdf_obj_1, hdf_obj_2, f'{key_in}/{key_1}')
             else:
-                print(f'Cannot fine {key_in}/{key_1} in the target object.')
+                print(f'Cannot find {key_in}/{key_1} in the target object.')
+                return 1
     else:
         # Compare the dataset
         # Detect the kind of data based on the shape
