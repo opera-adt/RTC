@@ -59,9 +59,14 @@ def compare_hdf5(hdf_obj_1, hdf_obj_2, key_in='/', compare_attr=True):
             print('1d vector, shape:',hdf_obj_1[key_in].shape)
             # TODO Use np.array_equal() to compare
 
-        elif len(hdf_obj_1[key_in].shape)>=2:
-            # Sigle or multiband raster
-            print('Raster. shape:',hdf_obj_1[key_in].shape)
+        elif len(hdf_obj_1[key_in].shape)<=3:
+            print('Single or multiband raster. shape:',hdf_obj_1[key_in].shape)
+            # TODO: Use compare_raster_dataset() to compare
+
+        else:
+            print('Dimmension of the reference data is not supported: ',
+                 f'{key_in}/{key_1}, shape:',
+                 hdf_obj_1[key_in].shape)
             # TODO: Use compare_raster_dataset() to compare
 
         # Compare the attribute
@@ -73,6 +78,7 @@ def compare_hdf5(hdf_obj_1, hdf_obj_2, key_in='/', compare_attr=True):
                 else:
                     print(f'ERROR: Cannot find attribute: \'{key_attr_1}\' in '
                           f'\'{key_in}\' in the target HDF object.')
+                    return 1
 
         print('\n')
 
