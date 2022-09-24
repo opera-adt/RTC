@@ -19,7 +19,7 @@ def _get_parser():
     parser.add_argument('input_file',
                         type=str,
                         nargs=2,
-                        help='Input data in HDF5')
+                        help='Input RTC products in NETCDF/HDF5 format')
 
     return parser
 
