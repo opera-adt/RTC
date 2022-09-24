@@ -23,7 +23,7 @@ def _get_parser():
 
     return parser
 
-def compare_hdf5(hdf_obj_1, hdf_obj_2, key_in='/', compare_attr=True):
+def compare_hdf5(hdf_obj_1, hdf_obj_2, key_in='/'):
     '''
     Recursively traverse the Dataset and Attributes in the 1st HDF5 (the reference).
     Try to find the same dataset in the 2nd HDF5 (the target).
@@ -70,15 +70,14 @@ def compare_hdf5(hdf_obj_1, hdf_obj_2, key_in='/', compare_attr=True):
             # TODO: Use compare_raster_dataset() to compare
 
         # Compare the attribute
-        if compare_attr:
-            for key_attr_1 in hdf_obj_1[key_in].attrs:
-                if key_attr_1 in hdf_obj_2[key_in].attrs:
-                    print(f'Checking attribute: {key_attr_1} in {key_in}')
-                    # TODO check the attribute value
-                else:
-                    print(f'ERROR: Cannot find attribute: \'{key_attr_1}\' in '
-                          f'\'{key_in}\' in the target HDF object.')
-                    return 1
+        for key_attr_1 in hdf_obj_1[key_in].attrs:
+            if key_attr_1 in hdf_obj_2[key_in].attrs:
+                print(f'Checking attribute: {key_attr_1} in {key_in}')
+                # TODO check the attribute value
+            else:
+                print(f'ERROR: Cannot find attribute: \'{key_attr_1}\' in '
+                        f'\'{key_in}\' in the target HDF object.')
+                return 1
 
         print('\n')
 
