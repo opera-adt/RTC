@@ -1,5 +1,5 @@
 '''
-Compare the two RTC products if they are equivalent
+Compare two RTC products if they are equivalent
 Part of the codes are copied from PROTEUS SAS
 '''
 
@@ -19,7 +19,7 @@ def _get_parser():
     parser.add_argument('input_file',
                         type=str,
                         nargs=2,
-                        help='Input data in HDF5')
+                        help='Input RTC products in NETCDF/HDF5 format')
 
     return parser
 
