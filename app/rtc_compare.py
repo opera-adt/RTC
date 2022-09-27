@@ -13,7 +13,7 @@ RTC_S1_PRODUCTS_ERROR_TOLERANCE = 1e-6
 
 def _get_parser():
     parser = argparse.ArgumentParser(
-        description='Compare two DSWx-HLS products',
+        description='Compare two RTC products',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # Inputs
@@ -25,22 +25,29 @@ def _get_parser():
     return parser
 
 
-def get_list_dataset_attrs_keys(hdf_obj_1, key_in='/',
-                               list_dataset_so_far: list=None,
-                               list_attrs_so_far: list=None):
+def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
+                                key_in: str='/',
+                                list_dataset_so_far: list=None,
+                                list_attrs_so_far: list=None):
 
     '''
-    #TODO revise this docstring
+    Recursively traverse the Dataset and Attributes in the input HDF5 object.
+    Returns the list of keys for the dataset and the attributes.
 
-    Recursively traverse the Dataset and Attributes in the 1st HDF5 (the reference).
-    Try to find the same dataset in the 2nd HDF5 (the target).
-    Returns 0 if the reference and the target HDF5 are identical within threshold
-    Prints out the difference report when they are not.
+    NOTE:
+    In case of attributes, the path and the attribute keys are
+    separated by newline character ('\n')
 
-    Paremeters:
+    Parameters:
     ----------
-    hdf_obj_1: Reference HDF5 object
-    hdf_obj_2: Target HDF5 object
+    hdf_obj_1: h5py.Group
+        HDF5 object to retrieve the dataset and the attribute list
+    key_in: str
+        path in the HDF5 object
+    list_dataset_so_far: list
+        list of the dataset keys that have found so far
+    list_attrs_so_far: list
+        list of the attribute path/keys that have found so far
 
     Return:
     -------
@@ -55,8 +62,8 @@ def get_list_dataset_attrs_keys(hdf_obj_1, key_in='/',
         list_attrs_so_far = []
 
     if isinstance(hdf_obj_1[key_in], h5py.Group):
+        # Append the attributes keys if there are any
         for key_attr_1 in hdf_obj_1[key_in].attrs:
-            #list_attrs_so_far.append([key_in, key_attr_1])
             list_attrs_so_far.append('\n'.join([key_in, key_attr_1]))
 
         for key_1, _ in hdf_obj_1[key_in].items():
@@ -67,18 +74,32 @@ def get_list_dataset_attrs_keys(hdf_obj_1, key_in='/',
     else:
         list_dataset_so_far.append(key_in)
         for key_attr_1 in hdf_obj_1[key_in].attrs:
-            #list_attrs_so_far.append([key_in, key_attr_1])
+            # Append the attributes keys if there are any
             list_attrs_so_far.append('\n'.join([key_in, key_attr_1]))
     return list_dataset_so_far, list_attrs_so_far
 
 
 def comapre_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     '''
-    TODO: docstring please.
+    Compare the dataset or attribute defined by `str_key`
+    NOTE: For attributes, the path and the key are separated by newline character ('\n')
+
+    Parameters:
+    -----------
+    hdf5_obj_1: h5py.Group
+        The 1st HDF5 object to compare
+    hdf5_obj_2: h5py.Group
+        The 2nd HDF5 object to compare
+    str_key: str
+        Key to the dataset or attribute
+    is_attr: bool
+        Designate if `str_key` is for dataset or attribute
 
     Return:
+    -------
     _: True when the dataset are identical; False otherwise
     '''
+
     if is_attr:
         path_attr, key_attr = str_key.split('\n')
         val_1 = hdf5_obj_1[path_attr].attrs[key_attr]
@@ -90,18 +111,14 @@ def comapre_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             val_1 = np.array(val_2)
 
     else:
-        val_1=np.array(hdf5_obj_1[str_key])
-        val_2=np.array(hdf5_obj_2[str_key])
+        val_1 = np.array(hdf5_obj_1[str_key])
+        val_2 = np.array(hdf5_obj_2[str_key])
 
-    shape_val_1=np.array(val_1).shape
-    shape_val_2=np.array(val_2).shape
-
-    #if str_key=='//science/CSAR/RTC/grids/frequencyA/xCoordinates\nREFERENCE_LIST':
-    #    print('Line for temporary breakpoint.')
-
+    shape_val_1 = np.array(val_1).shape
+    shape_val_2 = np.array(val_2).shape
 
     if not (shape_val_1 == shape_val_2):
-        #print(f'Dataset or attribute shape does not match for key = {str_key}')
+        # Dataset or attribute shape does not match
         return False
 
     elif len(shape_val_1)==0 and len(shape_val_2)==0:
@@ -115,75 +132,74 @@ def comapre_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         # 1d vector
         if 'shape' in dir(val_1[0]):
             if isinstance(val_1[0], np.void):
-                list_val_1=list(itertools.chain.from_iterable(val_1))
-                val_1_new=[None]*len(list_val_1)
-                for i_val, v in enumerate(list_val_1):
-                    if isinstance(v, h5py.h5r.Reference):
-                        val_1_new[i_val]=hdf5_obj_1[v]
+                list_val_1 = list(itertools.chain.from_iterable(val_1))
+                val_1_new = [None] * len(list_val_1)
+                for i_val, element_1 in enumerate(list_val_1):
+                    if isinstance(element_1, h5py.h5r.Reference):
+                        val_1_new[i_val] = hdf5_obj_1[element_1]
                     else:
-                        val_1_new[i_val]=v
+                        val_1_new[i_val] = element_1
 
-                val_1=val_1_new
+                val_1 = val_1_new
 
-            elif (len(val_1[0].shape)==1) and (isinstance(val_1[0][0],h5py.h5r.Reference)):
-                list_val_1=list(itertools.chain.from_iterable(val_1))
-                #val_1_new=np.array([np.array(hdf5_obj_1[ref_val]) for ref_val in list_val_1])
-                val_1_new=[None]*len(list_val_1)
-                for i_val, v in enumerate(list_val_1):
-                    if isinstance(v, h5py.h5r.Reference):
-                        val_1_new[i_val]=hdf5_obj_1[v]
+            elif (len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)):
+                list_val_1 = list(itertools.chain.from_iterable(val_1))
+                val_1_new=[None] * len(list_val_1)
+                for i_val, element_1 in enumerate(list_val_1):
+                    if isinstance(element_1, h5py.h5r.Reference):
+                        val_1_new[i_val] = hdf5_obj_1[element_1]
                     else:
-                        val_1_new[i_val]=v
-                val_1=val_1_new
+                        val_1_new[i_val] = element_1
+                val_1 = val_1_new
 
         if 'shape' in dir(val_2[0]):
             if isinstance(val_2[0], np.void):
-                list_val_2=list(itertools.chain.from_iterable(val_2))
-                val_2_new=[None]*len(list_val_2)
-                for i_val, v in enumerate(list_val_2):
-                    if isinstance(v, h5py.h5r.Reference):
-                        val_2_new[i_val]=hdf5_obj_2[v]
+                list_val_2 = list(itertools.chain.from_iterable(val_2))
+                val_2_new = [None] * len(list_val_2)
+                for i_val, element_2 in enumerate(list_val_2):
+                    if isinstance(element_2, h5py.h5r.Reference):
+                        val_2_new[i_val] = hdf5_obj_2[element_2]
                     else:
-                        val_2_new[i_val]=v
+                        val_2_new[i_val] = element_2
 
-                val_2=val_2_new
+                val_2 = val_2_new
 
-            elif (len(val_2[0].shape)==1) and (isinstance(val_2[0][0],h5py.h5r.Reference)):
-                list_val_2=list(itertools.chain.from_iterable(val_2))
-                #val_2_new=np.array([hdf5_obj_1[ref_val] for ref_val in list_val_2])
-                val_2_new=[None]*len(list_val_2)
-                for i_val, v in enumerate(list_val_2):
-                    if isinstance(v, h5py.h5r.Reference):
-                        val_2_new[i_val]=hdf5_obj_2[v]
+            elif (len(val_2[0].shape) == 1) and (isinstance(val_2[0][0], h5py.h5r.Reference)):
+                list_val_2 = list(itertools.chain.from_iterable(val_2))
+                val_2_new = [None]*len(list_val_2)
+                for i_val, element_2 in enumerate(list_val_2):
+                    if isinstance(element_2, h5py.h5r.Reference):
+                        val_2_new[i_val] = hdf5_obj_2[element_2]
                     else:
-                        val_2_new[i_val]=v
+                        val_2_new[i_val] = element_2
 
-                val_2=val_2_new
+                val_2 = val_2_new
 
         if isinstance(val_1, list) and isinstance(val_2, list):
-            if len(val_1)==len(val_2):
+            if len(val_1) == len(val_2):
                 for id_element, element_1 in enumerate(val_1):
-                    element_2=val_2[id_element]
+                    element_2 = val_2[id_element]
                     if element_1.shape == element_2.shape:
-                        if not np.allclose(element_1,element_2,RTC_S1_PRODUCTS_ERROR_TOLERANCE, equal_nan=True):
+                        if not np.allclose(element_1,
+                                           element_2,
+                                           RTC_S1_PRODUCTS_ERROR_TOLERANCE,
+                                           equal_nan=True):
                             return False
                     else:
                         return False
-                # Went through all elements in the list, and passed the closeness test in the for loop
+                # Went through all elements in the list,
+                # and passed the closeness test in the for loop
                 return True
             else:
                 # List shape does not match
                 return False
-        
-        elif val_1.dtype=='float' and val_2.dtype=='float':
+
+        elif (val_1.dtype == 'float') and (val_2.dtype == 'float'):
             return np.array_equal(val_1, val_2, equal_nan=True)
         else:
             return np.array_equal(val_1, val_2)
 
     elif len(shape_val_1)>=2 and len(shape_val_2)>=2:
-        #print('Single or multiband raster. shape:',hdf5_obj_1[key_dataset].shape)
-        # TODO: Use compare_raster_dataset() to compare
-
         return np.allclose(val_1,
                            val_2,
                            RTC_S1_PRODUCTS_ERROR_TOLERANCE,
@@ -210,11 +226,7 @@ def main():
     file_1 = args.input_file[0]
     file_2 = args.input_file[1]
 
-    
-
     with h5py.File(file_1,'r') as hdf5_in_1, h5py.File(file_2,'r') as hdf5_in_2:
-    #    compare_hdf5(hdf5_in_1, hdf5_in_2)
-    #    compare_hdf5(hdf5_in_2, hdf5_in_1)
         list_dataset_1, list_attrs_1 = get_list_dataset_attrs_keys(hdf5_in_1)
         set_dataset_1 = set(list_dataset_1)
         set_attrs_1 = set(list_attrs_1)
@@ -222,7 +234,6 @@ def main():
         list_dataset_2, list_attrs_2 = get_list_dataset_attrs_keys(hdf5_in_2)
         set_dataset_2 = set(list_dataset_2)
         set_attrs_2 = set(list_attrs_2)
-
 
         # Check the dataset
         union_set_dataset = set_dataset_1.union(set_dataset_2)
@@ -239,17 +250,21 @@ def main():
             print('In the 2st HDF5, not in the 1nd data:')
             print('\n'.join(list(set_dataset_2 - set_dataset_1)))
 
-        # Proceed with checking the values in dataset, regardless of the agreement of their structure.
+        # Proceed with checking the values in dataset,
+        # regardless of the agreement of their structure.
 
         list_flag_identical_dataset = [None] * len(union_set_dataset)
         for id_flag, key_dataset in enumerate(union_set_dataset):
-            list_flag_identical_dataset[id_flag] = comapre_dataset_attr(hdf5_in_1, hdf5_in_2, key_dataset, is_attr=False)
+            list_flag_identical_dataset[id_flag] = comapre_dataset_attr(hdf5_in_1,
+                                                                        hdf5_in_2,
+                                                                        key_dataset,
+                                                                        is_attr=False)
             if list_flag_identical_dataset[id_flag]:
-                print(f'{id_flag+1:03d} / {len(union_set_dataset):03d} : PASSED. key: {key_dataset}')
+                print(f'{id_flag+1:03d} / {len(union_set_dataset):03d} : '
+                      f'PASSED. key: {key_dataset}')
             else:
-                print(f'\033[91m{id_flag+1:03d} / {len(union_set_dataset):03d} : FAILED. key: {key_dataset}\033[00m')
-
-        #"\033[91m {}\033[00m"
+                print(f'\033[91m{id_flag+1:03d} / {len(union_set_dataset):03d} : '
+                      f'FAILED. key: {key_dataset}\033[00m')
 
         # Check the attribute
         union_set_attrs = set_attrs_1.union(set_attrs_2)
@@ -259,7 +274,6 @@ def main():
             flag_identical_attrs_structure = True
             print('\nAttribute structure identical.')
 
-
         else:
             flag_identical_attrs_structure = False
             print('\nAttribute structure not identical.')
@@ -268,17 +282,22 @@ def main():
             print('In the 2st HDF5, not in the 1nd data:')
             print('\n'.join(list(set_dataset_2 - set_dataset_1)))
 
-        # Proceed with checking the values in dataset, regardless of the agreement of their structure.
+        # Proceed with checking the values in dataset,
+        # regardless of the agreement of their structure.
 
         list_flag_identical_attrs = [None] * len(union_set_attrs)
         for id_flag, key_attr in enumerate(union_set_attrs):
-            list_flag_identical_attrs[id_flag] = comapre_dataset_attr(hdf5_in_1, hdf5_in_2, key_attr, is_attr=True)
-            str_printout=key_attr.replace('\n',' - ')
+            list_flag_identical_attrs[id_flag] = comapre_dataset_attr(hdf5_in_1,
+                                                                      hdf5_in_2,
+                                                                      key_attr,
+                                                                      is_attr=True)
+            str_printout = key_attr.replace('\n',' - ')
             if list_flag_identical_attrs[id_flag]:
-                print(f'{id_flag+1:03d} / {len(union_set_attrs):03d} : PASSED. path - key: {str_printout}')
+                print(f'{id_flag+1:03d} / {len(union_set_attrs):03d} : '
+                      f'PASSED. path - key: {str_printout}')
             else:
-                print(f'\033[91m{id_flag+1:03d} / {len(union_set_attrs):03d} : FAILED. path - key: {str_printout}\033[00m')
-
+                print(f'\033[91m{id_flag+1:03d} / {len(union_set_attrs):03d} : '
+                      f'FAILED. path - key: {str_printout}\033[00m')
 
 
         # Print out the test summary:
@@ -305,10 +324,6 @@ def main():
                 if not list_flag_identical_attrs[id_attr]:
                     token_key_attr=key_attr.split('\n')
                     print(f'{token_key_attr[1]} {token_key_attr[0]}')
-
-
-
-
 
 if __name__ == '__main__':
     main()
