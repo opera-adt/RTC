@@ -117,7 +117,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     shape_val_1 = np.array(val_1).shape
     shape_val_2 = np.array(val_2).shape
 
-    if not (shape_val_1 == shape_val_2):
+    if (shape_val_1 != shape_val_2):
         # Dataset or attribute shape does not match
         return False
 
