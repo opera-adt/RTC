@@ -255,7 +255,7 @@ def main():
 
         list_flag_identical_dataset = [None] * len(union_set_dataset)
         for id_flag, key_dataset in enumerate(union_set_dataset):
-            list_flag_identical_dataset[id_flag] = comapre_dataset_attr(hdf5_in_1,
+            list_flag_identical_dataset[id_flag] = compare_dataset_attr(hdf5_in_1,
                                                                         hdf5_in_2,
                                                                         key_dataset,
                                                                         is_attr=False)
@@ -287,7 +287,7 @@ def main():
 
         list_flag_identical_attrs = [None] * len(union_set_attrs)
         for id_flag, key_attr in enumerate(union_set_attrs):
-            list_flag_identical_attrs[id_flag] = comapre_dataset_attr(hdf5_in_1,
+            list_flag_identical_attrs[id_flag] = compare_dataset_attr(hdf5_in_1,
                                                                       hdf5_in_2,
                                                                       key_attr,
                                                                       is_attr=True)
