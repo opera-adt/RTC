@@ -108,7 +108,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             val_1 = np.array(val_1)
 
         if not isinstance(val_2,np.ndarray):
-            val_1 = np.array(val_2)
+            val_2 = np.array(val_2)
 
     else:
         val_1 = np.array(hdf5_obj_1[str_key])
