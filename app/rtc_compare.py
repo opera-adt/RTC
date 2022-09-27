@@ -130,6 +130,9 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
     elif len(shape_val_1)==1 and len(shape_val_2)==1:
         # 1d vector
+        # NOTE: When the original val_1 has object reference,
+        # the original val_1 will be converted to `list``, rather than `np.ndarray`
+
         if 'shape' in dir(val_1[0]):
             if isinstance(val_1[0], np.void):
                 list_val_1 = list(itertools.chain.from_iterable(val_1))
@@ -194,7 +197,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                 # List shape does not match
                 return False
 
-        elif (val_1.dtype == 'float') and (val_2.dtype == 'float'):
+        elif issubclass(val_1.dtype.type,np.number) and issubclass(val_2.dtype.type,np.number):
             return np.array_equal(val_1, val_2, equal_nan=True)
         else:
             return np.array_equal(val_1, val_2)
