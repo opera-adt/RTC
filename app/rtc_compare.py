@@ -237,8 +237,8 @@ def main():
 
         # Check the dataset
         union_set_dataset = set_dataset_1.union(set_dataset_2)
-        if len(union_set_dataset) == len(set_dataset_1) and \
-           len(union_set_dataset) == len(set_dataset_2):
+        if (len(union_set_dataset) == len(set_dataset_1) and
+            len(union_set_dataset) == len(set_dataset_2)):
             print('\nDataset structure identical.')
             flag_identical_dataset_structure = True
 
