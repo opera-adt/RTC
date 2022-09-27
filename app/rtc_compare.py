@@ -182,13 +182,12 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             if len(val_1) == len(val_2):
                 for id_element, element_1 in enumerate(val_1):
                     element_2 = val_2[id_element]
-                    if element_1.shape == element_2.shape:
-                        if not np.allclose(element_1,
-                                           element_2,
-                                           RTC_S1_PRODUCTS_ERROR_TOLERANCE,
-                                           equal_nan=True):
-                            return False
-                    else:
+                    if element_1.shape != element_2.shape:
+                        return False
+                    if not np.allclose(element_1,
+                                       element_2,
+                                       RTC_S1_PRODUCTS_ERROR_TOLERANCE,
+                                       equal_nan=True):
                         return False
                 # Went through all elements in the list,
                 # and passed the closeness test in the for loop
