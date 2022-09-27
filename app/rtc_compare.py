@@ -269,8 +269,8 @@ def main():
         # Check the attribute
         union_set_attrs = set_attrs_1.union(set_attrs_2)
 
-        if len(union_set_attrs) == len(set_attrs_1) and \
-           len(union_set_attrs) == len(set_attrs_2):
+        if (len(union_set_attrs) == len(set_attrs_1) and
+            len(union_set_attrs) == len(set_attrs_2)):
             flag_identical_attrs_structure = True
             print('\nAttribute structure identical.')
 
