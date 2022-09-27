@@ -117,7 +117,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     shape_val_1 = np.array(val_1).shape
     shape_val_2 = np.array(val_2).shape
 
-    if not (shape_val_1 == shape_val_2):
+    if (shape_val_1 != shape_val_2):
         # Dataset or attribute shape does not match
         return False
 
@@ -237,8 +237,8 @@ def main():
 
         # Check the dataset
         union_set_dataset = set_dataset_1.union(set_dataset_2)
-        if len(union_set_dataset) == len(set_dataset_1) and \
-           len(union_set_dataset) == len(set_dataset_2):
+        if (len(union_set_dataset) == len(set_dataset_1) and
+            len(union_set_dataset) == len(set_dataset_2)):
             print('\nDataset structure identical.')
             flag_identical_dataset_structure = True
 
@@ -269,8 +269,8 @@ def main():
         # Check the attribute
         union_set_attrs = set_attrs_1.union(set_attrs_2)
 
-        if len(union_set_attrs) == len(set_attrs_1) and \
-           len(union_set_attrs) == len(set_attrs_2):
+        if (len(union_set_attrs) == len(set_attrs_1) and
+            len(union_set_attrs) == len(set_attrs_2)):
             flag_identical_attrs_structure = True
             print('\nAttribute structure identical.')
 
