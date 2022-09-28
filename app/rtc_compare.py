@@ -128,6 +128,8 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
     if len(shape_val_1)==0 and len(shape_val_2)==0:
         # Scalar value
+        print(f'    - 1st value:{val_1}')
+        print(f'    - 2nd value:{val_2}')
         if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
             # numerical array
             return_val = np.array_equal(val_1, val_2, equal_nan=True)
