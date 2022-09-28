@@ -248,19 +248,19 @@ def main():
 
         # Proceed with checking the values in dataset,
         # regardless of the agreement of their structure.
-
         list_flag_identical_dataset = [None] * len(union_set_dataset)
         for id_flag, key_dataset in enumerate(union_set_dataset):
+            print(f'Testing : {id_flag+1:03d} / {len(union_set_dataset):03d},'
+                  f' key: {key_dataset} ')
+
             list_flag_identical_dataset[id_flag] = compare_dataset_attr(hdf5_in_1,
                                                                         hdf5_in_2,
                                                                         key_dataset,
                                                                         is_attr=False)
             if list_flag_identical_dataset[id_flag]:
-                print(f'{id_flag+1:03d} / {len(union_set_dataset):03d} : '
-                      f'PASSED. key: {key_dataset}')
+                print('PASSED.\n')
             else:
-                print(f'\033[91m{id_flag+1:03d} / {len(union_set_dataset):03d} : '
-                      f'FAILED. key: {key_dataset}\033[00m')
+                print('\033[91mFAILED.\033[00m\n')
 
         # Check the attribute
         union_set_attrs = set_attrs_1.union(set_attrs_2)
@@ -283,17 +283,18 @@ def main():
 
         list_flag_identical_attrs = [None] * len(union_set_attrs)
         for id_flag, key_attr in enumerate(union_set_attrs):
+            str_printout = key_attr.replace('\n',' - ')
+            print(f'Testing : {id_flag+1:03d} / {len(union_set_attrs):03d}, '
+                  f'path - key: {str_printout}')
+
             list_flag_identical_attrs[id_flag] = compare_dataset_attr(hdf5_in_1,
                                                                       hdf5_in_2,
                                                                       key_attr,
                                                                       is_attr=True)
-            str_printout = key_attr.replace('\n',' - ')
             if list_flag_identical_attrs[id_flag]:
-                print(f'{id_flag+1:03d} / {len(union_set_attrs):03d} : '
-                      f'PASSED. path - key: {str_printout}')
+                print('PASSED.\n')
             else:
-                print(f'\033[91m{id_flag+1:03d} / {len(union_set_attrs):03d} : '
-                      f'FAILED. path - key: {str_printout}\033[00m')
+                print('\033[91mFAILED.\033[00m\n')
 
 
         # Print out the test summary:
