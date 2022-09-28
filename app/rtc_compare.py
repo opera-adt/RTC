@@ -55,7 +55,7 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
 
     '''
 
-    #default values for the lists
+    # default values for the lists
     if list_dataset_so_far is None:
         list_dataset_so_far = []
     if list_attrs_so_far is None:
@@ -102,9 +102,11 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
     # Prepare to comapre the data in the HDF objects
     if is_attr:
+        # str_key is for attribute
         path_attr, key_attr = str_key.split('\n')
         val_1 = hdf5_obj_1[path_attr].attrs[key_attr]
         val_2 = hdf5_obj_2[path_attr].attrs[key_attr]
+        # Force the datatype of val_1 and _2 to make use of numpy features
         if not isinstance(val_1,np.ndarray):
             val_1 = np.array(val_1)
 
@@ -112,15 +114,16 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             val_2 = np.array(val_2)
 
     else:
+        # str_key is for dataset
         val_1 = np.array(hdf5_obj_1[str_key])
         val_2 = np.array(hdf5_obj_2[str_key])
 
-    shape_val_1 = np.array(val_1).shape
-    shape_val_2 = np.array(val_2).shape
+    shape_val_1 = val_1.shape
+    shape_val_2 = val_2.shape
 
     if shape_val_1 != shape_val_2:
         # Dataset or attribute shape does not match
-        print(f'    Data shapes do not match. {shape_val_1} vs. {shape_val_2}')
+        print(f'    - Data shapes do not match. {shape_val_1} vs. {shape_val_2}')
         return False
 
     if len(shape_val_1)==0 and len(shape_val_2)==0:
@@ -129,13 +132,13 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             # numerical array
             rtnval = np.array_equal(val_1, val_2, equal_nan=True)
             if not rtnval:
-                print('    Failed to pass np.array_equal')
+                print('    - numerical scalar. Failed to pass np.array_equal()')
             return rtnval
 
         # Not a numerical array
         rtnval = np.array_equal(val_1, val_2)
         if not rtnval:
-            print('    Failed to pass np.array_equal')
+            print('    - non-numerical scalar. Failed to pass np.array_equal()')
         return rtnval
 
     if len(shape_val_1)==1 and len(shape_val_2)==1:
@@ -155,6 +158,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                 val_1_new = [None] * len(list_val_1)
                 for i_val, element_1 in enumerate(list_val_1):
                     if isinstance(element_1, h5py.h5r.Reference):
+                        print('    - Object reference found. Dereferencing.')
                         val_1_new[i_val] = hdf5_obj_1[element_1]
                     else:
                         val_1_new[i_val] = element_1
@@ -169,6 +173,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                 val_2_new = [None] * len(list_val_2)
                 for i_val, element_2 in enumerate(list_val_2):
                     if isinstance(element_2, h5py.h5r.Reference):
+                        print('    - Object reference found. Dereferencing.')
                         val_2_new[i_val] = hdf5_obj_2[element_2]
                     else:
                         val_2_new[i_val] = element_2
@@ -178,13 +183,13 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             # dereferenced val_1 and val_2
             if len(val_1) != len(val_2):
                 # List shape does not match
-                print(f'    Data length does not match: {len(val_1)} vs. {len(val_2)}')
+                print(f'    - Data length does not match: {len(val_1)} vs. {len(val_2)}')
                 return False
 
             for id_element, element_1 in enumerate(val_1):
                 element_2 = val_2[id_element]
                 if element_1.shape != element_2.shape:
-                    print(f'    Element shape does not match. ID={id_element}, '
+                    print(f'    - Element shape does not match. ID={id_element}, '
                           f'shape: {element_1.shape} vs. {element_2.shape}')
                     return False
 
@@ -192,7 +197,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                                    element_2,
                                    RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                                    equal_nan=True):
-                    print('    Same element shape, but the values are not close enough.')
+                    print('    - Same element shape but failed to pass np.allclose()')
                     return False
 
             # Went through all elements in the list,
@@ -203,13 +208,13 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             # val_1 and val_2 are numeric numpy array
             rtnval = np.array_equal(val_1, val_2, equal_nan=True)
             if not rtnval:
-                print('    failed to pass np.array_equal()')
+                print('    - Numerical array. Failed to pass np.array_equal()')
             return rtnval
 
         # All other cases, including the npy array with bytes
         rtnval = np.array_equal(val_1, val_2)
         if not rtnval:
-            print('    failed to pass np.array_equal()')
+            print('    Non-numerical array. Failed to pass np.array_equal()')
         return rtnval
 
 
@@ -219,12 +224,12 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                              RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                              equal_nan=True)
         if not rtnval:
-            print('    failed to pass np.allclose()')
+            print(f'    {len(shape_val_1)}D raster array. Failed to pass np.allclose()')
         return rtnval
 
     # If the processing has reached here, that means
     # val_1 and val_2 cannot be compated due to their shape difference
-    print('Detected an issue on the dataset shapes: ',
+    print('    - Detected an issue on the dataset shapes: ',
             f'Dataset key: {str_key}, '
             'dataset shape in the 1st HDF5: ', shape_val_1,
             'dataset shape in the 2nd HDF5: ', shape_val_2)
