@@ -100,6 +100,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     _: True when the dataset are identical; False otherwise
     '''
 
+    # Prepare to comapre the data in the HDF objects
     if is_attr:
         path_attr, key_attr = str_key.split('\n')
         val_1 = hdf5_obj_1[path_attr].attrs[key_attr]
@@ -117,24 +118,26 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     shape_val_1 = np.array(val_1).shape
     shape_val_2 = np.array(val_2).shape
 
-    if (shape_val_1 != shape_val_2):
+    if shape_val_1 != shape_val_2:
         # Dataset or attribute shape does not match
         return False
 
-    elif len(shape_val_1)==0 and len(shape_val_2)==0:
+    if len(shape_val_1)==0 and len(shape_val_2)==0:
         # Scalar value
-        if val_1.dtype=='float' and val_2.dtype=='float':
+        if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
             return np.array_equal(val_1, val_2, equal_nan=True)
-        else:
-            return np.array_equal(val_1, val_2)
+        return np.array_equal(val_1, val_2)
 
-    elif len(shape_val_1)==1 and len(shape_val_2)==1:
+    if len(shape_val_1)==1 and len(shape_val_2)==1:
         # 1d vector
-        # NOTE: When the original val_1 has object reference,
-        # the original val_1 will be converted to `list``, rather than `np.ndarray`
 
+        # Dereference if val_1 and val_2 have HDF5 objstc reference.
+        # Convert the 1d numpy array into list to differentiate the comparison process
         if 'shape' in dir(val_1[0]):
+        #if not np.isscalar(val_1[0]):
             if isinstance(val_1[0], np.void):
+                # Example: attribute `REFERENCE_LIST` in
+                # /science/CSAR/RTC/grids/frequencyA/xCoordinates'
                 list_val_1 = list(itertools.chain.from_iterable(val_1))
                 val_1_new = [None] * len(list_val_1)
                 for i_val, element_1 in enumerate(list_val_1):
@@ -142,10 +145,11 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                         val_1_new[i_val] = hdf5_obj_1[element_1]
                     else:
                         val_1_new[i_val] = element_1
-
                 val_1 = val_1_new
 
             elif (len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)):
+                # Example: attribute `DIMENSION_LIST` in
+                # /science/CSAR/RTC/grids/frequencyA/VH
                 list_val_1 = list(itertools.chain.from_iterable(val_1))
                 val_1_new=[None] * len(list_val_1)
                 for i_val, element_1 in enumerate(list_val_1):
@@ -155,7 +159,9 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                         val_1_new[i_val] = element_1
                 val_1 = val_1_new
 
+        # Repeat the same process for `val_2`
         if 'shape' in dir(val_2[0]):
+        #if not np.isscalar(val_2[0]):
             if isinstance(val_2[0], np.void):
                 list_val_2 = list(itertools.chain.from_iterable(val_2))
                 val_2_new = [None] * len(list_val_2)
@@ -169,7 +175,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
             elif (len(val_2[0].shape) == 1) and (isinstance(val_2[0][0], h5py.h5r.Reference)):
                 list_val_2 = list(itertools.chain.from_iterable(val_2))
-                val_2_new = [None]*len(list_val_2)
+                val_2_new = [None] * len(list_val_2)
                 for i_val, element_2 in enumerate(list_val_2):
                     if isinstance(element_2, h5py.h5r.Reference):
                         val_2_new[i_val] = hdf5_obj_2[element_2]
@@ -179,40 +185,46 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                 val_2 = val_2_new
 
         if isinstance(val_1, list) and isinstance(val_2, list):
-            if len(val_1) == len(val_2):
-                for id_element, element_1 in enumerate(val_1):
-                    element_2 = val_2[id_element]
-                    if element_1.shape != element_2.shape:
-                        return False
-                    if not np.allclose(element_1,
-                                       element_2,
-                                       RTC_S1_PRODUCTS_ERROR_TOLERANCE,
-                                       equal_nan=True):
-                        return False
-                # Went through all elements in the list,
-                # and passed the closeness test in the for loop
-                return True
-            else:
+            # dereferenced val_1 and val_2
+            if len(val_1) != len(val_2):
                 # List shape does not match
                 return False
 
-        elif issubclass(val_1.dtype.type,np.number) and issubclass(val_2.dtype.type,np.number):
-            return np.array_equal(val_1, val_2, equal_nan=True)
-        else:
-            return np.array_equal(val_1, val_2)
+            for id_element, element_1 in enumerate(val_1):
+                element_2 = val_2[id_element]
+                if element_1.shape != element_2.shape:
+                    return False
 
-    elif len(shape_val_1)>=2 and len(shape_val_2)>=2:
+                if not np.allclose(element_1,
+                                   element_2,
+                                   RTC_S1_PRODUCTS_ERROR_TOLERANCE,
+                                   equal_nan=True):
+                    return False
+
+            # Went through all elements in the list,
+            # and passed the closeness test in the for loop
+            return True
+
+        if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
+            # val_1 and val_2 are numeric numpy array
+            return np.array_equal(val_1, val_2, equal_nan=True)
+
+        # All other cases, including the npy array with bytes
+        return np.array_equal(val_1, val_2)
+
+    if len(shape_val_1)>=2 and len(shape_val_2)>=2:
         return np.allclose(val_1,
                            val_2,
                            RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                            equal_nan=True)
 
-    else:
-        print('Detected an issue on the dataset shapes: ',
-             f'Dataset key: {str_key}, '
-              'dataset shape in the 1st HDF5: ', shape_val_1,
-              'dataset shape in the 2nd HDF5: ', shape_val_2)
-        return False
+    # If the processing has reached here, that means
+    # val_1 and val_2 cannot be compated due to their shape difference
+    print('Detected an issue on the dataset shapes: ',
+            f'Dataset key: {str_key}, '
+            'dataset shape in the 1st HDF5: ', shape_val_1,
+            'dataset shape in the 2nd HDF5: ', shape_val_2)
+    return False
 
 
 def main():
