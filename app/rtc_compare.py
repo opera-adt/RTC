@@ -130,16 +130,16 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         # Scalar value
         if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
             # numerical array
-            rtnval = np.array_equal(val_1, val_2, equal_nan=True)
-            if not rtnval:
+            return_val = np.array_equal(val_1, val_2, equal_nan=True)
+            if not return_val:
                 print('    - numerical scalar. Failed to pass np.array_equal()')
-            return rtnval
+            return return_val
 
         # Not a numerical array
-        rtnval = np.array_equal(val_1, val_2)
-        if not rtnval:
+        return_val = np.array_equal(val_1, val_2)
+        if not return_val:
             print('    - non-numerical scalar. Failed to pass np.array_equal()')
-        return rtnval
+        return return_val
 
     if len(shape_val_1)==1 and len(shape_val_2)==1:
         # 1d vector
@@ -206,26 +206,26 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
         if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
             # val_1 and val_2 are numeric numpy array
-            rtnval = np.array_equal(val_1, val_2, equal_nan=True)
-            if not rtnval:
+            return_val = np.array_equal(val_1, val_2, equal_nan=True)
+            if not return_val:
                 print('    - Numerical array. Failed to pass np.array_equal()')
-            return rtnval
+            return return_val
 
         # All other cases, including the npy array with bytes
-        rtnval = np.array_equal(val_1, val_2)
-        if not rtnval:
+        return_val = np.array_equal(val_1, val_2)
+        if not return_val:
             print('    Non-numerical array. Failed to pass np.array_equal()')
-        return rtnval
+        return return_val
 
 
     if len(shape_val_1)>=2 and len(shape_val_2)>=2:
-        rtnval = np.allclose(val_1,
+        return_val = np.allclose(val_1,
                              val_2,
                              RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                              equal_nan=True)
-        if not rtnval:
+        if not return_val:
             print(f'    {len(shape_val_1)}D raster array. Failed to pass np.allclose()')
-        return rtnval
+        return return_val
 
     # If the processing has reached here, that means
     # val_1 and val_2 cannot be compated due to their shape difference
