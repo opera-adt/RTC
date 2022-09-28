@@ -134,10 +134,14 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         # Dereference if val_1 and val_2 have HDF5 objstc reference.
         # Convert the 1d numpy array into list to differentiate the comparison process
         if 'shape' in dir(val_1[0]):
-        #if not np.isscalar(val_1[0]):
-            if isinstance(val_1[0], np.void):
-                # Example: attribute `REFERENCE_LIST` in
+            if isinstance(val_1[0], np.void) or\
+            ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference))):
+
+                # Example:
+                # attribute `REFERENCE_LIST` in
                 # /science/CSAR/RTC/grids/frequencyA/xCoordinates'
+                # attribute `DIMENSION_LIST` in
+                # /science/CSAR/RTC/grids/frequencyA/VH
                 list_val_1 = list(itertools.chain.from_iterable(val_1))
                 val_1_new = [None] * len(list_val_1)
                 for i_val, element_1 in enumerate(list_val_1):
@@ -147,33 +151,11 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                         val_1_new[i_val] = element_1
                 val_1 = val_1_new
 
-            elif (len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)):
-                # Example: attribute `DIMENSION_LIST` in
-                # /science/CSAR/RTC/grids/frequencyA/VH
-                list_val_1 = list(itertools.chain.from_iterable(val_1))
-                val_1_new=[None] * len(list_val_1)
-                for i_val, element_1 in enumerate(list_val_1):
-                    if isinstance(element_1, h5py.h5r.Reference):
-                        val_1_new[i_val] = hdf5_obj_1[element_1]
-                    else:
-                        val_1_new[i_val] = element_1
-                val_1 = val_1_new
-
         # Repeat the same process for `val_2`
         if 'shape' in dir(val_2[0]):
-        #if not np.isscalar(val_2[0]):
-            if isinstance(val_2[0], np.void):
-                list_val_2 = list(itertools.chain.from_iterable(val_2))
-                val_2_new = [None] * len(list_val_2)
-                for i_val, element_2 in enumerate(list_val_2):
-                    if isinstance(element_2, h5py.h5r.Reference):
-                        val_2_new[i_val] = hdf5_obj_2[element_2]
-                    else:
-                        val_2_new[i_val] = element_2
+            if isinstance(val_2[0], np.void) or\
+            ((len(val_2[0].shape) == 1) and (isinstance(val_2[0][0], h5py.h5r.Reference))):
 
-                val_2 = val_2_new
-
-            elif (len(val_2[0].shape) == 1) and (isinstance(val_2[0][0], h5py.h5r.Reference)):
                 list_val_2 = list(itertools.chain.from_iterable(val_2))
                 val_2_new = [None] * len(list_val_2)
                 for i_val, element_2 in enumerate(list_val_2):
