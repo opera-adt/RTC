@@ -120,13 +120,23 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
     if shape_val_1 != shape_val_2:
         # Dataset or attribute shape does not match
+        print(f'    Data shapes do not match. {shape_val_1} vs. {shape_val_2}')
         return False
 
     if len(shape_val_1)==0 and len(shape_val_2)==0:
         # Scalar value
         if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
-            return np.array_equal(val_1, val_2, equal_nan=True)
-        return np.array_equal(val_1, val_2)
+            # numerical array
+            rtnval = np.array_equal(val_1, val_2, equal_nan=True)
+            if not rtnval:
+                print('    Failed to pass np.array_equal')
+            return rtnval
+
+        # Not a numerical array
+        rtnval = np.array_equal(val_1, val_2)
+        if not rtnval:
+            print('    Failed to pass np.array_equal')
+        return rtnval
 
     if len(shape_val_1)==1 and len(shape_val_2)==1:
         # 1d vector
@@ -136,7 +146,6 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         if 'shape' in dir(val_1[0]):
             if isinstance(val_1[0], np.void) or\
             ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference))):
-
                 # Example:
                 # attribute `REFERENCE_LIST` in
                 # /science/CSAR/RTC/grids/frequencyA/xCoordinates'
@@ -163,24 +172,27 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                         val_2_new[i_val] = hdf5_obj_2[element_2]
                     else:
                         val_2_new[i_val] = element_2
-
                 val_2 = val_2_new
 
         if isinstance(val_1, list) and isinstance(val_2, list):
             # dereferenced val_1 and val_2
             if len(val_1) != len(val_2):
                 # List shape does not match
+                print(f'    Data length does not match: {len(val_1)} vs. {len(val_2)}')
                 return False
 
             for id_element, element_1 in enumerate(val_1):
                 element_2 = val_2[id_element]
                 if element_1.shape != element_2.shape:
+                    print(f'    Element shape does not match. ID={id_element}, '
+                          f'shape: {element_1.shape} vs. {element_2.shape}')
                     return False
 
                 if not np.allclose(element_1,
                                    element_2,
                                    RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                                    equal_nan=True):
+                    print('    Same element shape, but the values are not close enough.')
                     return False
 
             # Went through all elements in the list,
@@ -189,16 +201,26 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
         if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
             # val_1 and val_2 are numeric numpy array
-            return np.array_equal(val_1, val_2, equal_nan=True)
+            rtnval = np.array_equal(val_1, val_2, equal_nan=True)
+            if not rtnval:
+                print('    failed to pass np.array_equal()')
+            return rtnval
 
         # All other cases, including the npy array with bytes
-        return np.array_equal(val_1, val_2)
+        rtnval = np.array_equal(val_1, val_2)
+        if not rtnval:
+            print('    failed to pass np.array_equal()')
+        return rtnval
+
 
     if len(shape_val_1)>=2 and len(shape_val_2)>=2:
-        return np.allclose(val_1,
-                           val_2,
-                           RTC_S1_PRODUCTS_ERROR_TOLERANCE,
-                           equal_nan=True)
+        rtnval = np.allclose(val_1,
+                             val_2,
+                             RTC_S1_PRODUCTS_ERROR_TOLERANCE,
+                             equal_nan=True)
+        if not rtnval:
+            print('    failed to pass np.allclose()')
+        return rtnval
 
     # If the processing has reached here, that means
     # val_1 and val_2 cannot be compated due to their shape difference
@@ -321,6 +343,8 @@ def main():
                 if not list_flag_identical_attrs[id_attr]:
                     token_key_attr=key_attr.split('\n')
                     print(f'{token_key_attr[1]} {token_key_attr[0]}')
+
+        print('See the log above in case there are any failed test.')
 
 if __name__ == '__main__':
     main()
