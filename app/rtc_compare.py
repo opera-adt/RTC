@@ -24,6 +24,40 @@ def _get_parser():
 
     return parser
 
+def printout_data_difference(val_1, val_2, indent=4):
+    '''
+    Print out the diffrence of the data whose dimension is >= 1
+
+    Parameters:
+    -----------
+    val_1, val_2: np.array
+        Data that has difference to each other
+    indent: int
+        Number of spaces for indentation
+    '''
+
+    str_indent = ' ' * indent + '-'
+
+    difference_val = val_1 - val_2
+    index_max_diff = np.nanargmax(np.abs(difference_val))
+
+    print(f'{str_indent} Maximum difference of {difference_val[index_max_diff]} '
+          f'detected from index [{index_max_diff}]')
+
+    # Check pixel-by-pixel nan / non-nan difference
+    if issubclass(val_1.dtype.type, np.float_) and issubclass(val_2.dtype.type, np.float_):
+        mask_nan_val_1 = np.isnan(val_1)
+        mask_nan_val_2 = np.isnan(val_2)
+
+        mask_nan_discrepancy = np.logical_xor(mask_nan_val_1, mask_nan_val_2)
+
+        if np.any(mask_nan_discrepancy):
+            num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
+            index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
+            print(f'{str_indent} {num_pixel_nan_discrepancy} of '
+                   'NaN / not NaN discrepancy detected. '
+                  f'First index of the discrepancy: [{index_pixel_nan_discrepancy[0][0]}]')
+
 
 def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
                                 key_in: str='/',
@@ -225,10 +259,12 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             return_val = np.array_equal(val_1, val_2, equal_nan=True)
             if not return_val:
                 print('    - Numerical array. Failed to pass np.array_equal()')
+                printout_data_difference(val_1, val_2)
             return return_val
 
         # All other cases, including the npy array with bytes
         return_val = np.array_equal(val_1, val_2)
+
         if not return_val:
             print('    Non-numerical array. Failed to pass np.array_equal()')
         return return_val
@@ -241,6 +277,7 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                              equal_nan=True)
         if not return_val:
             print(f'    {len(shape_val_1)}D raster array. Failed to pass np.allclose()')
+            printout_data_difference(val_1, val_2)
         return return_val
 
     # If the processing has reached here, that means
@@ -301,7 +338,7 @@ def main():
                                                                         key_dataset,
                                                                         is_attr=False)
             if list_flag_identical_dataset[id_flag]:
-                print('PASSED.\n')
+                print('\033[32mPASSED.\033[00m\n')
             else:
                 print('\033[91mFAILED.\033[00m\n')
 
@@ -335,7 +372,7 @@ def main():
                                                                       key_attr,
                                                                       is_attr=True)
             if list_flag_identical_attrs[id_flag]:
-                print('PASSED.\n')
+                print('\033[32mPASSED.\033[00m\n')
             else:
                 print('\033[91mFAILED.\033[00m\n')
 
