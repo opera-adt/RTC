@@ -160,7 +160,7 @@ def compare_hdf5_element(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         print(f'    - Data shapes do not match. {shape_val_1} vs. {shape_val_2}')
         return False
 
-    if len(shape_val_1)==0 and len(shape_val_2)==0:
+    if len(shape_val_1)==0:
         # Scalar value
         print(f'    - 1st value: {val_1}')
         print(f'    - 2nd value: {val_2}')
@@ -180,7 +180,7 @@ def compare_hdf5_element(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             print('    - non-numerical scalar. Failed to pass np.array_equal()')
         return return_val
 
-    if len(shape_val_1)==1 and len(shape_val_2)==1:
+    if len(shape_val_1)==1:
         # 1d vector
 
         # Dereference if val_1 and val_2 have HDF5 objstc reference.
@@ -234,7 +234,7 @@ def compare_hdf5_element(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         return return_val
 
 
-    if len(shape_val_1)>=2 and len(shape_val_2)>=2:
+    if len(shape_val_1)>=2:
         return_val = np.allclose(val_1,
                              val_2,
                              RTC_S1_PRODUCTS_ERROR_TOLERANCE,
