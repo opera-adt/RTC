@@ -43,8 +43,11 @@ def printout_data_difference(val_1, val_2, indent=4):
         difference_val = val_1 - val_2
         index_max_diff = np.nanargmax(np.abs(difference_val))
 
-        print(f'{str_indent} Maximum difference of {difference_val[index_max_diff]} '
-            f'detected from index [{index_max_diff}]')
+        print(f'{str_indent} Maximum difference detected from index '
+              f'[{index_max_diff}]: '
+              f'1st: ({val_1[index_max_diff]}), 2nd: ({val_2[index_max_diff]}) = '
+              f'diff: ({difference_val[index_max_diff]})')
+
 
     # Check pixel-by-pixel nan / non-nan difference
     if (issubclass(val_1.dtype.type, np.floating) and issubclass(val_2.dtype.type, np.floating)) or\
@@ -62,6 +65,7 @@ def printout_data_difference(val_1, val_2, indent=4):
                    'NaN / not NaN discrepancy detected. '
                   f'First index of the discrepancy: [{index_pixel_nan_discrepancy[0][0]}]')
 
+    # TODO Implement for non-numerical array case
 
 def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
                                 key_in: str='/',
