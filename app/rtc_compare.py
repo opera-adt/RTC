@@ -248,7 +248,7 @@ def compare_hdf5_element(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         return return_val
 
 
-    if len(shape_val_1)>=2:
+    if len(shape_val_1) >= 2:
         return_val = np.allclose(val_1,
                              val_2,
                              RTC_S1_PRODUCTS_ERROR_TOLERANCE,
