@@ -38,14 +38,18 @@ def printout_data_difference(val_1, val_2, indent=4):
 
     str_indent = ' ' * indent + '-'
 
-    difference_val = val_1 - val_2
-    index_max_diff = np.nanargmax(np.abs(difference_val))
+    # printout the difference when the array is numeric
+    if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
+        difference_val = val_1 - val_2
+        index_max_diff = np.nanargmax(np.abs(difference_val))
 
-    print(f'{str_indent} Maximum difference of {difference_val[index_max_diff]} '
-          f'detected from index [{index_max_diff}]')
+        print(f'{str_indent} Maximum difference of {difference_val[index_max_diff]} '
+            f'detected from index [{index_max_diff}]')
 
     # Check pixel-by-pixel nan / non-nan difference
-    if issubclass(val_1.dtype.type, np.float_) and issubclass(val_2.dtype.type, np.float_):
+    if (issubclass(val_1.dtype.type, np.floating) and issubclass(val_2.dtype.type, np.floating)) or\
+    (issubclass(val_1.dtype.type, np.complexfloating) and issubclass(val_2.dtype.type, np.complexfloating)):
+
         mask_nan_val_1 = np.isnan(val_1)
         mask_nan_val_2 = np.isnan(val_2)
 
