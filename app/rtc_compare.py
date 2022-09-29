@@ -113,7 +113,7 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
     return list_dataset_so_far, list_attrs_so_far
 
 
-def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
+def compare_hdf5_element(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     '''
     Compare the dataset or attribute defined by `str_key`
     NOTE: For attributes, the path and the key are separated by newline character ('\n')
@@ -333,7 +333,7 @@ def main():
             print(f'Testing : {id_flag+1:03d} / {len(union_set_dataset):03d},'
                   f' key: {key_dataset} ')
 
-            list_flag_identical_dataset[id_flag] = compare_dataset_attr(hdf5_in_1,
+            list_flag_identical_dataset[id_flag] = compare_hdf5_element(hdf5_in_1,
                                                                         hdf5_in_2,
                                                                         key_dataset,
                                                                         is_attr=False)
@@ -367,7 +367,7 @@ def main():
             print(f'Testing : {id_flag+1:03d} / {len(union_set_attrs):03d}, '
                   f'path - key: {str_printout}')
 
-            list_flag_identical_attrs[id_flag] = compare_dataset_attr(hdf5_in_1,
+            list_flag_identical_attrs[id_flag] = compare_hdf5_element(hdf5_in_1,
                                                                       hdf5_in_2,
                                                                       key_attr,
                                                                       is_attr=True)
