@@ -291,13 +291,12 @@ def main():
 
         # Check the dataset
         union_set_dataset = set_dataset_1.union(set_dataset_2)
-        if (len(union_set_dataset) == len(set_dataset_1) and
-            len(union_set_dataset) == len(set_dataset_2)):
+        flag_identical_dataset_structure = \
+            (len(union_set_dataset) == len(set_dataset_1) and
+             len(union_set_dataset) == len(set_dataset_2))
+         if flag_identical_dataset_structure:
             print('\nDataset structure identical.')
-            flag_identical_dataset_structure = True
-
-        else:
-            flag_identical_dataset_structure = False
+         else:
             print('\nDataset structure not identical.')
             print('In the 1st HDF5, not in the 2nd data:')
             print('\n'.join(list(set_dataset_1 - set_dataset_2)))
