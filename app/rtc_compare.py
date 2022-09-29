@@ -51,9 +51,9 @@ def print_data_difference(val_1, val_2, indent=4):
         # Non-numerical array
         flag_discrepancy = (val_1 != val_2)
         index_first_discrepancy = np.where(flag_discrepancy)[0][0]
-        print('The first discrepancy has detected from index '
-             f'[{index_first_discrepancy}] : '
-             f'1st=({val_1[index_first_discrepancy]}), 2nd=({val_2[index_first_discrepancy]})')
+        print(f'{str_indent} The first discrepancy has detected from index '
+              f'[{index_first_discrepancy}] : '
+              f'1st=({val_1[index_first_discrepancy]}), 2nd=({val_2[index_first_discrepancy]})')
 
 
 
