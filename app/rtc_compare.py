@@ -128,9 +128,12 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
     if len(shape_val_1)==0 and len(shape_val_2)==0:
         # Scalar value
-        print(f'    - 1st value:{val_1}')
-        print(f'    - 2nd value:{val_2}')
-        if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
+        print(f'    - 1st value: {val_1}')
+        print(f'    - 2nd value: {val_2}')
+
+        if issubclass(val_1.dtype.type, np.number) and\
+        issubclass(val_2.dtype.type, np.number):
+
             # numerical array
             return_val = np.array_equal(val_1, val_2, equal_nan=True)
             if not return_val:
@@ -160,8 +163,8 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                 val_1_new = [None] * len(list_val_1)
                 for i_val, element_1 in enumerate(list_val_1):
                     if isinstance(element_1, h5py.h5r.Reference):
-                        print('    - Object reference found. Dereferencing.')
-                        val_1_new[i_val] = hdf5_obj_1[element_1]
+                        print('    - Object reference found.')
+                        val_1_new[i_val] = np.str_(hdf5_obj_1[element_1].name)
                     else:
                         val_1_new[i_val] = element_1
                 val_1 = val_1_new
@@ -175,8 +178,8 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                 val_2_new = [None] * len(list_val_2)
                 for i_val, element_2 in enumerate(list_val_2):
                     if isinstance(element_2, h5py.h5r.Reference):
-                        print('    - Object reference found. Dereferencing.')
-                        val_2_new[i_val] = hdf5_obj_2[element_2]
+                        print('    - Object reference found.')
+                        val_2_new[i_val] = np.str_(hdf5_obj_2[element_2].name)
                     else:
                         val_2_new[i_val] = element_2
                 val_2 = val_2_new
@@ -195,12 +198,23 @@ def compare_dataset_attr(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                           f'shape: {element_1.shape} vs. {element_2.shape}')
                     return False
 
-                if not np.allclose(element_1,
-                                   element_2,
-                                   RTC_S1_PRODUCTS_ERROR_TOLERANCE,
-                                   equal_nan=True):
-                    print('    - Same element shape but failed to pass np.allclose()')
-                    return False
+                if issubclass(element_1.dtype.type, np.number) and\
+                issubclass(element_2.dtype.type, np.number):
+
+                    return_val = not np.allclose(element_1,
+                                                 element_2,
+                                                 RTC_S1_PRODUCTS_ERROR_TOLERANCE,
+                                                 equal_nan=True)
+
+                return_val = np.array_equal(element_1,element_2)
+
+                if not return_val:
+                    print('    - Same element shape but '
+                          'failed to pass np.allclose() or np.array_equal()')
+                    print(f'    - 1st element: {element_1}')
+                    print(f'    - 2nd element: {element_2}')
+
+                return return_val
 
             # Went through all elements in the list,
             # and passed the closeness test in the for loop
