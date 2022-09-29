@@ -201,7 +201,7 @@ def compare_hdf5_element(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                         val_1_new[i_val] = np.str_(hdf5_obj_1[element_1].name)
                     else:
                         val_1_new[i_val] = element_1
-                val_1 = val_1_new
+                val_1 = np.array(val_1_new)
 
         # Repeat the same process for `val_2`
         if 'shape' in dir(val_2[0]):
@@ -216,43 +216,7 @@ def compare_hdf5_element(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                         val_2_new[i_val] = np.str_(hdf5_obj_2[element_2].name)
                     else:
                         val_2_new[i_val] = element_2
-                val_2 = val_2_new
-
-        if isinstance(val_1, list) and isinstance(val_2, list):
-            # dereferenced val_1 and val_2
-            if len(val_1) != len(val_2):
-                # List shape does not match
-                print(f'    - Data length does not match: {len(val_1)} vs. {len(val_2)}')
-                return False
-
-            for id_element, element_1 in enumerate(val_1):
-                element_2 = val_2[id_element]
-                if element_1.shape != element_2.shape:
-                    print(f'    - Element shape does not match. ID={id_element}, '
-                          f'shape: {element_1.shape} vs. {element_2.shape}')
-                    return False
-
-                if issubclass(element_1.dtype.type, np.number) and\
-                issubclass(element_2.dtype.type, np.number):
-
-                    return_val = not np.allclose(element_1,
-                                                 element_2,
-                                                 RTC_S1_PRODUCTS_ERROR_TOLERANCE,
-                                                 equal_nan=True)
-
-                return_val = np.array_equal(element_1,element_2)
-
-                if not return_val:
-                    print('    - Same element shape but '
-                          'failed to pass np.allclose() or np.array_equal()')
-                    print(f'    - 1st element: {element_1}')
-                    print(f'    - 2nd element: {element_2}')
-
-                return return_val
-
-            # Went through all elements in the list,
-            # and passed the closeness test in the for loop
-            return True
+                val_2 = np.array(val_2_new)
 
         if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
             # val_1 and val_2 are numeric numpy array
