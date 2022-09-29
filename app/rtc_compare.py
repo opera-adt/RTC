@@ -127,7 +127,7 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
     return list_dataset_so_far, list_attrs_so_far
 
 
-def compare_hdf5_element(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
+def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     '''
     Compare the dataset or attribute defined by `str_key`
     NOTE: For attributes, the path and the key are separated by newline character ('\n')
