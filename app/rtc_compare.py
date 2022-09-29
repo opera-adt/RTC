@@ -294,9 +294,10 @@ def main():
         flag_identical_dataset_structure = \
             (len(union_set_dataset) == len(set_dataset_1) and
              len(union_set_dataset) == len(set_dataset_2))
-         if flag_identical_dataset_structure:
+
+        if flag_identical_dataset_structure:
             print('\nDataset structure identical.')
-         else:
+        else:
             print('\nDataset structure not identical.')
             print('In the 1st HDF5, not in the 2nd data:')
             print('\n'.join(list(set_dataset_1 - set_dataset_2)))
@@ -322,9 +323,11 @@ def main():
         # Check the attribute
         union_set_attrs = set_attrs_1.union(set_attrs_2)
 
-        if (len(union_set_attrs) == len(set_attrs_1) and
-            len(union_set_attrs) == len(set_attrs_2)):
-            flag_identical_attrs_structure = True
+        flag_identical_attrs_structure = \
+        (len(union_set_attrs) == len(set_attrs_1) and
+         len(union_set_attrs) == len(set_attrs_2))
+
+        if flag_identical_attrs_structure:
             print('\nAttribute structure identical.')
 
         else:
@@ -337,7 +340,6 @@ def main():
 
         # Proceed with checking the values in dataset,
         # regardless of the agreement of their structure.
-
         list_flag_identical_attrs = [None] * len(union_set_attrs)
         for id_flag, key_attr in enumerate(union_set_attrs):
             str_printout = key_attr.replace('\n',' - ')
