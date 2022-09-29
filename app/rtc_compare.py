@@ -194,7 +194,7 @@ def compare_hdf5_element(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             print('    - non-numerical scalar. Failed to pass np.array_equal()')
         return return_val
 
-    if len(shape_val_1)==1:
+    if len(shape_val_1) == 1:
         # 1d vector
 
         # Dereference if val_1 and val_2 have HDF5 objstc reference.
