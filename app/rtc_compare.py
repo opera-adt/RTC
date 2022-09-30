@@ -69,8 +69,8 @@ def print_data_difference(val_1, val_2, indent=4):
         if np.any(mask_nan_discrepancy):
             num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
             index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
-            print(f'{str_indent} {num_pixel_nan_discrepancy} of '
-                   'NaN / not NaN discrepancy detected. '
+            print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
+                   'inconsistent values between input arrays. '
                   f'First index of the discrepancy: [{index_pixel_nan_discrepancy[0][0]}]')
 
 def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
