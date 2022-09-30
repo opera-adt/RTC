@@ -55,8 +55,6 @@ def print_data_difference(val_1, val_2, indent=4):
               f'[{index_first_discrepancy}] : '
               f'1st=({val_1[index_first_discrepancy]}), 2nd=({val_2[index_first_discrepancy]})')
 
-
-
     # Check pixel-by-pixel nan / non-nan difference
     if (issubclass(val_1.dtype.type, np.floating) and issubclass(val_2.dtype.type, np.floating)) or\
     (issubclass(val_1.dtype.type, np.complexfloating) and issubclass(val_2.dtype.type, np.complexfloating)):
@@ -70,8 +68,21 @@ def print_data_difference(val_1, val_2, indent=4):
             num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
             index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
             print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
-                   'inconsistent values between input arrays. '
+                   'NaN inconsistecy between the input arrays. '
                   f'First index of the discrepancy: [{index_pixel_nan_discrepancy[0][0]}]')
+
+            print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
+                  f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
+            print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
+                  f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
+
+            # Operations to print out further info regarding the discrapancy
+            num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
+            num_nan_val_1 = np.sum(mask_nan_val_1)
+            num_nan_val_2 = np.sum(mask_nan_val_2)
+            print(f'{indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
+            print(f'{indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
+
 
 def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
                                 key_in: str='/',
@@ -167,14 +178,14 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         val_2 = np.array(hdf5_obj_2[str_key])
 
     # convert oeject reference to the path to which it is pointing
+    # Example:
+    # attribute `REFERENCE_LIST` in
+    # /science/CSAR/RTC/grids/frequencyA/xCoordinates'
+    # attribute `DIMENSION_LIST` in
+    # /science/CSAR/RTC/grids/frequencyA/VH
     if (len(val_1.shape)>=1) and ('shape' in dir(val_1[0])):
         if isinstance(val_1[0], np.void) or\
         ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference))):
-            # Example:
-            # attribute `REFERENCE_LIST` in
-            # /science/CSAR/RTC/grids/frequencyA/xCoordinates'
-            # attribute `DIMENSION_LIST` in
-            # /science/CSAR/RTC/grids/frequencyA/VH
             list_val_1 = list(itertools.chain.from_iterable(val_1))
             val_1_new = [None] * len(list_val_1)
             for i_val, element_1 in enumerate(list_val_1):
@@ -198,7 +209,6 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                 else:
                     val_2_new[i_val] = element_2
             val_2 = np.array(val_2_new)
-
 
     shape_val_1 = val_1.shape
     shape_val_2 = val_2.shape
