@@ -26,7 +26,7 @@ def _get_parser():
 
 def print_data_difference(val_1, val_2, indent=4):
     '''
-    Print out the diffrence of the data whose dimension is >= 1
+    Print out the difference of the data whose dimension is >= 1
 
     Parameters:
     -----------
