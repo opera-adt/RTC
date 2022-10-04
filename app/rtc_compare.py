@@ -91,7 +91,7 @@ def print_data_difference(val_1, val_2, indent=4):
 
     # Check pixel-by-pixel nan / non-nan difference
     if (issubclass(val_1.dtype.type, np.floating) or
-    issubclass(val_1.dtype.type, np.complexfloating)):
+        issubclass(val_1.dtype.type, np.complexfloating)):
 
         mask_nan_val_1 = np.isnan(val_1)
         mask_nan_val_2 = np.isnan(val_2)
