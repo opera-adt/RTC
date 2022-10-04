@@ -98,28 +98,29 @@ def print_data_difference(val_1, val_2, indent=4):
 
         mask_nan_discrepancy = np.logical_xor(mask_nan_val_1, mask_nan_val_2)
 
-        if not np.any(mask_nan_discrepancy):
-            print('NaN discrepancy was not detected.')
-            return
+        if np.any(mask_nan_discrepancy):
+            num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
+            index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
+            print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
+                'NaN inconsistencies between input arrays. '
+                'First index of the discrepancy: '
+                f'[{index_pixel_nan_discrepancy[0][0]}]')
+            print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
+                f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
+            print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
+                f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
 
-        num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
-        index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
-        print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
-               'NaN inconsistencies between input arrays. '
-               'First index of the discrepancy: '
-              f'[{index_pixel_nan_discrepancy[0][0]}]')
+            # Operations to print out further info regarding the discrapancy
+            num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
+            num_nan_val_1 = np.sum(mask_nan_val_1)
+            num_nan_val_2 = np.sum(mask_nan_val_2)
+            print(f'{indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
+            print(f'{indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
+        else:
+            print(f'{str_indent} NaN discrepancy was not detected.')
 
-        print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
-              f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
-        print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
-              f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
-
-        # Operations to print out further info regarding the discrapancy
-        num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
-        num_nan_val_1 = np.sum(mask_nan_val_1)
-        num_nan_val_2 = np.sum(mask_nan_val_2)
-        print(f'{indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
-        print(f'{indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
+    # A line of space for better readability of the log
+    print('')
 
 
 def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
@@ -239,11 +240,13 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
     if shape_val_1 != shape_val_2:
         # Dataset or attribute shape does not match
-        print(f'    - Data shapes do not match. {shape_val_1} vs. {shape_val_2}')
+        print('\033[A\033[91mFAILED.\033[00m')
+        print(f'    - Data shapes do not match. {shape_val_1} vs. {shape_val_2}\n')
         return False
 
     if val_1.dtype != val_2.dtype:
-        print(f'    - Data types do not match. ({val_1.dtype}) vs. ({val_2.dtype})')
+        print('\033[A\033[91mFAILED.\033[00m')
+        print(f'    - Data types do not match. ({val_1.dtype}) vs. ({val_2.dtype})\n')
         return False
 
     if len(shape_val_1) == 0:
@@ -254,19 +257,25 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                                      val_2,
                                      RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                                      equal_nan=True)
-            if not return_val:
+            if return_val:
+                print('\033[A\033[32mPASSED.\033[00m')
+            else:
+                print('\033[A\033[91mFAILED.\033[00m')
                 print( '    - numerical scalar. Failed to pass the test. '
                       f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
                 print(f'    - 1st value: {val_1}')
-                print(f'    - 2nd value: {val_2}')
+                print(f'    - 2nd value: {val_2}\n')
             return return_val
 
         # Not a numerical array
         return_val = np.array_equal(val_1, val_2)
-        if not return_val:
+        if return_val:
+            print('\033[A\033[32mPASSED.\033[00m')
+        else:
+            print('\033[A\033[91mFAILED.\033[00m')
             print( '    - non-numerical scalar. Failed to pass the test.')
             print(f'    - 1st value: {val_1}')
-            print(f'    - 2nd value: {val_2}')
+            print(f'    - 2nd value: {val_2}\n')
         return return_val
 
     if len(shape_val_1) == 1:
@@ -275,7 +284,11 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         if issubclass(val_1.dtype.type, np.number):
             # val_1 and val_2 are numeric numpy array
             return_val = np.allclose(val_1, val_2, RTC_S1_PRODUCTS_ERROR_TOLERANCE, equal_nan=True)
-            if not return_val:
+
+            if return_val:
+                print('\033[A\033[32mPASSED.\033[00m')
+            else:
+                print('\033[A\033[91mFAILED.\033[00m')
                 print('    - Numerical 1D array. Failed to pass the test. '
                      f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
                 print_data_difference(val_1, val_2)
@@ -283,7 +296,10 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
         # All other non-numerical cases, including the npy array with bytes
         return_val = np.array_equal(val_1, val_2)
-        if not return_val:
+        if return_val:
+            print('\033[A\033[32mPASSED.\033[00m')
+        else:
+            print('\033[A\033[91mFAILED.\033[00m')
             print('    non-numerical 1D array. Failed to pass the test.')
         return return_val
 
@@ -293,7 +309,10 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                              val_2,
                              RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                              equal_nan=True)
-        if not return_val:
+        if return_val:
+            print('\033[A\033[32mPASSED.\033[00m')
+        else:
+            print('\033[A\033[91mFAILED.\033[00m')
             print(f'    {len(shape_val_1)}D raster array. Failed to pass the test. '
                   f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
             print_data_difference(val_1, val_2)
@@ -335,6 +354,7 @@ def compare_rtc_hdf5_files(file_1, file_2):
         set_attrs_2 = set(list_attrs_2)
 
         # Check the dataset
+        print('Checking the dataset.')
         union_set_dataset = set_dataset_1.union(set_dataset_2)
         flag_identical_dataset_structure = \
             (len(union_set_dataset) == len(set_dataset_1) and
@@ -360,11 +380,8 @@ def compare_rtc_hdf5_files(file_1, file_2):
                                                                          hdf5_in_2,
                                                                          key_dataset,
                                                                          is_attr=False)
-            if list_flag_identical_dataset[id_flag]:
-                print('\033[32mPASSED.\033[00m\n')
-            else:
-                print('\033[91mFAILED.\033[00m\n')
 
+        print('Checking the attributes.')
         # Check the attribute
         union_set_attrs = set_attrs_1.union(set_attrs_2)
 
@@ -395,11 +412,6 @@ def compare_rtc_hdf5_files(file_1, file_2):
                                                                        hdf5_in_2,
                                                                        key_attr,
                                                                        is_attr=True)
-            if list_flag_identical_attrs[id_flag]:
-                print('\033[32mPASSED.\033[00m\n')
-            else:
-                print('\033[91mFAILED.\033[00m\n')
-
 
         # Print out the test summary:
         print('\n\n********************* Test summary *********************')
