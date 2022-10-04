@@ -24,6 +24,39 @@ def _get_parser():
 
     return parser
 
+def _unpack_array(val_in, hdf5_obj_in):
+    '''
+    Unpack the array of array into ordinary numpy array.
+    Converts HDF5 object reference into the path it is pointing.
+
+    For internal use in this script.
+
+    Parameter:
+    -----------
+    val_in: np.ndarray
+        numpy array to unpack
+    hdf5_obj_in:
+        Source HDF5 object of `val_in`
+
+    Return:
+    val_out: np.ndarray
+        unpacked array
+
+    '''
+    list_val_in = list(itertools.chain.from_iterable(val_in))
+
+    list_val_out = [None] * len(list_val_in)
+    for i_val, element_in in enumerate(list_val_in):
+        if isinstance(element_in, h5py.h5r.Reference):
+            print('    - Object reference found.')
+            list_val_out[i_val] = np.str_(hdf5_obj_in[element_in].name)
+        else:
+            list_val_out[i_val] = element_in
+    val_out = np.array(list_val_out)
+
+    return val_out
+
+
 def print_data_difference(val_1, val_2, indent=4):
     '''
     Print out the difference of the data whose dimension is >= 1
@@ -56,32 +89,40 @@ def print_data_difference(val_1, val_2, indent=4):
               f'1st=({val_1[index_first_discrepancy]}), 2nd=({val_2[index_first_discrepancy]})')
 
     # Check pixel-by-pixel nan / non-nan difference
-    if (issubclass(val_1.dtype.type, np.floating) and issubclass(val_2.dtype.type, np.floating)) or\
-    (issubclass(val_1.dtype.type, np.complexfloating) and issubclass(val_2.dtype.type, np.complexfloating)):
+    is_floating_real_val1 = issubclass(val_1.dtype.type, np.floating)
+    is_floating_real_val2 = issubclass(val_2.dtype.type, np.floating)
+    is_floating_complex_val1 = issubclass(val_1.dtype.type, np.complexfloating)
+    is_floating_complex_val2 = issubclass(val_2.dtype.type, np.complexfloating)
+
+    if ((is_floating_real_val1 and is_floating_real_val2) or
+    (is_floating_complex_val1 and is_floating_complex_val2)):
 
         mask_nan_val_1 = np.isnan(val_1)
         mask_nan_val_2 = np.isnan(val_2)
 
         mask_nan_discrepancy = np.logical_xor(mask_nan_val_1, mask_nan_val_2)
 
-        if np.any(mask_nan_discrepancy):
-            num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
-            index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
-            print(f'{str_indent} Found {num_pixel_nan_discrepancy} of '
-                   'NaN inconsistecy between the input arrays. '
-                  f'First index of the discrepancy: [{index_pixel_nan_discrepancy[0][0]}]')
+        if not np.any(mask_nan_discrepancy):
+            print('NaN discrepancy was not detected.')
+            return
 
-            print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
-                  f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
-            print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
-                  f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
+        num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
+        index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
+        print(f'{str_indent} Found {num_pixel_nan_discrepancy} of '
+                'NaN inconsistecy between the input arrays. '
+                f'First index of the discrepancy: [{index_pixel_nan_discrepancy[0][0]}]')
 
-            # Operations to print out further info regarding the discrapancy
-            num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
-            num_nan_val_1 = np.sum(mask_nan_val_1)
-            num_nan_val_2 = np.sum(mask_nan_val_2)
-            print(f'{indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
-            print(f'{indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
+        print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
+                f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
+        print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
+                f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
+
+        # Operations to print out further info regarding the discrapancy
+        num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
+        num_nan_val_1 = np.sum(mask_nan_val_1)
+        num_nan_val_2 = np.sum(mask_nan_val_2)
+        print(f'{indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
+        print(f'{indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
 
 
 def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
@@ -184,31 +225,15 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     # attribute `DIMENSION_LIST` in
     # /science/CSAR/RTC/grids/frequencyA/VH
     if (len(val_1.shape)>=1) and ('shape' in dir(val_1[0])):
-        if isinstance(val_1[0], np.void) or\
-        ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference))):
-            list_val_1 = list(itertools.chain.from_iterable(val_1))
-            val_1_new = [None] * len(list_val_1)
-            for i_val, element_1 in enumerate(list_val_1):
-                if isinstance(element_1, h5py.h5r.Reference):
-                    print('    - Object reference found.')
-                    val_1_new[i_val] = np.str_(hdf5_obj_1[element_1].name)
-                else:
-                    val_1_new[i_val] = element_1
-            val_1 = np.array(val_1_new)
+        if (isinstance(val_1[0], np.void) or
+        ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)))):
+            val_1 = _unpack_array(val_1, hdf5_obj_1)
 
-    #Repeat the same thing for val_2
+    # Repeat the same thing for val_2
     if (len(val_2.shape)>=1) and ('shape' in dir(val_2[0])):
-        if isinstance(val_2[0], np.void) or\
-        ((len(val_2[0].shape) == 1) and (isinstance(val_2[0][0], h5py.h5r.Reference))):
-            list_val_2 = list(itertools.chain.from_iterable(val_2))
-            val_2_new = [None] * len(list_val_2)
-            for i_val, element_2 in enumerate(list_val_2):
-                if isinstance(element_2, h5py.h5r.Reference):
-                    print('    - Object reference found.')
-                    val_2_new[i_val] = np.str_(hdf5_obj_2[element_2].name)
-                else:
-                    val_2_new[i_val] = element_2
-            val_2 = np.array(val_2_new)
+        if (isinstance(val_2[0], np.void) or
+        ((len(val_2[0].shape) == 1) and (isinstance(val_2[0][0], h5py.h5r.Reference)))):
+            val_2 = _unpack_array(val_2, hdf5_obj_2)
 
     shape_val_1 = val_1.shape
     shape_val_2 = val_2.shape
