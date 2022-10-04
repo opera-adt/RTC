@@ -1,5 +1,5 @@
 '''
-Compare two RTC products if they are equivalent
+Compare two RTC products (in HDF5) if they are equivalent.
 Part of the codes are copied from PROTEUS SAS
 '''
 
@@ -303,18 +303,22 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     return False
 
 
-def main():
+def compare_rtc(file_1, file_2):
     '''
-    Main function of the RTC comparison script
-    - Compares the two HDF files by setting one of them as reference
-    - Perform the same comparison abobe by settint the other HDF5 as reference
+    Compare the two RTC products (in HDF5) if they are equivalent
+    within acceptable difference
+
+    Parameters:
+    -----------
+    file_1, file_2: str
+        Path to the RTC products (in HDF5)
+
+    Return:
+    -------
+    _: bool
+        `True` if the two products are equivalent; `False` otherwise
+
     '''
-    parser = _get_parser()
-
-    args = parser.parse_args()
-
-    file_1 = args.input_file[0]
-    file_2 = args.input_file[1]
 
     with h5py.File(file_1,'r') as hdf5_in_1, h5py.File(file_2,'r') as hdf5_in_2:
         list_dataset_1, list_attrs_1 = get_list_dataset_attrs_keys(hdf5_in_1)
@@ -393,7 +397,7 @@ def main():
 
 
         # Print out the test summary:
-        print('\n\n****************** Test summary ******************')
+        print('\n\n********************* Test summary *********************')
         print(f'1st HDF FILE                 : {file_1}')
         print(f'2nd HDF FILE                 : {file_2}')
         print(f'Value tolerance              : {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
@@ -418,6 +422,24 @@ def main():
                     print(f'{token_key_attr[1]} {token_key_attr[0]}')
 
         print('See the log above in case there are any failed test.')
+
+        # return the final verdict
+        return all(list_flag_identical_dataset) and all(list_flag_identical_attrs)
+
+
+def main():
+    '''
+    main function of the RTC product comparison script
+    '''
+    parser = _get_parser()
+
+    args = parser.parse_args()
+
+    file_1 = args.input_file[0]
+    file_2 = args.input_file[1]
+
+    compare_rtc(file_1, file_2)
+
 
 if __name__ == '__main__':
     main()
