@@ -72,7 +72,7 @@ def print_data_difference(val_1, val_2, indent=4):
     str_indent = ' ' * indent + '-'
 
     # printout the difference when the array is numeric
-    if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
+    if issubclass(val_1.dtype.type, np.number):
         difference_val = val_1 - val_2
         index_max_diff = np.nanargmax(np.abs(difference_val))
 
@@ -89,13 +89,8 @@ def print_data_difference(val_1, val_2, indent=4):
               f'1st=({val_1[index_first_discrepancy]}), 2nd=({val_2[index_first_discrepancy]})')
 
     # Check pixel-by-pixel nan / non-nan difference
-    is_floating_real_val1 = issubclass(val_1.dtype.type, np.floating)
-    is_floating_real_val2 = issubclass(val_2.dtype.type, np.floating)
-    is_floating_complex_val1 = issubclass(val_1.dtype.type, np.complexfloating)
-    is_floating_complex_val2 = issubclass(val_2.dtype.type, np.complexfloating)
-
-    if ((is_floating_real_val1 and is_floating_real_val2) or
-    (is_floating_complex_val1 and is_floating_complex_val2)):
+    if (issubclass(val_1.dtype.type, np.floating) or
+    issubclass(val_1.dtype.type, np.complexfloating)):
 
         mask_nan_val_1 = np.isnan(val_1)
         mask_nan_val_2 = np.isnan(val_2)
@@ -243,14 +238,17 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         print(f'    - Data shapes do not match. {shape_val_1} vs. {shape_val_2}')
         return False
 
+    if val_1.dtype != val_2.dtype:
+        print(f'    - Data types do not match. ({val_1.dtype}) vs. ({val_2.dtype})')
+        return False
+
+
     if len(shape_val_1)==0:
         # Scalar value
         print(f'    - 1st value: {val_1}')
         print(f'    - 2nd value: {val_2}')
 
-        if (issubclass(val_1.dtype.type, np.number) and
-            issubclass(val_2.dtype.type, np.number)):
-
+        if issubclass(val_1.dtype.type, np.number):
             # numerical array
             return_val = np.array_equal(val_1, val_2, equal_nan=True)
             if not return_val:
@@ -266,7 +264,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     if len(shape_val_1) == 1:
         # 1d vector
 
-        if issubclass(val_1.dtype.type, np.number) and issubclass(val_2.dtype.type, np.number):
+        if issubclass(val_1.dtype.type, np.number):
             # val_1 and val_2 are numeric numpy array
             return_val = np.array_equal(val_1, val_2, equal_nan=True)
             if not return_val:
