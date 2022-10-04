@@ -27,7 +27,7 @@ def _get_parser():
 def _unpack_array(val_in, hdf5_obj_in):
     '''
     Unpack the array of array into ordinary numpy array.
-    Converts HDF5 object reference into the path it is pointing.
+    Convert an HDF5 object reference into the path it is pointing to.
 
     For internal use in this script.
 
@@ -91,7 +91,7 @@ def print_data_difference(val_1, val_2, indent=4):
 
     # Check pixel-by-pixel nan / non-nan difference
     if (issubclass(val_1.dtype.type, np.floating) or
-    issubclass(val_1.dtype.type, np.complexfloating)):
+        issubclass(val_1.dtype.type, np.complexfloating)):
 
         mask_nan_val_1 = np.isnan(val_1)
         mask_nan_val_2 = np.isnan(val_2)
@@ -104,8 +104,8 @@ def print_data_difference(val_1, val_2, indent=4):
 
         num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
         index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
-        print(f'{str_indent} Found {num_pixel_nan_discrepancy} of '
-                'NaN inconsistecy between the input arrays. '
+        print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
+                'NaN inconsistencies between input arrays. '
                 'First index of the discrepancy: '
                f'[{index_pixel_nan_discrepancy[0][0]}]')
 
@@ -364,8 +364,8 @@ def compare_rtc_hdf5_files(file_1, file_2):
         union_set_attrs = set_attrs_1.union(set_attrs_2)
 
         flag_identical_attrs_structure = \
-        (len(union_set_attrs) == len(set_attrs_1) and
-         len(union_set_attrs) == len(set_attrs_2))
+            (len(union_set_attrs) == len(set_attrs_1) and
+             len(union_set_attrs) == len(set_attrs_2))
 
         if flag_identical_attrs_structure:
             print('\nAttribute structure identical.')
