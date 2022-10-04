@@ -86,7 +86,8 @@ def print_data_difference(val_1, val_2, indent=4):
         index_first_discrepancy = np.where(flag_discrepancy)[0][0]
         print(f'{str_indent} The first discrepancy has detected from index '
               f'[{index_first_discrepancy}] : '
-              f'1st=({val_1[index_first_discrepancy]}), 2nd=({val_2[index_first_discrepancy]})')
+              f'1st=({val_1[index_first_discrepancy]}), '
+              f'2nd=({val_2[index_first_discrepancy]})')
 
     # Check pixel-by-pixel nan / non-nan difference
     if (issubclass(val_1.dtype.type, np.floating) or
@@ -105,7 +106,8 @@ def print_data_difference(val_1, val_2, indent=4):
         index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
         print(f'{str_indent} Found {num_pixel_nan_discrepancy} of '
                 'NaN inconsistecy between the input arrays. '
-                f'First index of the discrepancy: [{index_pixel_nan_discrepancy[0][0]}]')
+                'First index of the discrepancy: '
+               f'[{index_pixel_nan_discrepancy[0][0]}]')
 
         print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
                 f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
@@ -177,7 +179,8 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
 def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     '''
     Compare the dataset or attribute defined by `str_key`
-    NOTE: For attributes, the path and the key are separated by newline character ('\n')
+    NOTE: For attributes, the path and the key are
+    separated by newline character ('\n')
 
     Parameters:
     -----------
@@ -201,7 +204,8 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         path_attr, key_attr = str_key.split('\n')
         val_1 = hdf5_obj_1[path_attr].attrs[key_attr]
         val_2 = hdf5_obj_2[path_attr].attrs[key_attr]
-        # Force the datatype of val_1 and _2 to make use of numpy features
+
+        # Force the types of the values to np.ndarray to utulize numpy features
         if not isinstance(val_1,np.ndarray):
             val_1 = np.array(val_1)
 
@@ -224,7 +228,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)))):
             val_1 = _unpack_array(val_1, hdf5_obj_1)
 
-    # Repeat the same thing for val_2
+    # Repeat the same process for val_2
     if (len(val_2.shape)>=1) and ('shape' in dir(val_2[0])):
         if (isinstance(val_2[0], np.void) or
         ((len(val_2[0].shape) == 1) and (isinstance(val_2[0][0], h5py.h5r.Reference)))):
