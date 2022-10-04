@@ -303,7 +303,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
     return False
 
 
-def compare_rtc(file_1, file_2):
+def compare_rtc_hdf5_files(file_1, file_2):
     '''
     Compare the two RTC products (in HDF5) if they are equivalent
     within acceptable difference
@@ -402,7 +402,7 @@ def compare_rtc(file_1, file_2):
         print(f'2nd HDF FILE                 : {file_2}')
         print(f'Value tolerance              : {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
         print(f'\nIdentical dataset structure  : {flag_identical_dataset_structure}')
-        print(f'Identical Attribute structure: {flag_identical_attrs_structure}\n')
+        print(f'Identical attribute structure: {flag_identical_attrs_structure}\n')
 
         if all(list_flag_identical_dataset):
             print('All dataset passed the test')
@@ -419,9 +419,9 @@ def compare_rtc(file_1, file_2):
             for id_attr, key_attr in enumerate(union_set_attrs):
                 if not list_flag_identical_attrs[id_attr]:
                     token_key_attr=key_attr.split('\n')
-                    print(f'{token_key_attr[1]} {token_key_attr[0]}')
+                    print(f'\'{token_key_attr[1]}\' in {token_key_attr[0]}')
 
-        print('See the log above in case there are any failed test.')
+        print('\nSee the log above in case there are any failed test.\n')
 
         # return the final verdict
         return all(list_flag_identical_dataset) and all(list_flag_identical_attrs)
@@ -438,7 +438,7 @@ def main():
     file_1 = args.input_file[0]
     file_2 = args.input_file[1]
 
-    compare_rtc(file_1, file_2)
+    compare_rtc_hdf5_files(file_1, file_2)
 
 
 if __name__ == '__main__':
