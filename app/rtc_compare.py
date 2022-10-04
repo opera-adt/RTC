@@ -24,6 +24,7 @@ def _get_parser():
 
     return parser
 
+
 def _unpack_array(val_in, hdf5_obj_in):
     '''
     Unpack the array of array into ordinary numpy array.
@@ -48,7 +49,6 @@ def _unpack_array(val_in, hdf5_obj_in):
     list_val_out = [None] * len(list_val_in)
     for i_val, element_in in enumerate(list_val_in):
         if isinstance(element_in, h5py.h5r.Reference):
-            print('    - Object reference found.')
             list_val_out[i_val] = np.str_(hdf5_obj_in[element_in].name)
         else:
             list_val_out[i_val] = element_in
@@ -81,7 +81,7 @@ def print_data_difference(val_1, val_2, indent=4):
               f'1st: ({val_1[index_max_diff]}), 2nd: ({val_2[index_max_diff]}) = '
               f'diff: ({difference_val[index_max_diff]})')
     else:
-        # Non-numerical array
+        # Print out the first discrepancy in case of non-numerical array
         flag_discrepancy = (val_1 != val_2)
         index_first_discrepancy = np.where(flag_discrepancy)[0][0]
         print(f'{str_indent} The first discrepancy has detected from index '
@@ -105,14 +105,14 @@ def print_data_difference(val_1, val_2, indent=4):
         num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
         index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
         print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
-                'NaN inconsistencies between input arrays. '
-                'First index of the discrepancy: '
-               f'[{index_pixel_nan_discrepancy[0][0]}]')
+               'NaN inconsistencies between input arrays. '
+               'First index of the discrepancy: '
+              f'[{index_pixel_nan_discrepancy[0][0]}]')
 
         print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
-                f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
+              f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
         print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
-                f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
+              f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
 
         # Operations to print out further info regarding the discrapancy
         num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
@@ -246,23 +246,27 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         print(f'    - Data types do not match. ({val_1.dtype}) vs. ({val_2.dtype})')
         return False
 
-
-    if len(shape_val_1)==0:
+    if len(shape_val_1) == 0:
         # Scalar value
-        print(f'    - 1st value: {val_1}')
-        print(f'    - 2nd value: {val_2}')
-
         if issubclass(val_1.dtype.type, np.number):
             # numerical array
-            return_val = np.array_equal(val_1, val_2, equal_nan=True)
+            return_val = np.allclose(val_1,
+                                     val_2,
+                                     RTC_S1_PRODUCTS_ERROR_TOLERANCE,
+                                     equal_nan=True)
             if not return_val:
-                print('    - numerical scalar. Failed to pass np.array_equal()')
+                print( '    - numerical scalar. Failed to pass the test. '
+                      f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
+                print(f'    - 1st value: {val_1}')
+                print(f'    - 2nd value: {val_2}')
             return return_val
 
         # Not a numerical array
         return_val = np.array_equal(val_1, val_2)
         if not return_val:
-            print('    - non-numerical scalar. Failed to pass np.array_equal()')
+            print( '    - non-numerical scalar. Failed to pass the test.')
+            print(f'    - 1st value: {val_1}')
+            print(f'    - 2nd value: {val_2}')
         return return_val
 
     if len(shape_val_1) == 1:
@@ -270,17 +274,17 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
         if issubclass(val_1.dtype.type, np.number):
             # val_1 and val_2 are numeric numpy array
-            return_val = np.array_equal(val_1, val_2, equal_nan=True)
+            return_val = np.allclose(val_1, val_2, RTC_S1_PRODUCTS_ERROR_TOLERANCE, equal_nan=True)
             if not return_val:
-                print('    - Numerical array. Failed to pass np.array_equal()')
+                print('    - Numerical 1D array. Failed to pass the test. '
+                     f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
                 print_data_difference(val_1, val_2)
             return return_val
 
-        # All other cases, including the npy array with bytes
+        # All other non-numerical cases, including the npy array with bytes
         return_val = np.array_equal(val_1, val_2)
-
         if not return_val:
-            print('    Non-numerical array. Failed to pass np.array_equal()')
+            print('    non-numerical 1D array. Failed to pass the test.')
         return return_val
 
 
@@ -290,7 +294,8 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                              RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                              equal_nan=True)
         if not return_val:
-            print(f'    {len(shape_val_1)}D raster array. Failed to pass np.allclose()')
+            print(f'    {len(shape_val_1)}D raster array. Failed to pass the test. '
+                  f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
             print_data_difference(val_1, val_2)
         return return_val
 
@@ -407,7 +412,9 @@ def compare_rtc_hdf5_files(file_1, file_2):
         if all(list_flag_identical_dataset):
             print('All dataset passed the test')
         else:
-            print('Dataset below did not pass the test:')
+            print( '\nDataset below did not pass the test: '
+                  f'({sum(~np.array(list_flag_identical_dataset))} out of '
+                  f'{len(list_flag_identical_dataset)}):')
             for id_dataset, key_dataset in enumerate(union_set_dataset):
                 if not list_flag_identical_dataset[id_dataset]:
                     print(key_dataset)
@@ -415,11 +422,13 @@ def compare_rtc_hdf5_files(file_1, file_2):
         if all(list_flag_identical_attrs):
             print('All attributes passed the test')
         else:
-            print('\nAttributes below did not pass the test:')
+            print( '\nAttributes below did not pass the test: '
+                  f'({sum(~np.array(list_flag_identical_attrs))} out of '
+                  f'{len(list_flag_identical_attrs)}):')
             for id_attr, key_attr in enumerate(union_set_attrs):
                 if not list_flag_identical_attrs[id_attr]:
                     token_key_attr=key_attr.split('\n')
-                    print(f'\'{token_key_attr[1]}\' in {token_key_attr[0]}')
+                    print(f'\'{token_key_attr[1]}\' in:\t\t{token_key_attr[0]}')
 
         print('\nSee the log above in case there are any failed test.\n')
 
