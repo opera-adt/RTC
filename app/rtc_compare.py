@@ -27,7 +27,7 @@ def _get_parser():
 def _unpack_array(val_in, hdf5_obj_in):
     '''
     Unpack the array of array into ordinary numpy array.
-    Converts HDF5 object reference into the path it is pointing.
+    Convert an HDF5 object reference into the path it is pointing to.
 
     For internal use in this script.
 
