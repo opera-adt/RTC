@@ -360,8 +360,8 @@ def main():
         union_set_attrs = set_attrs_1.union(set_attrs_2)
 
         flag_identical_attrs_structure = \
-        (len(union_set_attrs) == len(set_attrs_1) and
-         len(union_set_attrs) == len(set_attrs_2))
+            (len(union_set_attrs) == len(set_attrs_1) and
+             len(union_set_attrs) == len(set_attrs_2))
 
         if flag_identical_attrs_structure:
             print('\nAttribute structure identical.')
