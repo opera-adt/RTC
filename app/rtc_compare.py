@@ -434,39 +434,45 @@ def compare_rtc_hdf5_files(file_1, file_2):
         print('\n\nTest completed.')
 
         if flag_identical_dataset_structure:
-            print('\nDataset structure identical.')
+            print('\n\033[32mPASSED\033[00m: Dataset structure identical.')
         else:
-            print('\nDataset structure not identical.')
+            print('\n\033[91mFAILED\033[00m: Dataset structure not identical.')
             print('In the 1st HDF5, not in the 2nd data:')
             print('\n'.join(list(set_dataset_1 - set_dataset_2)))
             print('In the 2st HDF5, not in the 1nd data:')
             print('\n'.join(list(set_dataset_2 - set_dataset_1)))
 
         if flag_identical_attrs_structure:
-            print('Attribute structure identical.')
+            print('\033[32mPASSED\033[00m: Attribute structure identical.')
 
         else:
             flag_identical_attrs_structure = False
-            print('\nAttribute structure not identical.')
+            print('\n\033[91mFAILED\033[00m: '
+                  'Attribute structure not identical.')
             print('In the 1st HDF5, not in the 2nd data:')
             print('\n'.join(list(set_dataset_1 - set_dataset_2)))
             print('In the 2nd HDF5, not in the 1st data:')
             print('\n'.join(list(set_dataset_2 - set_dataset_1)))
 
         if all(list_flag_identical_dataset):
-            print( 'The datasets of the two HDF files are the same within '
-                  f'the threshold of {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
+            print( '\033[32mPASSED\033[00m: '
+                   'The datasets of the two HDF files are the same within the'
+                  f'threshold of {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
         else:
-            print(f'{sum(~np.array(list_flag_identical_dataset))} datasets out of '
-                  f'{len(intersection_set_dataset)} did not pass the test.')
+            print( '\033[91mFAILED\033[00m: '
+                  f'{sum(~np.array(list_flag_identical_dataset))} datasets '
+                  f'out of {len(intersection_set_dataset)}'
+                   'did not pass the test.')
 
         if all(list_flag_identical_attrs):
-            print( 'The attributes of the two HDF files are the same within '
+            print( '\033[32mPASSED\033[00m: '
+                   'The attributes of the two HDF files are the same within '
                   f'the threshold of {RTC_S1_PRODUCTS_ERROR_TOLERANCE}\n')
         else:
-            print(f'{sum(~np.array(list_flag_identical_attrs))} attributes out of '
-                  f'{len(intersection_set_attrs)} did not pass the test.\n')
-
+            print(f'\033[91mFAILED\033[00m: '
+                  f' {sum(~np.array(list_flag_identical_attrs))} '
+                  f'attributes out of {len(intersection_set_attrs)} '
+                   'did not pass the test.\n')
 
         return final_result
 
