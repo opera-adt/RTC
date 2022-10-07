@@ -71,54 +71,58 @@ def print_data_difference(val_1, val_2, indent=4):
 
     str_indent = ' ' * indent + '-'
 
-    # printout the difference when the array is numeric
-    if issubclass(val_1.dtype.type, np.number):
-        difference_val = val_1 - val_2
-        index_max_diff = np.nanargmax(np.abs(difference_val))
-
-        print(f'{str_indent} Maximum difference detected from index '
-              f'[{index_max_diff}]: '
-              f'1st: ({val_1[index_max_diff]}), 2nd: ({val_2[index_max_diff]}) = '
-              f'diff: ({difference_val[index_max_diff]})')
-    else:
-        # Print out the first discrepancy in case of non-numerical array
+    # printout the difference
+    if not issubclass(val_1.dtype.type, np.number):
+        # Routine for non-numeric array
+        # Print out the first discrepancy in the array
         flag_discrepancy = (val_1 != val_2)
         index_first_discrepancy = np.where(flag_discrepancy)[0][0]
         print(f'{str_indent} The first discrepancy has detected from index '
               f'[{index_first_discrepancy}] : '
               f'1st=({val_1[index_first_discrepancy]}), '
               f'2nd=({val_2[index_first_discrepancy]})')
+        return None
+
+    # Routine for numeric array
+    difference_val = val_1 - val_2
+    index_max_diff = np.nanargmax(np.abs(difference_val))
+    print(f'{str_indent} Maximum difference detected from index '
+          f'[{index_max_diff}]: '
+          f'1st: ({val_1[index_max_diff]}), 2nd: ({val_2[index_max_diff]}) = '
+          f'diff: ({difference_val[index_max_diff]})')
+
+    if not (issubclass(val_1.dtype.type, np.floating) or
+            issubclass(val_1.dtype.type, np.complexfloating)):
+        return None
 
     # Check pixel-by-pixel nan / non-nan difference
-    if (issubclass(val_1.dtype.type, np.floating) or
-        issubclass(val_1.dtype.type, np.complexfloating)):
+    mask_nan_val_1 = np.isnan(val_1)
+    mask_nan_val_2 = np.isnan(val_2)
 
-        mask_nan_val_1 = np.isnan(val_1)
-        mask_nan_val_2 = np.isnan(val_2)
+    mask_nan_discrepancy = np.logical_xor(mask_nan_val_1, mask_nan_val_2)
 
-        mask_nan_discrepancy = np.logical_xor(mask_nan_val_1, mask_nan_val_2)
+    if not np.any(mask_nan_discrepancy):
+        print(f'{str_indent} NaN discrepancy was not detected.')
+        return None
 
-        if not np.any(mask_nan_discrepancy):
-            print(f'{str_indent} NaN discrepancy was not detected.')
-            return None
+    num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
+    index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
+    print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
+        'NaN inconsistencies between input arrays. '
+        'First index of the discrepancy: '
+        f'[{index_pixel_nan_discrepancy[0][0]}]')
+    print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
+        f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
+    print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
+        f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
 
-        num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
-        index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
-        print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
-            'NaN inconsistencies between input arrays. '
-            'First index of the discrepancy: '
-            f'[{index_pixel_nan_discrepancy[0][0]}]')
-        print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
-            f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
-        print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
-            f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
+    # Operations to print out further info regarding the discrapancy
+    num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
+    num_nan_val_1 = np.sum(mask_nan_val_1)
+    num_nan_val_2 = np.sum(mask_nan_val_2)
+    print(f'{str_indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
+    print(f'{str_indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
 
-        # Operations to print out further info regarding the discrapancy
-        num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
-        num_nan_val_1 = np.sum(mask_nan_val_1)
-        num_nan_val_2 = np.sum(mask_nan_val_2)
-        print(f'{str_indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
-        print(f'{str_indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
 
     # A line of space for better readability of the log
     print('')
