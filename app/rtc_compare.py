@@ -98,26 +98,27 @@ def print_data_difference(val_1, val_2, indent=4):
 
         mask_nan_discrepancy = np.logical_xor(mask_nan_val_1, mask_nan_val_2)
 
-        if np.any(mask_nan_discrepancy):
-            num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
-            index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
-            print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
-                'NaN inconsistencies between input arrays. '
-                'First index of the discrepancy: '
-                f'[{index_pixel_nan_discrepancy[0][0]}]')
-            print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
-                f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
-            print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
-                f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
-
-            # Operations to print out further info regarding the discrapancy
-            num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
-            num_nan_val_1 = np.sum(mask_nan_val_1)
-            num_nan_val_2 = np.sum(mask_nan_val_2)
-            print(f'{indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
-            print(f'{indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
-        else:
+        if not np.any(mask_nan_discrepancy):
             print(f'{str_indent} NaN discrepancy was not detected.')
+            return None
+
+        num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
+        index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
+        print(f'{str_indent} Found {num_pixel_nan_discrepancy} '
+            'NaN inconsistencies between input arrays. '
+            'First index of the discrepancy: '
+            f'[{index_pixel_nan_discrepancy[0][0]}]')
+        print(f'{str_indent} val_1[{index_pixel_nan_discrepancy[0][0]}] = '
+            f'{val_1[index_pixel_nan_discrepancy[0][0]]}')
+        print(f'{str_indent} val_2[{index_pixel_nan_discrepancy[0][0]}] = '
+            f'{val_2[index_pixel_nan_discrepancy[0][0]]}')
+
+        # Operations to print out further info regarding the discrapancy
+        num_nan_both = np.logical_and(mask_nan_val_1, mask_nan_val_2).sum()
+        num_nan_val_1 = np.sum(mask_nan_val_1)
+        num_nan_val_2 = np.sum(mask_nan_val_2)
+        print(f'{str_indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
+        print(f'{str_indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
 
     # A line of space for better readability of the log
     print('')
