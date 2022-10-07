@@ -349,12 +349,10 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
             print_data_difference(val_1, val_2)
         return return_val
 
-    # Unnexpected dataset shape
-    print('    - Detected an issue on the dataset shapes: ',
-            f'Dataset key: {str_key}, '
-            'dataset shape in the 1st HDF5: ', shape_val_1,
-            'dataset shape in the 2nd HDF5: ', shape_val_2)
-    return False
+    # Unexpected failure to compare `val_1` and `val_2`
+    raise ValueError(f'Failed to compare the element: {str_message_data_location}'
+                     f'dataset shape in the 1st HDF5: {shape_val_1}'
+                     f'dataset shape in the 2nd HDF5: {shape_val_2}')
 
 
 def compare_rtc_hdf5_files(file_1, file_2):
