@@ -349,8 +349,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
             print_data_difference(val_1, val_2)
         return return_val
 
-    # If the processing has reached here, that means
-    # val_1 and val_2 cannot be compated due to their shape difference
+    # Unnexpected dataset shape
     print('    - Detected an issue on the dataset shapes: ',
             f'Dataset key: {str_key}, '
             'dataset shape in the 1st HDF5: ', shape_val_1,
