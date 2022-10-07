@@ -154,7 +154,10 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
 
     Return:
     -------
-    _ : 0 if the two HDF are identical; 1 otherwise
+    list_dataset_so_far : list
+        List of datasets keys found for given HDF5 group
+    list_attrs_so_far : list
+        List of attributes found for given HDF5 group. Each attribute is identified by its path and key (attribute name).
 
     '''
 
