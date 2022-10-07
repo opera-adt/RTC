@@ -134,7 +134,7 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
                                 list_attrs_so_far: list=None):
 
     '''
-    Recursively traverse the Dataset and Attributes in the input HDF5 object.
+    Recursively traverse the datasets and attributes within the input HDF5 group.
     Returns the list of keys for the dataset and the attributes.
 
     NOTE:
