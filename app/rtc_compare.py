@@ -240,13 +240,13 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     # /science/CSAR/RTC/grids/frequencyA/xCoordinates'
     # attribute `DIMENSION_LIST` in
     # /science/CSAR/RTC/grids/frequencyA/VH
-    if (len(val_1.shape)>=1) and ('shape' in dir(val_1[0])):
+    if (len(val_1.shape) >= 1) and ('shape' in dir(val_1[0])):
         if (isinstance(val_1[0], np.void) or
         ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)))):
             val_1 = _unpack_array(val_1, hdf5_obj_1)
 
     # Repeat the same process for val_2
-    if (len(val_2.shape)>=1) and ('shape' in dir(val_2[0])):
+    if (len(val_2.shape) >= 1) and ('shape' in dir(val_2[0])):
         if (isinstance(val_2[0], np.void) or
         ((len(val_2[0].shape) == 1) and (isinstance(val_2[0][0], h5py.h5r.Reference)))):
             val_2 = _unpack_array(val_2, hdf5_obj_2)
@@ -377,44 +377,44 @@ def compare_rtc_hdf5_files(file_1, file_2):
 
         # Check the dataset
         print('Checking the dataset.')
-        union_set_dataset = set_dataset_1.union(set_dataset_2)
+        intersection_set_dataset = set_dataset_1.intersection(set_dataset_2)
         flag_identical_dataset_structure = \
-            (len(union_set_dataset) == len(set_dataset_1) and
-             len(union_set_dataset) == len(set_dataset_2))
+            (len(intersection_set_dataset) == len(set_dataset_1) and
+             len(intersection_set_dataset) == len(set_dataset_2))
 
         # Proceed with checking the values in dataset,
         # regardless of the agreement of their structure.
-        list_flag_identical_dataset = [None] * len(union_set_dataset)
-        for id_flag, key_dataset in enumerate(union_set_dataset):
+        list_flag_identical_dataset = [None] * len(intersection_set_dataset)
+        for id_flag, key_dataset in enumerate(intersection_set_dataset):
             list_flag_identical_dataset[id_flag] = \
                 compare_hdf5_elements(hdf5_in_1,
                                       hdf5_in_2,
                                       key_dataset,
                                       is_attr=False,
                                       id_key=id_flag,
-                                      total_key=len(union_set_dataset),
+                                      total_key=len(intersection_set_dataset),
                                       print_passed_element=True)
 
         print('\nChecking the attributes.')
         # Check the attribute
-        union_set_attrs = set_attrs_1.union(set_attrs_2)
+        intersection_set_attrs = set_attrs_1.intersection(set_attrs_2)
 
         flag_identical_attrs_structure = \
-            (len(union_set_attrs) == len(set_attrs_1) and
-             len(union_set_attrs) == len(set_attrs_2))
+            (len(intersection_set_attrs) == len(set_attrs_1) and
+             len(intersection_set_attrs) == len(set_attrs_2))
 
         # Proceed with checking the values in attributes,
         # regardless of the agreement of their structure.
 
-        list_flag_identical_attrs = [None] * len(union_set_attrs)
-        for id_flag, key_attr in enumerate(union_set_attrs):
+        list_flag_identical_attrs = [None] * len(intersection_set_attrs)
+        for id_flag, key_attr in enumerate(intersection_set_attrs):
             list_flag_identical_attrs[id_flag] = \
                 compare_hdf5_elements(hdf5_in_1,
                                       hdf5_in_2,
                                       key_attr,
                                       is_attr=True,
                                       id_key=id_flag,
-                                      total_key=len(union_set_attrs),
+                                      total_key=len(intersection_set_attrs),
                                       print_passed_element=False)
 
         flag_same_dataset = all(list_flag_identical_dataset)
@@ -452,14 +452,14 @@ def compare_rtc_hdf5_files(file_1, file_2):
                   f'the threshold of {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
         else:
             print(f'{sum(~np.array(list_flag_identical_dataset))} datasets out of '
-                  f'{len(union_set_dataset)} did not pass the test.')
+                  f'{len(intersection_set_dataset)} did not pass the test.')
 
         if all(list_flag_identical_attrs):
             print( 'The attributes of the two HDF files are the same within '
                   f'the threshold of {RTC_S1_PRODUCTS_ERROR_TOLERANCE}\n')
         else:
             print(f'{sum(~np.array(list_flag_identical_attrs))} attributes out of '
-                  f'{len(union_set_attrs)} did not pass the test.\n')
+                  f'{len(intersection_set_attrs)} did not pass the test.\n')
 
 
         return final_result
