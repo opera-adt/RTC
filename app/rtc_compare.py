@@ -208,7 +208,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     id_key: int
         total number of the list. Optional for printout purpose.
     print_passed_element: bool, default = True
-        turn on / off the printout for the p;assed test.
+        turn on / off the printout for the given test when it's successful.
 
 
     Return:
