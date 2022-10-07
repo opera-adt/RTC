@@ -177,7 +177,8 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
     return list_dataset_so_far, list_attrs_so_far
 
 
-def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
+def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
+                          id_key=None, total_key=None, print_passed_element=True):
     '''
     Compare the dataset or attribute defined by `str_key`
     NOTE: For attributes, the path and the key are
@@ -193,11 +194,24 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         Key to the dataset or attribute
     is_attr: bool
         Designate if `str_key` is for dataset or attribute
+    id_key: int
+        index of the key in the list. Optional for printout purpose.
+    id_key: int
+        total number of the list. Optional for printout purpose.
+    print_passed_element: bool, default = True
+        turn on / off the printout for the p;assed test.
+
 
     Return:
     -------
-    _: True when the dataset are identical; False otherwise
+    _: True when the dataset / attribute are identical; False otherwise
     '''
+
+
+    if id_key is None or total_key is None:
+        str_order = ''
+    else:
+        str_order = f'{id_key+1} of {total_key}'
 
     # Prepare to comapre the data in the HDF objects
     if is_attr:
@@ -206,6 +220,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         val_1 = hdf5_obj_1[path_attr].attrs[key_attr]
         val_2 = hdf5_obj_2[path_attr].attrs[key_attr]
 
+        str_message_data_location = f'Attribute {str_order}. path: {path_attr} ; key: {key_attr}'
         # Force the types of the values to np.ndarray to utulize numpy features
         if not isinstance(val_1,np.ndarray):
             val_1 = np.array(val_1)
@@ -215,10 +230,11 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
     else:
         # str_key is for dataset
+        str_message_data_location = f'Dataset {str_order}: {str_key}'
         val_1 = np.array(hdf5_obj_1[str_key])
         val_2 = np.array(hdf5_obj_2[str_key])
 
-    # convert oeject reference to the path to which it is pointing
+    # convert object reference to the path to which it is pointing
     # Example:
     # attribute `REFERENCE_LIST` in
     # /science/CSAR/RTC/grids/frequencyA/xCoordinates'
@@ -240,12 +256,12 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
 
     if shape_val_1 != shape_val_2:
         # Dataset or attribute shape does not match
-        print('\033[A\033[91mFAILED.\033[00m')
+        print('\033[91mFAILED.\033[00m', str_message_data_location)
         print(f'    - Data shapes do not match. {shape_val_1} vs. {shape_val_2}\n')
         return False
 
     if val_1.dtype != val_2.dtype:
-        print('\033[A\033[91mFAILED.\033[00m')
+        print('\033[91mFAILED.\033[00m', str_message_data_location)
         print(f'    - Data types do not match. ({val_1.dtype}) vs. ({val_2.dtype})\n')
         return False
 
@@ -257,10 +273,12 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                                      val_2,
                                      RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                                      equal_nan=True)
+
             if return_val:
-                print('\033[A\033[32mPASSED.\033[00m')
+                if print_passed_element:
+                    print('\033[32mPASSED.\033[00m', str_message_data_location)
             else:
-                print('\033[A\033[91mFAILED.\033[00m')
+                print('\033[91mFAILED.\033[00m', str_message_data_location)
                 print( '    - numerical scalar. Failed to pass the test. '
                       f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
                 print(f'    - 1st value: {val_1}')
@@ -270,9 +288,10 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         # Not a numerical array
         return_val = np.array_equal(val_1, val_2)
         if return_val:
-            print('\033[A\033[32mPASSED.\033[00m')
+            if print_passed_element:
+                print('\033[32mPASSED.\033[00m', str_message_data_location)
         else:
-            print('\033[A\033[91mFAILED.\033[00m')
+            print('\033[91mFAILED.\033[00m', str_message_data_location)
             print( '    - non-numerical scalar. Failed to pass the test.')
             print(f'    - 1st value: {val_1}')
             print(f'    - 2nd value: {val_2}\n')
@@ -286,9 +305,10 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
             return_val = np.allclose(val_1, val_2, RTC_S1_PRODUCTS_ERROR_TOLERANCE, equal_nan=True)
 
             if return_val:
-                print('\033[A\033[32mPASSED.\033[00m')
+                if print_passed_element:
+                    print('\033[32mPASSED.\033[00m', str_message_data_location)
             else:
-                print('\033[A\033[91mFAILED.\033[00m')
+                print('\033[91mFAILED.\033[00m', str_message_data_location)
                 print('    - Numerical 1D array. Failed to pass the test. '
                      f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
                 print_data_difference(val_1, val_2)
@@ -297,9 +317,10 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
         # All other non-numerical cases, including the npy array with bytes
         return_val = np.array_equal(val_1, val_2)
         if return_val:
-            print('\033[A\033[32mPASSED.\033[00m')
+            if print_passed_element:
+                print('\033[32mPASSED.\033[00m', str_message_data_location)
         else:
-            print('\033[A\033[91mFAILED.\033[00m')
+            print('\033[91mFAILED.\033[00m', str_message_data_location)
             print('    non-numerical 1D array. Failed to pass the test.')
         return return_val
 
@@ -310,9 +331,10 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False):
                              RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                              equal_nan=True)
         if return_val:
-            print('\033[A\033[32mPASSED.\033[00m')
+            if print_passed_element:
+                print('\033[32mPASSED.\033[00m', str_message_data_location)
         else:
-            print('\033[A\033[91mFAILED.\033[00m')
+            print('\033[91mFAILED.\033[00m', str_message_data_location)
             print(f'    {len(shape_val_1)}D raster array. Failed to pass the test. '
                   f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
             print_data_difference(val_1, val_2)
@@ -360,6 +382,51 @@ def compare_rtc_hdf5_files(file_1, file_2):
             (len(union_set_dataset) == len(set_dataset_1) and
              len(union_set_dataset) == len(set_dataset_2))
 
+        # Proceed with checking the values in dataset,
+        # regardless of the agreement of their structure.
+        list_flag_identical_dataset = [None] * len(union_set_dataset)
+        for id_flag, key_dataset in enumerate(union_set_dataset):
+            list_flag_identical_dataset[id_flag] = \
+                compare_hdf5_elements(hdf5_in_1,
+                                      hdf5_in_2,
+                                      key_dataset,
+                                      is_attr=False,
+                                      id_key=id_flag,
+                                      total_key=len(union_set_dataset),
+                                      print_passed_element=True)
+
+        print('\nChecking the attributes.')
+        # Check the attribute
+        union_set_attrs = set_attrs_1.union(set_attrs_2)
+
+        flag_identical_attrs_structure = \
+            (len(union_set_attrs) == len(set_attrs_1) and
+             len(union_set_attrs) == len(set_attrs_2))
+
+        # Proceed with checking the values in attributes,
+        # regardless of the agreement of their structure.
+
+        list_flag_identical_attrs = [None] * len(union_set_attrs)
+        for id_flag, key_attr in enumerate(union_set_attrs):
+            list_flag_identical_attrs[id_flag] = \
+                compare_hdf5_elements(hdf5_in_1,
+                                      hdf5_in_2,
+                                      key_attr,
+                                      is_attr=True,
+                                      id_key=id_flag,
+                                      total_key=len(union_set_attrs),
+                                      print_passed_element=False)
+
+        flag_same_dataset = all(list_flag_identical_dataset)
+        flag_same_attributes = all(list_flag_identical_attrs)
+
+        final_result = (flag_identical_dataset_structure and
+                        flag_identical_attrs_structure and
+                        flag_same_dataset and
+                        flag_same_attributes)
+
+        print('\n\nTest completed.')
+
         if flag_identical_dataset_structure:
             print('\nDataset structure identical.')
         else:
@@ -369,83 +436,33 @@ def compare_rtc_hdf5_files(file_1, file_2):
             print('In the 2st HDF5, not in the 1nd data:')
             print('\n'.join(list(set_dataset_2 - set_dataset_1)))
 
-        # Proceed with checking the values in dataset,
-        # regardless of the agreement of their structure.
-        list_flag_identical_dataset = [None] * len(union_set_dataset)
-        for id_flag, key_dataset in enumerate(union_set_dataset):
-            print(f'Testing : {id_flag+1:03d} / {len(union_set_dataset):03d},'
-                  f' key: {key_dataset} ')
-
-            list_flag_identical_dataset[id_flag] = compare_hdf5_elements(hdf5_in_1,
-                                                                         hdf5_in_2,
-                                                                         key_dataset,
-                                                                         is_attr=False)
-
-        print('Checking the attributes.')
-        # Check the attribute
-        union_set_attrs = set_attrs_1.union(set_attrs_2)
-
-        flag_identical_attrs_structure = \
-            (len(union_set_attrs) == len(set_attrs_1) and
-             len(union_set_attrs) == len(set_attrs_2))
-
         if flag_identical_attrs_structure:
-            print('\nAttribute structure identical.')
+            print('Attribute structure identical.')
 
         else:
             flag_identical_attrs_structure = False
             print('\nAttribute structure not identical.')
             print('In the 1st HDF5, not in the 2nd data:')
             print('\n'.join(list(set_dataset_1 - set_dataset_2)))
-            print('In the 2st HDF5, not in the 1nd data:')
+            print('In the 2nd HDF5, not in the 1st data:')
             print('\n'.join(list(set_dataset_2 - set_dataset_1)))
 
-        # Proceed with checking the values in dataset,
-        # regardless of the agreement of their structure.
-        list_flag_identical_attrs = [None] * len(union_set_attrs)
-        for id_flag, key_attr in enumerate(union_set_attrs):
-            str_printout = key_attr.replace('\n',' - ')
-            print(f'Testing : {id_flag+1:03d} / {len(union_set_attrs):03d}, '
-                  f'path - key: {str_printout}')
-
-            list_flag_identical_attrs[id_flag] = compare_hdf5_elements(hdf5_in_1,
-                                                                       hdf5_in_2,
-                                                                       key_attr,
-                                                                       is_attr=True)
-
-        # Print out the test summary:
-        print('\n\n********************* Test summary *********************')
-        print(f'1st HDF FILE                 : {file_1}')
-        print(f'2nd HDF FILE                 : {file_2}')
-        print(f'Value tolerance              : {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
-        print(f'\nIdentical dataset structure  : {flag_identical_dataset_structure}')
-        print(f'Identical attribute structure: {flag_identical_attrs_structure}\n')
-
         if all(list_flag_identical_dataset):
-            print('All dataset passed the test')
+            print( 'The datasets of the two HDF files are the same within '
+                  f'the threshold of {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
         else:
-            print( '\nDataset below did not pass the test: '
-                  f'({sum(~np.array(list_flag_identical_dataset))} out of '
-                  f'{len(list_flag_identical_dataset)}):')
-            for id_dataset, key_dataset in enumerate(union_set_dataset):
-                if not list_flag_identical_dataset[id_dataset]:
-                    print(key_dataset)
+            print(f'{sum(~np.array(list_flag_identical_dataset))} datasets out of '
+                  f'{len(union_set_dataset)} did not pass the test.')
 
         if all(list_flag_identical_attrs):
-            print('All attributes passed the test')
+            print( 'The attributes of the two HDF files are the same within '
+                  f'the threshold of {RTC_S1_PRODUCTS_ERROR_TOLERANCE}\n')
         else:
-            print( '\nAttributes below did not pass the test: '
-                  f'({sum(~np.array(list_flag_identical_attrs))} out of '
-                  f'{len(list_flag_identical_attrs)}):')
-            for id_attr, key_attr in enumerate(union_set_attrs):
-                if not list_flag_identical_attrs[id_attr]:
-                    token_key_attr=key_attr.split('\n')
-                    print(f'\'{token_key_attr[1]}\' in:\t\t{token_key_attr[0]}')
+            print(f'{sum(~np.array(list_flag_identical_attrs))} attributes out of '
+                  f'{len(union_set_attrs)} did not pass the test.\n')
 
-        print('\nSee the log above in case there are any failed test.\n')
 
-        # return the final verdict
-        return all(list_flag_identical_dataset) and all(list_flag_identical_attrs)
+        return final_result
 
 
 def main():
