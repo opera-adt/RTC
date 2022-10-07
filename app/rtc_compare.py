@@ -81,7 +81,7 @@ def print_data_difference(val_1, val_2, indent=4):
               f'[{index_first_discrepancy}] : '
               f'1st=({val_1[index_first_discrepancy]}), '
               f'2nd=({val_2[index_first_discrepancy]})')
-        return None
+        return
 
     # Routine for numeric array
     difference_val = val_1 - val_2
@@ -93,7 +93,7 @@ def print_data_difference(val_1, val_2, indent=4):
 
     if not (issubclass(val_1.dtype.type, np.floating) or
             issubclass(val_1.dtype.type, np.complexfloating)):
-        return None
+        return
 
     # Check pixel-by-pixel nan / non-nan difference
     mask_nan_val_1 = np.isnan(val_1)
@@ -103,7 +103,7 @@ def print_data_difference(val_1, val_2, indent=4):
 
     if not np.any(mask_nan_discrepancy):
         print(f'{str_indent} NaN discrepancy was not detected.')
-        return None
+        return
 
     num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
     index_pixel_nan_discrepancy = np.where(mask_nan_discrepancy)
@@ -157,7 +157,8 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
     list_dataset_so_far : list
         List of datasets keys found for given HDF5 group
     list_attrs_so_far : list
-        List of attributes found for given HDF5 group. Each attribute is identified by its path and key (attribute name).
+        List of attributes found for given HDF5 group.
+        Each attribute is identified by its path and key (attribute name).
 
     '''
 
