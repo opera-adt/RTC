@@ -429,7 +429,7 @@ def compare_rtc_hdf5_files(file_1, file_2):
                         flag_same_dataset and
                         flag_same_attributes)
 
-        # Print out the dataset / attribute structure discrepancy if there are any
+        # Print out the dataset structure discrepancy if there are any
         if not flag_identical_dataset_structure:
             print('    \n\033[91mFAILED\033[00m: Dataset structure not identical.')
             print('In the 1st HDF5, not in the 2nd data:')
@@ -437,27 +437,28 @@ def compare_rtc_hdf5_files(file_1, file_2):
             list_dataset_1st_only.sort()
             list_dataset_2nd_only = list(set_dataset_2 - set_dataset_1)
             list_dataset_2nd_only.sort()
-            print('\n    '+'\n    '.join(list_dataset_1st_only))
+            print('    '+'\n    '.join(list_dataset_1st_only))
             print('\nIn the 2st HDF5, not in the 1nd data:')
-            print('\n    '+'\n    '.join(list_dataset_2nd_only))
+            print('    '+'\n    '.join(list_dataset_2nd_only))
 
-        if not flag_identical_attrs_structure:
+        # Print out the attribute structure discrepancy if there are any.
+        # Omitting the print out when the dataset structure is not identical
+        list_attrs_1st_only = list(set_attrs_1 - set_attrs_2)
+        list_attrs_1st_only.sort()
+        list_attrs_2nd_only = list(set_attrs_2 - set_attrs_1)
+        list_attrs_2nd_only.sort()
+        if (not flag_identical_attrs_structure) and flag_identical_dataset_structure:
             print('    \n\033[91mFAILED\033[00m: '
                   'Attribute structure not identical.')
-            list_attrs_1st_only = list(set_attrs_1 - set_attrs_2)
-            list_attrs_1st_only.sort()
-            list_attrs_2nd_only = list(set_attrs_2 - set_attrs_1)
-            list_attrs_2nd_only.sort()
-
             print('In the 1st HDF5, not in the 2nd data:')
             print('\r    ' +
                   '\r    '.join(list_attrs_1st_only).\
-                  replace('\n', ',\tkey = ').replace('\r', '\n'))
+                  replace('\n', ',\tattr: ').replace('\r', '\n'))
 
             print('\nIn the 2nd HDF5, not in the 1st data:')
             print('\r    ' +
                   '\r    '.join(list_attrs_2nd_only).\
-                  replace('\n', ',\tkey = ').replace('\r', '\n'))
+                  replace('\n', ',\tattr: ').replace('\r', '\n'))
 
         # Print the test summary
         print('\nTest summary:')
