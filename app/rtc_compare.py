@@ -432,14 +432,14 @@ def compare_rtc_hdf5_files(file_1, file_2):
         # Print out the dataset / attribute structure discrepancy if there are any
         if not flag_identical_dataset_structure:
             print('    \n\033[91mFAILED\033[00m: Dataset structure not identical.')
-            print('    In the 1st HDF5, not in the 2nd data:')
+            print('In the 1st HDF5, not in the 2nd data:')
             list_dataset_1st_only = list(set_dataset_1 - set_dataset_2)
             list_dataset_1st_only.sort()
             list_dataset_2nd_only = list(set_dataset_2 - set_dataset_1)
             list_dataset_2nd_only.sort()
-            print('\n    '.join(list_dataset_1st_only))
-            print('    In the 2st HDF5, not in the 1nd data:')
-            print('\n    '.join(list_dataset_2nd_only))
+            print('\n    '+'\n    '.join(list_dataset_1st_only))
+            print('\nIn the 2st HDF5, not in the 1nd data:')
+            print('\n    '+'\n    '.join(list_dataset_2nd_only))
 
         if not flag_identical_attrs_structure:
             print('    \n\033[91mFAILED\033[00m: '
@@ -448,10 +448,16 @@ def compare_rtc_hdf5_files(file_1, file_2):
             list_attrs_1st_only.sort()
             list_attrs_2nd_only = list(set_attrs_2 - set_attrs_1)
             list_attrs_2nd_only.sort()
-            print('    In the 1st HDF5, not in the 2nd data:')
-            print('\n    '.join(list_attrs_1st_only))
-            print('    In the 2nd HDF5, not in the 1st data:')
-            print('\n    '.join(list_attrs_2nd_only))
+
+            print('In the 1st HDF5, not in the 2nd data:')
+            print('\r    ' +
+                  '\r    '.join(list_attrs_1st_only).\
+                  replace('\n', ',\tkey = ').replace('\r', '\n'))
+
+            print('\nIn the 2nd HDF5, not in the 1st data:')
+            print('\r    ' +
+                  '\r    '.join(list_attrs_2nd_only).\
+                  replace('\n', ',\tkey = ').replace('\r', '\n'))
 
         # Print the test summary
         print('\nTest summary:')
@@ -463,7 +469,7 @@ def compare_rtc_hdf5_files(file_1, file_2):
             print( '    \033[91mFAILED\033[00m: '
                   f'{len(list_dataset_1st_only)} datasets from the 1st HDF are'
                    ' not found in the 2nd file.\n'
-                  f'        {len(list_dataset_2nd_only)} datasets from the 2nd HDF are'
+                  f'            {len(list_dataset_2nd_only)} datasets from the 2nd HDF are'
                    ' not found in the 1st file.')
 
         # Attributes structure
@@ -473,7 +479,7 @@ def compare_rtc_hdf5_files(file_1, file_2):
             print( '    \033[91mFAILED\033[00m: '
                   f'{len(list_attrs_1st_only)} attributes from the 1st HDF are'
                    ' not found in the 2nd file.\n'
-                  f'        {len(list_attrs_2nd_only)} attributes from the 2nd HDF are'
+                  f'            {len(list_attrs_2nd_only)} attributes from the 2nd HDF are'
                    ' not found in the 1st file.')
 
         # Closeness of the common dataset
