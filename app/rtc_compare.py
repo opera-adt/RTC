@@ -122,7 +122,6 @@ def print_data_difference(val_1, val_2, indent=4):
     print(f'{str_indent} # NaNs on val_1 only: {num_nan_val_1 - num_nan_both}')
     print(f'{str_indent} # NaNs on val_2 only: {num_nan_val_2 - num_nan_both}')
 
-
     # A line of space for better readability of the log
     print('')
 
