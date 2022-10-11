@@ -102,7 +102,6 @@ def print_data_difference(val_1, val_2, indent=4):
     mask_nan_discrepancy = np.logical_xor(mask_nan_val_1, mask_nan_val_2)
 
     if not np.any(mask_nan_discrepancy):
-        print(f'{str_indent} NaN discrepancy was not detected.')
         return
 
     num_pixel_nan_discrepancy = mask_nan_discrepancy.sum()
