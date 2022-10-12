@@ -329,6 +329,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
         else:
             print('\033[91mFAILED.\033[00m', str_message_data_location)
             print('    non-numerical 1D array. Failed to pass the test.')
+            print_data_difference(val_1, val_2)
         return return_val
 
 
