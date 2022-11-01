@@ -68,9 +68,9 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 
 
 def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
-                radar_grid_file_dict, output_obj_list, save_vector_1,
+                radar_grid_file_dict, output_obj_list, flag_create_raster_obj,
                 extension):
-    if save_vector_1 is not True:
+    if flag_create_raster_obj is not True:
         return None
 
     output_file = os.path.join(output_dir, ds_name) + '.' + extension
