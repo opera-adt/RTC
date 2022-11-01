@@ -9,8 +9,7 @@ import itertools
 import h5py
 import numpy as np
 
-RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-05
-RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-06
+RTC_S1_PRODUCTS_ERROR_TOLERANCE = 1e-6
 
 def _get_parser():
     parser = argparse.ArgumentParser(
@@ -279,8 +278,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
             # numerical array
             return_val = np.allclose(val_1,
                                      val_2,
-                                     rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE,
-                                     atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
+                                     RTC_S1_PRODUCTS_ERROR_TOLERANCE,
                                      equal_nan=True)
 
             if return_val:
@@ -289,8 +287,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
             else:
                 print('\033[91mFAILED.\033[00m', str_message_data_location)
                 print( '    - numerical scalar. Failed to pass the test. '
-                      f'Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
-                      f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
+                      f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
                 print(f'    - 1st value: {val_1}')
                 print(f'    - 2nd value: {val_2}\n')
             return return_val
@@ -312,11 +309,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
 
         if issubclass(val_1.dtype.type, np.number):
             # val_1 and val_2 are numeric numpy array
-            return_val = np.allclose(val_1,
-                                     val_2,
-                                     rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE,
-                                     atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
-                                     equal_nan=True)
+            return_val = np.allclose(val_1, val_2, RTC_S1_PRODUCTS_ERROR_TOLERANCE, equal_nan=True)
 
             if return_val:
                 if print_passed_element:
@@ -324,8 +317,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
             else:
                 print('\033[91mFAILED.\033[00m', str_message_data_location)
                 print('    - Numerical 1D array. Failed to pass the test. '
-                     f'Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
-                     f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
+                     f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
                 print_data_difference(val_1, val_2)
             return return_val
 
@@ -342,18 +334,16 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
 
     if len(shape_val_1) >= 2:
         return_val = np.allclose(val_1,
-                                 val_2,
-                                 rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE,
-                                 atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
-                                 equal_nan=True)
+                             val_2,
+                             RTC_S1_PRODUCTS_ERROR_TOLERANCE,
+                             equal_nan=True)
         if return_val:
             if print_passed_element:
                 print('\033[32mPASSED.\033[00m', str_message_data_location)
         else:
             print('\033[91mFAILED.\033[00m', str_message_data_location)
             print(f'    {len(shape_val_1)}D raster array. Failed to pass the test. '
-                  f'Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
-                  f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
+                  f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
             print_data_difference(val_1, val_2)
         return return_val
 
@@ -497,29 +487,23 @@ def compare_rtc_hdf5_files(file_1, file_2):
         if all(list_flag_identical_dataset):
             print( '    \033[32mPASSED\033[00m: '
                    'The datasets of the two HDF files are the same within '
-                   'the tolerance.')
-            print(f'            Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
-                  f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
+                  f'the threshold of {RTC_S1_PRODUCTS_ERROR_TOLERANCE}')
         else:
             print( '    \033[91mFAILED\033[00m: '
                   f'{sum(~np.array(list_flag_identical_dataset))} datasets '
-                  f'out of {len(intersection_set_dataset)} are not the same. ')
-            print(f'            Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
-                  f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
+                  f'out of {len(intersection_set_dataset)} are not the same. '
+                  f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}.')
 
         # Closeness of the common attributes
         if all(list_flag_identical_attrs):
             print( '    \033[32mPASSED\033[00m: '
                    'The attributes of the two HDF files are the same within '
-                   'the tolerance')
-            print(f'            Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
-                  f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
+                  f'the threshold of {RTC_S1_PRODUCTS_ERROR_TOLERANCE}\n')
         else:
             print(f'    \033[91mFAILED\033[00m: '
                   f'{sum(~np.array(list_flag_identical_attrs))} attributes '
-                  f'out of {len(intersection_set_attrs)} are not the same.')
-            print(f'            Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
-                  f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
+                  f'out of {len(intersection_set_attrs)} are not the same. '
+                  f'Tolerance = {RTC_S1_PRODUCTS_ERROR_TOLERANCE}.\n')
 
         return final_result
 
