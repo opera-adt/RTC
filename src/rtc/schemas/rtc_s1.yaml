@@ -3,43 +3,50 @@ runconfig:
 
     groups:
         pge_name_group:
-           pge_name: enum('RTC_S1_PGE')
+            pge_name: enum('RTC_S1_PGE')
 
         input_file_group:
-           # Required. List of SAFE files (min=1)
-           safe_file_path: list(str(), min=1)
-           # Required. List of orbit (EOF) files
-           orbit_file_path: list(str(), min=1)
-           # Required. The unique burst ID to process
-           burst_id: list(str(), min=1, required=False)
+            # Required. List of SAFE files (min=1)
+            safe_file_path: list(str(), min=1)
+            # Required. List of orbit (EOF) files
+            orbit_file_path: list(str(), min=1)
+            # Required. The unique burst ID to process
+            burst_id: list(str(), min=1, required=False)
 
         dynamic_ancillary_file_group:
-           # Digital Elevation Model.
-           dem_file: str(required=False)
+            # Digital Elevation Model.
+            dem_file: str(required=False)
 
         product_path_group:
-           # Directory where PGE will place results
-           product_path: str()
-           # Directory where SAS can write temporary data
-           scratch_path: str()
+            # Directory where PGE will place results
+            product_path: str()
+            # Directory where SAS can write temporary data
+            scratch_path: str()
 
-           # If option `mosaic_bursts` is not set, output files are saved to:
-           #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
-           # If option `mosaic_bursts` is set, output files are saved to:
-           #     {output_dir}/{product_id}{suffix}.{ext}
-           # If the field `product_id`` is left empty, the prefix "rtc_product"
-           # will be used instead.
-           # `suffix` is only used when there are multiple output files.
-           # `ext` is determined by geocoding_options.output_format.
-           output_dir: str()
-           product_id: str()
-           mosaic_bursts: bool(required=False)
-      
-           # Format of output file
-           output_format: enum('HDF5', 'NETCDF', 'ENVI', 'GTiff', 'COG', required=False)
+            # If option `save_bursts` is set, output bursts are saved to:
+            #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
+            # If option `save_mosaics` is set, output mosaics are saved to:
+            #     {output_dir}/{product_id}{suffix}.{ext}
+            # If the field `product_id`` is left empty, the prefix "rtc_product"
+            # will be used instead.
+            # `suffix` is only used when there are multiple output files.
+            # `ext` is determined by geocoding_options.output_imagery_format.
+            output_dir: str()
+            product_id: str()
+
+            # RTC-S1 imagery
+            save_bursts: bool(required=False)
+            save_mosaics: bool(required=False)
+            output_imagery_format: enum('HDF5', 'NETCDF', 'ENVI', 'GTiff', 'COG', required=False)
+
+            # Save RTC-S1 metadata in the HDF5 format
+            # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
+            # 'COG', and enabled by default for `output_imagery_format` equal
+            # to 'HDF5' or 'NETCDF'
+            save_metadata: bool(required=False)
 
         primary_executable:
-          product_type: enum('RTC_S1')
+            product_type: enum('RTC_S1')
 
         # This section includes parameters to tweak the workflow
         processing: include('processing_options', required=False)
