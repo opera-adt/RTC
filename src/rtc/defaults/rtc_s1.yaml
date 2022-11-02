@@ -37,7 +37,9 @@ runconfig:
             # RTC-S1 imagery
             save_bursts: True
             save_mosaics: False
-            output_imagery_format: HDF5
+            output_imagery_format: COG
+            output_imagery_compression: DEFLATE
+            output_imagery_nbits: 16
 
             # Save RTC-S1 metadata in the HDF5 format
             # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or

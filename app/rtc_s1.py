@@ -19,7 +19,7 @@ from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from rtc.geogrid import snap_coord
 from rtc.runconfig import RunConfig
 from rtc.mosaic_geobursts import weighted_mosaic
-from rtc.core import create_logger
+from rtc.core import create_logger, save_as_cog
 from rtc.h5_prep import save_hdf5_file, create_hdf5_file, \
     save_hdf5_dataset, BASE_DS
 
@@ -112,7 +112,7 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
 
     # Apply the correction
     if flag_thermal_correction:
-        logger.info(f'applying thermal noise correction to burst SLCs')
+        logger.info(f'    applying thermal noise correction to burst SLC')
         corrected_image = np.abs(arr_slc_from) ** 2 - burst_in.thermal_noise_lut
         min_backscatter = 0
         max_backscatter = None
@@ -122,7 +122,7 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
         corrected_image=np.abs(arr_slc_from) ** 2
 
     if flag_apply_abs_rad_correction:
-        logger.info(f'applying absolute radiometric correction to burst SLCs')
+        logger.info(f'    applying absolute radiometric correction to burst SLC')
     if flag_output_complex:
         factor_mag = np.sqrt(corrected_image) / np.abs(arr_slc_from)
         factor_mag[np.isnan(factor_mag)] = 0.0
@@ -161,7 +161,7 @@ def run(cfg):
     # Start tracking processing time
     t_start = time.time()
     time_stamp = str(float(time.time()))
-    logger.info("Starting geocode burst")
+    logger.info("Starting the RTC-S1 Science Application Software (SAS)")
 
     # unpack processing parameters
     processing_namespace = cfg.groups.processing
@@ -187,10 +187,32 @@ def run(cfg):
     save_mosaics = cfg.groups.product_path_group.save_mosaics
 
     if not save_bursts and not save_mosaics:
-        err_msg = f"ERROR either `save_bursts` or `save_mosaics` needs to be set"
+        err_msg = (f"ERROR either `save_bursts` or `save_mosaics` needs to be"
+                   " set")
         raise ValueError(err_msg)
 
-    output_imagery_format = cfg.groups.product_path_group.output_imagery_format
+    output_imagery_format = \
+        cfg.groups.product_path_group.output_imagery_format
+    output_imagery_compression = \
+        cfg.groups.product_path_group.output_imagery_compression
+    output_imagery_nbits = \
+        cfg.groups.product_path_group.output_imagery_nbits
+
+    logger.info(f'Processing parameters:')
+    logger.info(f'    apply RTC: {flag_apply_rtc}')
+    logger.info(f'    apply thermal noise correction:'
+                f' {flag_apply_thermal_noise_correction}')
+    logger.info(f'    apply thermal noise correction:'
+                f' {flag_apply_abs_rad_correction}')
+    logger.info(f'    product ID: {product_id}')
+    logger.info(f'    scratch dir: {scratch_path}')
+    logger.info(f'    output dir: {output_dir}')
+    logger.info(f'    save bursts: {save_bursts}')
+    logger.info(f'    save mosaics: {save_mosaics}')
+    logger.info(f'    output imagery format: {output_imagery_format}')
+    logger.info(f'    output imagery compression: {output_imagery_compression}')
+    logger.info(f'    output imagery nbits: {output_imagery_nbits}')
+
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
     save_metadata = cfg.groups.product_path_group.save_metadata
@@ -200,7 +222,7 @@ def run(cfg):
     else:
         hdf5_file_extension = 'h5'
 
-    if save_imagery_as_hdf5:
+    if save_imagery_as_hdf5 or output_imagery_format == 'COG':
         output_raster_format = 'GTiff'
     else:
         output_raster_format = output_imagery_format
@@ -313,7 +335,7 @@ def run(cfg):
     vrt_options_mosaic = gdal.BuildVRTOptions(separate=True)
 
     n_bursts = len(cfg.bursts.items())
-    print('number of bursts to process:', n_bursts)
+    print('Number of bursts to process:', n_bursts)
 
     hdf5_obj = None
     output_hdf5_file = os.path.join(output_dir,
@@ -325,7 +347,7 @@ def run(cfg):
         # start burst processing
 
         t_burst_start = time.time()
-        logger.info(f'processing burst: {burst_id} ({burst_index+1}/'
+        logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
         pols = list(burst_pol_dict.keys())
@@ -356,7 +378,7 @@ def run(cfg):
         # update mosaic boundaries
         _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
 
-        logger.info(f'reading burst SLCs')
+        logger.info(f'    reading burst SLCs')
         radar_grid = burst.as_isce3_radargrid()
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
@@ -650,18 +672,18 @@ def run(cfg):
             for burst_id, burst_pol_dict in cfg.bursts.items():
                 pols = list(burst_pol_dict.keys())
                 burst = burst_pol_dict[pols[0]]
-                print('this burst:')
-                if sensing_start is not None:
-                    print('    ', sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'))
-                if sensing_stop is not None:
-                    print('    ', sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'))
+                # print('this burst:')
+                # if sensing_start is not None:
+                #    print('    ', sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'))
+                # if sensing_stop is not None:
+                #     print('    ', sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'))
                 if (sensing_start is None or
                         burst.sensing_start < sensing_start):
                     sensing_start = burst.sensing_start
-                    print('updated sensing start')
+                    # print('updated sensing start')
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
-                    print('updated sensing stop')
+                    # print('updated sensing stop')
 
             sensing_start_ds = f'{BASE_DS}/identification/zeroDopplerStartTime'
             sensing_end_ds = f'{BASE_DS}/identification/zeroDopplerEndTime'
@@ -678,6 +700,28 @@ def run(cfg):
                            geo_filename, nlooks_mosaic_file,
                            rtc_anf_mosaic_file, radar_grid_file_dict,
                            save_imagery = save_imagery_as_hdf5)
+
+
+
+
+
+
+    if output_imagery_format == 'COG':
+        logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
+        for filename in output_file_list:
+            logger.info(f'    processing file: {filename}')
+            save_as_cog(filename, scratch_path, logger,
+                        compression=output_imagery_compression,
+                        nbits=output_imagery_nbits)
+
+
+
+
+
+
+
+
+
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:

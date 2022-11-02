@@ -38,6 +38,8 @@ runconfig:
             save_bursts: bool(required=False)
             save_mosaics: bool(required=False)
             output_imagery_format: enum('HDF5', 'NETCDF', 'ENVI', 'GTiff', 'COG', required=False)
+            output_imagery_compression: str(required=False)
+            output_imagery_nbits: int(min=1, required=False)
 
             # Save RTC-S1 metadata in the HDF5 format
             # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
