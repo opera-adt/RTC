@@ -224,6 +224,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     _: True when the dataset / attribute are equivalent; False otherwise
     '''
 
+
     if id_key is None or total_key is None:
         str_order = ''
     else:
