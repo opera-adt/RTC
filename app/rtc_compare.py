@@ -12,6 +12,13 @@ import numpy as np
 RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
 RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
 
+ENTITY_IGNORE_COMPARISON_FAILURE = \
+    ['//science/CSAR/RTC/metadata/processingInformation/algorithms/ISCEVersion',
+     '//science/CSAR/RTC/metadata/processingInformation/inputs/auxcalFiles',
+     '//science/CSAR/RTC/metadata/processingInformation/inputs/configFiles',
+     '//science/CSAR/RTC/metadata/processingInformation/inputs/demFiles',
+     '//science/CSAR/RTC/metadata/processingInformation/inputs/orbitFiles']
+
 
 def _get_parser():
     parser = argparse.ArgumentParser(
@@ -217,7 +224,6 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     _: True when the dataset / attribute are equivalent; False otherwise
     '''
 
-
     if id_key is None or total_key is None:
         str_order = ''
     else:
@@ -263,6 +269,13 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
 
     shape_val_1 = val_1.shape
     shape_val_2 = val_2.shape
+
+    # Start the comparison
+    if str_key in ENTITY_IGNORE_COMPARISON_FAILURE:
+        print('\033[33mWARNING.\033[00m', str_message_data_location)
+        print('    Ignoring the comparison result based on '
+              '"ENTITY_IGNORE_COMPARISON_FAILURE"')
+        return True
 
     if shape_val_1 != shape_val_2:
         # Dataset or attribute shape does not match
