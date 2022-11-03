@@ -9,8 +9,9 @@ import itertools
 import h5py
 import numpy as np
 
-RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-05
-RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-06
+RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
+RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
+
 
 def _get_parser():
     parser = argparse.ArgumentParser(
@@ -87,10 +88,11 @@ def print_data_difference(val_1, val_2, indent=4):
     # Routine for numeric array
     difference_val = val_1 - val_2
     index_max_diff = np.nanargmax(np.abs(difference_val))
+    index_2d_max_diff = np.unravel_index(index_max_diff, val_1.shape)
     print(f'{str_indent} Maximum difference detected from index '
-          f'[{index_max_diff}]: '
-          f'1st: ({val_1[index_max_diff]}), 2nd: ({val_2[index_max_diff]}) = '
-          f'diff: ({difference_val[index_max_diff]})')
+          f'{index_2d_max_diff}: '
+          f'1st: ({val_1[index_2d_max_diff]}), 2nd: ({val_2[index_2d_max_diff]}) = '
+          f'diff: ({difference_val[index_2d_max_diff]})')
 
     if not (issubclass(val_1.dtype.type, np.floating) or
             issubclass(val_1.dtype.type, np.complexfloating)):
