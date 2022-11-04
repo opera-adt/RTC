@@ -277,7 +277,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     shape_val_2 = val_2.shape
 
     # Start the comparison
-    if str_key in list_exclude:
+    if list_exclude is not None and str_key in list_exclude:
         print('\033[33mWARNING.\033[00m', str_message_data_location)
         print('    Ignoring the comparison result based on '
               'the exclusion list provided.')
