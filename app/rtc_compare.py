@@ -197,7 +197,7 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
 def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
                           id_key=None, total_key=None,
                           print_passed_element=True,
-                          list_exclude: list=[]):
+                          list_exclude: list=None):
     '''
     Compare the dataset or attribute defined by `str_key`
     NOTE: For attributes, the path and the key are
@@ -386,7 +386,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
 
 
 def compare_rtc_hdf5_files(file_1: str, file_2: str,
-                           list_elements_to_exclude: list=[]):
+                           list_elements_to_exclude: list=None):
     '''
     Compare the two RTC products (in HDF5) if they are equivalent
     within acceptable difference
