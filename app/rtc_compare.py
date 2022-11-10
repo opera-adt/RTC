@@ -9,8 +9,16 @@ import itertools
 import h5py
 import numpy as np
 
-RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-05
-RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-06
+RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
+RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
+
+LIST_EXCLUDE_COMPARISON = \
+    ['//science/CSAR/RTC/metadata/processingInformation/algorithms/ISCEVersion',
+     '//science/CSAR/RTC/metadata/processingInformation/inputs/auxcalFiles',
+     '//science/CSAR/RTC/metadata/processingInformation/inputs/configFiles',
+     '//science/CSAR/RTC/metadata/processingInformation/inputs/demFiles',
+     '//science/CSAR/RTC/metadata/processingInformation/inputs/orbitFiles']
+
 
 def _get_parser():
     parser = argparse.ArgumentParser(
@@ -87,10 +95,11 @@ def print_data_difference(val_1, val_2, indent=4):
     # Routine for numeric array
     difference_val = val_1 - val_2
     index_max_diff = np.nanargmax(np.abs(difference_val))
+    index_2d_max_diff = np.unravel_index(index_max_diff, val_1.shape)
     print(f'{str_indent} Maximum difference detected from index '
-          f'[{index_max_diff}]: '
-          f'1st: ({val_1[index_max_diff]}), 2nd: ({val_2[index_max_diff]}) = '
-          f'diff: ({difference_val[index_max_diff]})')
+          f'{index_2d_max_diff}: '
+          f'1st: ({val_1[index_2d_max_diff]}), 2nd: ({val_2[index_2d_max_diff]}) = '
+          f'diff: ({difference_val[index_2d_max_diff]})')
 
     if not (issubclass(val_1.dtype.type, np.floating) or
             issubclass(val_1.dtype.type, np.complexfloating)):
@@ -186,7 +195,9 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
 
 
 def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
-                          id_key=None, total_key=None, print_passed_element=True):
+                          id_key=None, total_key=None,
+                          print_passed_element=True,
+                          list_exclude: list=None):
     '''
     Compare the dataset or attribute defined by `str_key`
     NOTE: For attributes, the path and the key are
@@ -208,6 +219,8 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
         total number of the list. Optional for printout purpose.
     print_passed_element: bool, default = True
         turn on / off the printout for the given test when it's successful.
+    list_exclude: list(str)
+        Absolute paths of the elements to be excluded from the comparison
 
 
     Return:
@@ -228,7 +241,8 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
         val_1 = hdf5_obj_1[path_attr].attrs[key_attr]
         val_2 = hdf5_obj_2[path_attr].attrs[key_attr]
 
-        str_message_data_location = f'Attribute {str_order}. path: {path_attr} ; key: {key_attr}'
+        str_message_data_location = (f'Attribute {str_order}. path: '
+                                     f'{path_attr} ; key: {key_attr}')
         # Force the types of the values to np.ndarray to utulize numpy features
         if not isinstance(val_1,np.ndarray):
             val_1 = np.array(val_1)
@@ -262,14 +276,21 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     shape_val_1 = val_1.shape
     shape_val_2 = val_2.shape
 
+    # Start the comparison
+    if list_exclude is not None and str_key in list_exclude:
+        print('\033[33mWARNING.\033[00m', str_message_data_location)
+        print('    Ignoring the comparison result based on '
+              'the exclusion list provided.')
+        return True
+
     if shape_val_1 != shape_val_2:
         # Dataset or attribute shape does not match
-        print('\033[91mFAILED.\033[00m', str_message_data_location)
+        print('\033[91mFAILED. \033[00m', str_message_data_location)
         print(f'    - Data shapes do not match. {shape_val_1} vs. {shape_val_2}\n')
         return False
 
     if val_1.dtype != val_2.dtype:
-        print('\033[91mFAILED.\033[00m', str_message_data_location)
+        print('\033[91mFAILED. \033[00m', str_message_data_location)
         print(f'    - Data types do not match. ({val_1.dtype}) vs. ({val_2.dtype})\n')
         return False
 
@@ -285,9 +306,9 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
 
             if return_val:
                 if print_passed_element:
-                    print('\033[32mPASSED.\033[00m', str_message_data_location)
+                    print('\033[32mPASSED. \033[00m', str_message_data_location)
             else:
-                print('\033[91mFAILED.\033[00m', str_message_data_location)
+                print('\033[91mFAILED. \033[00m', str_message_data_location)
                 print( '    - numerical scalar. Failed to pass the test. '
                       f'Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
                       f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
@@ -299,9 +320,9 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
         return_val = np.array_equal(val_1, val_2)
         if return_val:
             if print_passed_element:
-                print('\033[32mPASSED.\033[00m', str_message_data_location)
+                print('\033[32mPASSED. \033[00m', str_message_data_location)
         else:
-            print('\033[91mFAILED.\033[00m', str_message_data_location)
+            print('\033[91mFAILED. \033[00m', str_message_data_location)
             print( '    - non-numerical scalar. Failed to pass the test.')
             print(f'    - 1st value: {val_1}')
             print(f'    - 2nd value: {val_2}\n')
@@ -320,9 +341,9 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
 
             if return_val:
                 if print_passed_element:
-                    print('\033[32mPASSED.\033[00m', str_message_data_location)
+                    print('\033[32mPASSED. \033[00m', str_message_data_location)
             else:
-                print('\033[91mFAILED.\033[00m', str_message_data_location)
+                print('\033[91mFAILED. \033[00m', str_message_data_location)
                 print('    - Numerical 1D array. Failed to pass the test. '
                      f'Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
                      f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
@@ -333,9 +354,9 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
         return_val = np.array_equal(val_1, val_2)
         if return_val:
             if print_passed_element:
-                print('\033[32mPASSED.\033[00m', str_message_data_location)
+                print('\033[32mPASSED. \033[00m', str_message_data_location)
         else:
-            print('\033[91mFAILED.\033[00m', str_message_data_location)
+            print('\033[91mFAILED. \033[00m', str_message_data_location)
             print('    non-numerical 1D array. Failed to pass the test.')
             print_data_difference(val_1, val_2)
         return return_val
@@ -349,9 +370,9 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
                                  equal_nan=True)
         if return_val:
             if print_passed_element:
-                print('\033[32mPASSED.\033[00m', str_message_data_location)
+                print('\033[32mPASSED. \033[00m', str_message_data_location)
         else:
-            print('\033[91mFAILED.\033[00m', str_message_data_location)
+            print('\033[91mFAILED. \033[00m', str_message_data_location)
             print(f'    {len(shape_val_1)}D raster array. Failed to pass the test. '
                   f'Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
                   f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
@@ -364,7 +385,8 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
                      f'dataset shape in the 2nd HDF5: {shape_val_2}')
 
 
-def compare_rtc_hdf5_files(file_1, file_2):
+def compare_rtc_hdf5_files(file_1: str, file_2: str,
+                           list_elements_to_exclude: list=None):
     '''
     Compare the two RTC products (in HDF5) if they are equivalent
     within acceptable difference
@@ -373,6 +395,8 @@ def compare_rtc_hdf5_files(file_1, file_2):
     -----------
     file_1, file_2: str
         Path to the RTC products (in HDF5)
+    list_elements_to_exclude: list(str)
+        Absolute paths to the elements to be excluded from the comparison
 
     Return:
     -------
@@ -408,7 +432,8 @@ def compare_rtc_hdf5_files(file_1, file_2):
                                       is_attr=False,
                                       id_key=id_flag,
                                       total_key=len(intersection_set_dataset),
-                                      print_passed_element=True)
+                                      print_passed_element=True,
+                                      list_exclude=list_elements_to_exclude)
 
         print('\nChecking the attributes.')
         # Check the attribute
@@ -430,7 +455,8 @@ def compare_rtc_hdf5_files(file_1, file_2):
                                       is_attr=True,
                                       id_key=id_flag,
                                       total_key=len(intersection_set_attrs),
-                                      print_passed_element=False)
+                                      print_passed_element=False,
+                                      list_exclude=list_elements_to_exclude)
 
         flag_same_dataset = all(list_flag_identical_dataset)
         flag_same_attributes = all(list_flag_identical_attrs)
@@ -536,7 +562,7 @@ def main():
     file_1 = args.input_file[0]
     file_2 = args.input_file[1]
 
-    compare_rtc_hdf5_files(file_1, file_2)
+    compare_rtc_hdf5_files(file_1, file_2, LIST_EXCLUDE_COMPARISON)
 
 
 if __name__ == '__main__':
