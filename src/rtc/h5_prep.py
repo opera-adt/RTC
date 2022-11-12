@@ -23,7 +23,7 @@ logger = logging.getLogger('rtc_s1')
 def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                    clip_min, output_radiometry_str, output_file_list,
                    geogrid, pol_list, geo_burst_filename, nlooks_file,
-                   rtc_anf_file, radar_grid_file_dict):
+                   rtc_anf_file, radar_grid_file_dict, save_imagery=True):
 
     # save grids metadata
     h5_ds = os.path.join(FREQ_GRID_DS, 'listOfPolarizations')
@@ -38,6 +38,9 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     if h5_ds in hdf5_obj:
         del hdf5_obj[h5_ds]
     dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
+
+    if not save_imagery:
+        return
 
     # save geogrid coordinates
     yds, xds = set_get_geo_info(hdf5_obj, FREQ_GRID_DS, geogrid)
