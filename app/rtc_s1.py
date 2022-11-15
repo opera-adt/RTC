@@ -168,7 +168,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     burst_in: Sentinel1BurstSlc
         Input burst
     geogrid_in: isce3.product.GeoGridParameters
-        Geogrid to geocode the layover shawod mask in radar grid
+        Geogrid to geocode the layover shadow mask in radar grid
     path_dem: str
         Path to the DEM
     path_scratch: str
@@ -196,17 +196,9 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
 
     '''
 
-    # TODO Consider using 'cfg' as argument to replace lots of arguments above
-
     # determine the output filename
     str_datetime = burst_in.sensing_start.strftime('%Y%m%d_%H%M%S.%f')
 
-    path_lat = (f'{path_scratch}/'
-                f'lat_{burst_in.burst_id}_{burst_in.polarization}_{str_datetime}.rdr')
-    path_lon = (f'{path_scratch}/'
-                f'lon_{burst_in.burst_id}_{burst_in.polarization}_{str_datetime}.rdr')
-    path_hgt = (f'{path_scratch}/'
-                f'hgt_{burst_in.burst_id}_{burst_in.polarization}_{str_datetime}.rdr')
     path_layover_shadow_mask = (f'{path_scratch}/'
                                 f'layover_shadow_mask_{burst_in.burst_id}_'
                                 f'{burst_in.polarization}_{str_datetime}.rdr')
@@ -224,6 +216,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     Rdr2Geo = isce3.geometry.Rdr2Geo
 
     rdr_grid = burst_in.as_isce3_radargrid()
+
     # when requested, apply mulitilooking on radar grid for the computation in coarse resolution
     if nlooks_az > 1 or nlooks_rg > 1:
         rdr_grid = rdr_grid.multilook(nlooks_az, nlooks_rg)
@@ -240,34 +233,21 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                           extraiter=extraiter_rdr2geo,
                           lines_per_block=lines_per_block_rdr2geo)
 
-    #lat_raster = isce3.io.Raster(path_lat, rdr_grid.width,
-    #                             rdr_grid.length, 1, gdal.GDT_Float64, 'ENVI')
-    #lon_raster = isce3.io.Raster(path_lon, rdr_grid.width,
-    #                             rdr_grid.length, 1, gdal.GDT_Float64, 'ENVI')
-    #hgt_raster = isce3.io.Raster(path_hgt, rdr_grid.width,
-    #                             rdr_grid.length, 1, gdal.GDT_Float64, 'ENVI')
     mask_raster = isce3.io.Raster(path_layover_shadow_mask, rdr_grid.width,
                                   rdr_grid.length, 1, gdal.GDT_Byte, 'MEM')
 
-    # TODO: Check what is going to happen to topo() when lat/lon/hgt_raster is None.
-    #       We can possiblly save some time and disk space is we don't need to save them.
     rdr2geo_obj.topo(dem_raster, None, None, None,
                      layover_shadow_raster=mask_raster)
     
-    #lat_raster.close_dataset()
-    #lon_raster.close_dataset()
-    #hgt_raster.close_dataset()
-    #mask_raster.close_dataset()
-
-
     # geocode the layover shadow mask
-    geo = isce3.geocode.GeocodeFloat32() # TODO Check if I'm using the right function for byte raster
+    geo = isce3.geocode.GeocodeFloat32()
     geo.orbit = isce3_orbit
     geo.ellipsoid = ellipsoid
     geo.doppler = grid_doppler
     geo.threshold_geo2rdr = threshold_geo2rdr
     geo.numiter_geo2rdr = numiter_geo2rdr
-    #geo.dem_block_margin = dem_block_margin_geo2rdr
+    # NOTE: `geo` did not accept the parameter below. Commenting this out
+    #geo.dem_block_margin = dem_block_margin_geo2rdr 
     geo.lines_per_block = lines_per_block_rdr2geo
     geo.data_interpolator = 'NEAREST'
     geo.geogrid(float(geogrid_in.start_x), #.start_x,
