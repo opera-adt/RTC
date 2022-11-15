@@ -247,7 +247,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     #hgt_raster = isce3.io.Raster(path_hgt, rdr_grid.width,
     #                             rdr_grid.length, 1, gdal.GDT_Float64, 'ENVI')
     mask_raster = isce3.io.Raster(path_layover_shadow_mask, rdr_grid.width,
-                                  rdr_grid.length, 1, gdal.GDT_Byte, 'ENVI')
+                                  rdr_grid.length, 1, gdal.GDT_Byte, 'MEM')
 
     # TODO: Check what is going to happen to topo() when lat/lon/hgt_raster is None.
     #       We can possiblly save some time and disk space is we don't need to save them.
@@ -257,7 +257,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     #lat_raster.close_dataset()
     #lon_raster.close_dataset()
     #hgt_raster.close_dataset()
-    mask_raster.close_dataset()
+    #mask_raster.close_dataset()
 
 
     # geocode the layover shadow mask
@@ -285,7 +285,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                                       gdal.GDT_Byte, "ENVI")
 
     geo.geocode(radar_grid=rdr_grid,
-                input_raster=input_raster,
+                input_raster=mask_raster,
                 output_raster=geocoded_raster,
                 dem_raster=dem_raster,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
@@ -400,8 +400,6 @@ def run(cfg):
     save_range_slope = \
         geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
-
-
 
 
 
