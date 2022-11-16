@@ -672,18 +672,13 @@ def run(cfg):
             for burst_id, burst_pol_dict in cfg.bursts.items():
                 pols = list(burst_pol_dict.keys())
                 burst = burst_pol_dict[pols[0]]
-                # print('this burst:')
-                # if sensing_start is not None:
-                #    print('    ', sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'))
-                # if sensing_stop is not None:
-                #     print('    ', sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'))
+
                 if (sensing_start is None or
                         burst.sensing_start < sensing_start):
                     sensing_start = burst.sensing_start
-                    # print('updated sensing start')
+
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
-                    # print('updated sensing stop')
 
             sensing_start_ds = f'{BASE_DS}/identification/zeroDopplerStartTime'
             sensing_end_ds = f'{BASE_DS}/identification/zeroDopplerEndTime'
@@ -701,11 +696,6 @@ def run(cfg):
                            rtc_anf_mosaic_file, radar_grid_file_dict,
                            save_imagery = save_imagery_as_hdf5)
 
-
-
-
-
-
     if output_imagery_format == 'COG':
         logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
         for filename in output_file_list:
@@ -713,15 +703,6 @@ def run(cfg):
             save_as_cog(filename, scratch_path, logger,
                         compression=output_imagery_compression,
                         nbits=output_imagery_nbits)
-
-
-
-
-
-
-
-
-
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:
