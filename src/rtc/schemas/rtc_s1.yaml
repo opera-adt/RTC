@@ -64,6 +64,12 @@ geo2rdr_options:
    # Maximum number of iterations
    numiter: int(min=1, required=False)
 
+rdr2geo_options:
+   # Convergence threshold for rdr2geo algorithm
+   threshold: num(min=0, required=False)
+   # Maximum number of iterations
+   numiter: int(min=1, required=False)
+
 # Group of processing options
 processing_options:
    # Polarization to process. 3 modes below correspond to VV, VH, VV+VH
@@ -71,6 +77,10 @@ processing_options:
 
    # Options to run geo2rdr
    geo2rdr: include('geo2rdr_options', required=False)
+
+   # Options to run rdr2geo (for running topo when calculating layoer shadow mask)
+   rdr2geo: include('rdr2geo_options', required=False)
+
    # Range split-spectrum options
    range_split_spectrum: include('range_split_spectrum_options', required=False)
 
@@ -144,6 +154,9 @@ geocoding_options:
 
     # Save the interpolated DEM used to generate the RTC product
     save_dem: bool(required=False)
+
+    # Save layover shadow mask
+    save_layover_shadow_mask: bool(required=False)
 
     # OPTIONAL - Absolute radiometric correction
     abs_rad_cal: num(required=False)

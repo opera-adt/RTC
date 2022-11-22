@@ -673,12 +673,19 @@ def run(cfg):
                         sub_swaths=sub_swaths)
 
         # Example of using `calculate_layover_shadow_mask`
-        filename_layover_shadow_mask_geoburst = \
+        if cfg.geocoding_params.save_layover_shadow_mask:
+            filename_layover_shadow_mask_geoburst = \
                 calculate_layover_shadow_mask(burst,
-                                        geogrid,
-                                        cfg.dem,
-                                        scratch_path)
-        
+                                geogrid,
+                                cfg.dem,
+                                scratch_path,
+                                threshold_rdr2geo=cfg.rdr2geo_params.threshold,
+                                numiter_rdr2geo=cfg.rdr2geo_params.numiter,
+                                threshold_geo2rdr=cfg.geo2rdr_params.threshold,
+                                numiter_geo2rdr=cfg.geo2rdr_params.numiter)
+        else:
+            filename_layover_shadow_mask_geoburst = None
+
         del geo_burst_raster
         if not flag_bursts_files_are_temporary:
             logger.info(f'file saved: {geo_burst_filename}')
