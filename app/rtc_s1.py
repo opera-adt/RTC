@@ -391,6 +391,7 @@ def run(cfg):
 
     save_rtc_anf = geocode_namespace.save_rtc_anf
     save_dem = geocode_namespace.save_dem
+    save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
 
     flag_call_radar_grid = (save_incidence_angle or
         save_local_inc_angle or save_projection_angle or
@@ -673,7 +674,7 @@ def run(cfg):
                         sub_swaths=sub_swaths)
 
         # Example of using `calculate_layover_shadow_mask`
-        if cfg.geocoding_params.save_layover_shadow_mask:
+        if save_layover_shadow_mask:
             filename_layover_shadow_mask_geoburst = \
                 calculate_layover_shadow_mask(burst,
                                 geogrid,
