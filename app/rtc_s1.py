@@ -151,7 +151,7 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
 def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                                  geogrid_in: isce3.product.GeoGridParameters,
                                  path_dem: str,
-                                 path_scratch: str,
+                                 filename_out: str,
                                  threshold_rdr2geo: float=1.0e-7,
                                  numiter_rdr2geo: int=25,
                                  extraiter_rdr2geo: int=10,
@@ -171,8 +171,8 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
         Geogrid to geocode the layover shadow mask in radar grid
     path_dem: str
         Path to the DEM
-    path_scratch: str
-        Path to the scratch directory
+    filename_out: str
+        Path to the geocoded layover shadow mask
     threshold_rdr2geo: float
         Iteration threshold for rdr2geo
     numiter_rdr2geo: int
@@ -188,23 +188,16 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     dem_block_margin_geo2rdr: float
         Block margin of DEM
 
-
-    Return:
-    -------
-    path_layover_shadow_mask_geogrid: str
-        Path to the geocoded layover shadow mask
-
     '''
 
     # determine the output filename
     str_datetime = burst_in.sensing_start.strftime('%Y%m%d_%H%M%S.%f')
 
-    path_layover_shadow_mask = (f'{path_scratch}/'
-                                f'layover_shadow_mask_{burst_in.burst_id}_'
-                                f'{burst_in.polarization}_{str_datetime}.rdr')
-    path_layover_shadow_mask_geogrid = (f'{path_scratch}/layover_shadow_mask_'
-                                        f'{burst_in.burst_id}_{burst_in.polarization}_'
-                                        f'{str_datetime}.geo.rdr')
+    path_layover_shadow_mask = (f'layover_shadow_mask_{burst_in.burst_id}_'
+                                f'{burst_in.polarization}_{str_datetime}.tif')
+    #path_layover_shadow_mask_geogrid = (f'{path_scratch}/layover_shadow_mask_'
+    #                                    f'{burst_in.burst_id}_{burst_in.polarization}_'
+    #                                    f'{str_datetime}.geo.tif')
 
 
     # Run topo to get layover shadow mask
@@ -258,19 +251,17 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                 int(geogrid_in.length),
                 int(geogrid_in.epsg))
 
-    input_raster = isce3.io.Raster(path_layover_shadow_mask)
+    #input_raster = isce3.io.Raster(path_layover_shadow_mask)
 
-    geocoded_raster = isce3.io.Raster(path_layover_shadow_mask_geogrid, 
+    geocoded_raster = isce3.io.Raster(filename_out, 
                                       geogrid_in.width, geogrid_in.length, 1,
-                                      gdal.GDT_Byte, "ENVI")
+                                      gdal.GDT_Byte, "GTiff")
 
     geo.geocode(radar_grid=rdr_grid,
                 input_raster=mask_raster,
                 output_raster=geocoded_raster,
                 dem_raster=dem_raster,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
-
-    return path_layover_shadow_mask_geogrid
 
 
 def run(cfg):
@@ -673,19 +664,28 @@ def run(cfg):
                         memory_mode=memory_mode,
                         sub_swaths=sub_swaths)
 
-        # Example of using `calculate_layover_shadow_mask`
+        # Calculate layover shadow mask when requested
         if save_layover_shadow_mask:
-            filename_layover_shadow_mask_geoburst = \
-                calculate_layover_shadow_mask(burst,
+            layover_shadow_mask_file = (f'{bursts_output_dir}/{product_id}'
+               f'_layover_shadow_mask.{imagery_extension}')
+            calculate_layover_shadow_mask(burst,
                                 geogrid,
                                 cfg.dem,
-                                scratch_path,
+                                layover_shadow_mask_file,
                                 threshold_rdr2geo=cfg.rdr2geo_params.threshold,
                                 numiter_rdr2geo=cfg.rdr2geo_params.numiter,
                                 threshold_geo2rdr=cfg.geo2rdr_params.threshold,
                                 numiter_geo2rdr=cfg.geo2rdr_params.numiter)
+            
+            logger.info(f'file saved: {layover_shadow_mask_file}')
+
+            (temp_files_list
+             if flag_bursts_files_are_temporary
+             else output_file_list).append(layover_shadow_mask_file)
+            
+
         else:
-            filename_layover_shadow_mask_geoburst = None
+            layover_shadow_mask_file = None
 
         del geo_burst_raster
         if not flag_bursts_files_are_temporary:
@@ -732,7 +732,8 @@ def run(cfg):
                 hdf5_obj, output_hdf5_file_burst, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str, output_file_list,
                 geogrid, pol_list, geo_burst_filename, nlooks_file,
-                rtc_anf_file, radar_grid_file_dict,
+                rtc_anf_file, layover_shadow_mask_file,
+                radar_grid_file_dict,
                 save_imagery = save_imagery_as_hdf5)
 
         # Create mosaic HDF5 
