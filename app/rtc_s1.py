@@ -374,6 +374,8 @@ def run(cfg):
 
 
 
+
+
     # TODO remove the line below:
     save_nlooks = True
 
@@ -636,33 +638,68 @@ def run(cfg):
         sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
 
         # geocode
-        geo_obj.geocode(radar_grid=radar_grid,
-                        input_raster=rdr_burst_raster,
-                        output_raster=geo_burst_raster,
-                        dem_raster=dem_raster,
-                        output_mode=geocode_algorithm,
-                        geogrid_upsampling=geogrid_upsampling,
-                        flag_apply_rtc=flag_apply_rtc,
-                        input_terrain_radiometry=input_terrain_radiometry,
-                        output_terrain_radiometry=output_terrain_radiometry,
-                        exponent=exponent,
-                        rtc_min_value_db=rtc_min_value_db,
-                        rtc_upsampling=rtc_upsampling,
-                        rtc_algorithm=rtc_algorithm,
-                        abs_cal_factor=abs_cal_factor,
-                        flag_upsample_radar_grid=flag_upsample_radar_grid,
-                        clip_min = clip_min,
-                        clip_max = clip_max,
-                        # radargrid_nlooks=radar_grid_nlooks,
-                        # out_off_diag_terms=out_off_diag_terms_obj,
-                        out_geo_nlooks=out_geo_nlooks_obj,
-                        out_geo_rtc=out_geo_rtc_obj,
-                        # out_geo_dem=out_geo_dem_obj,
-                        input_rtc=None,
-                        output_rtc=None,
-                        dem_interp_method=dem_interp_method_enum,
-                        memory_mode=memory_mode,
-                        sub_swaths=sub_swaths)
+        flag_error_sub_swaths = False
+        try:
+            geo_obj.geocode(radar_grid=radar_grid,
+                            input_raster=rdr_burst_raster,
+                            output_raster=geo_burst_raster,
+                            dem_raster=dem_raster,
+                            output_mode=geocode_algorithm,
+                            geogrid_upsampling=geogrid_upsampling,
+                            flag_apply_rtc=flag_apply_rtc,
+                            input_terrain_radiometry=input_terrain_radiometry,
+                            output_terrain_radiometry=output_terrain_radiometry,
+                            exponent=exponent,
+                            rtc_min_value_db=rtc_min_value_db,
+                            rtc_upsampling=rtc_upsampling,
+                            rtc_algorithm=rtc_algorithm,
+                            abs_cal_factor=abs_cal_factor,
+                            flag_upsample_radar_grid=flag_upsample_radar_grid,
+                            clip_min = clip_min,
+                            clip_max = clip_max,
+                            # out_off_diag_terms=out_off_diag_terms_obj,
+                            out_geo_nlooks=out_geo_nlooks_obj,
+                            out_geo_rtc=out_geo_rtc_obj,
+                            input_rtc=None,
+                            output_rtc=None,
+                            dem_interp_method=dem_interp_method_enum,
+                            memory_mode=memory_mode,
+                            sub_swaths=sub_swaths)
+        except TypeError:
+            flag_error_sub_swaths = True
+            logger.warning('WARNING there was an error executing geocode().'
+                           ' Retrying it with less parameters')
+
+            # geocode (without sub_swaths)
+            geo_obj.geocode(radar_grid=radar_grid,
+                            input_raster=rdr_burst_raster,
+                            output_raster=geo_burst_raster,
+                            dem_raster=dem_raster,
+                            output_mode=geocode_algorithm,
+                            geogrid_upsampling=geogrid_upsampling,
+                            flag_apply_rtc=flag_apply_rtc,
+                            input_terrain_radiometry=input_terrain_radiometry,
+                            output_terrain_radiometry=output_terrain_radiometry,
+                            exponent=exponent,
+                            rtc_min_value_db=rtc_min_value_db,
+                            rtc_upsampling=rtc_upsampling,
+                            rtc_algorithm=rtc_algorithm,
+                            abs_cal_factor=abs_cal_factor,
+                            flag_upsample_radar_grid=flag_upsample_radar_grid,
+                            clip_min = clip_min,
+                            clip_max = clip_max,
+                            # out_off_diag_terms=out_off_diag_terms_obj,
+                            out_geo_nlooks=out_geo_nlooks_obj,
+                            out_geo_rtc=out_geo_rtc_obj,
+                            input_rtc=None,
+                            output_rtc=None,
+                            dem_interp_method=dem_interp_method_enum,
+                            memory_mode=memory_mode)
+
+        if flag_error_sub_swaths:
+            logger.warning('WARNING the sub-swath masking is not available'
+                           ' from this ISCE3 version. The sub-swath masking'
+                           ' was disabled.')
 
         # Calculate layover shadow mask when requested
         if save_layover_shadow_mask:
@@ -812,18 +849,13 @@ def run(cfg):
             for burst_id, burst_pol_dict in cfg.bursts.items():
                 pols = list(burst_pol_dict.keys())
                 burst = burst_pol_dict[pols[0]]
-                # print('this burst:')
-                # if sensing_start is not None:
-                #    print('    ', sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'))
-                # if sensing_stop is not None:
-                #     print('    ', sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'))
+
                 if (sensing_start is None or
                         burst.sensing_start < sensing_start):
                     sensing_start = burst.sensing_start
-                    # print('updated sensing start')
+
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
-                    # print('updated sensing stop')
 
             sensing_start_ds = f'{BASE_DS}/identification/zeroDopplerStartTime'
             sensing_end_ds = f'{BASE_DS}/identification/zeroDopplerEndTime'
@@ -841,11 +873,6 @@ def run(cfg):
                            rtc_anf_mosaic_file, radar_grid_file_dict,
                            save_imagery = save_imagery_as_hdf5)
 
-
-
-
-
-
     if output_imagery_format == 'COG':
         logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
         for filename in output_file_list:
@@ -853,15 +880,6 @@ def run(cfg):
             save_as_cog(filename, scratch_path, logger,
                         compression=output_imagery_compression,
                         nbits=output_imagery_nbits)
-
-
-
-
-
-
-
-
-
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:
@@ -924,6 +942,13 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
     grid_doppler = isce3.core.LUT2d()
     grid_doppler.bounds_error = False
 
+    # TODO: update code below
+    # Computation of range slope is not merged to ISCE yet
+    kwargs_get_radar_grid = {}
+    if range_slope_raster:
+        kwargs_get_radar_grid['directional_slope_angle_raster'] = \
+            range_slope_raster
+
     # call get_radar_grid()
     isce3.geogrid.get_radar_grid(mosaic_geogrid_dict['lookside'],
                                  mosaic_geogrid_dict['wavelength'],
@@ -940,11 +965,10 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
                                     projection_angle_raster,
                                  simulated_radar_brightness_raster =
                                     rtc_anf_psi_raster,
-                                 directional_slope_angle_raster =
-                                    range_slope_raster,
                                  interpolated_dem_raster =
                                     interpolated_dem_raster,
-                                 dem_interp_method=dem_interp_method_enum)
+                                 dem_interp_method=dem_interp_method_enum,
+                                 **kwargs_get_radar_grid)
 
     # Flush data
     for obj in output_obj_list:

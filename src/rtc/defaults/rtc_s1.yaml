@@ -89,7 +89,7 @@ runconfig:
                 input_terrain_radiometry: beta0
 
                 # OPTIONAL - Minimum RTC area factor in dB
-                rtc_min_value_db:
+                rtc_min_value_db: -40
 
                 # RTC DEM upsampling
                 dem_upsampling: 1
