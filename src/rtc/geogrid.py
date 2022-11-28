@@ -323,7 +323,8 @@ def generate_geogrids(bursts, geo_dict, dem):
         y_spacing = - y_spacing_positive
 
     geogrids_dict = {}
-    for burst_id, burst_pol in bursts.items():
+    for burst_obj, burst_pol in bursts.items():
+        burst_id = str(burst_obj)
         pols = list(burst_pol.keys())
         burst = burst_pol[pols[0]]
         if burst_id in geogrids_dict:

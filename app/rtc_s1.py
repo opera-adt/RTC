@@ -341,11 +341,12 @@ def run(cfg):
     output_hdf5_file = os.path.join(output_dir,
                                     f'{product_id}.{hdf5_file_extension}')
     # iterate over sub-burts
-    for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
+    for burst_index, (burst_obj, burst_pol_dict) in enumerate(cfg.bursts.items()):
         
         # ===========================================================
         # start burst processing
 
+        burst_id = str(burst_obj)
         t_burst_start = time.time()
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')

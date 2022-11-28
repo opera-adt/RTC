@@ -144,7 +144,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
-            [int(burst_in.burst_id.split('_')[1]), 'Track number'],
+            [int(str(burst_in.burst_id).split('_')[1]), 'Track number'],
         'identification/missionId':
             [burst_in.platform_id, 'Mission identifier'],
         # NOTE maybe `SLC` has to be sth. like RTC?
