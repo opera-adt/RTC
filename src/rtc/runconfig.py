@@ -425,7 +425,7 @@ class RunConfig:
                 date_str = lambda b : b.sensing_start.date().strftime('%Y%m%d')
 
                 # create an unique burst key
-                burst_as_key = lambda b : '_'.join([b.burst_id,
+                burst_as_key = lambda b : '_'.join([str(b.burst_id),
                                                     date_str(b),
                                                     b.polarization])
 
