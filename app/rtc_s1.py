@@ -714,11 +714,11 @@ def run(cfg):
                                 threshold_geo2rdr=cfg.geo2rdr_params.threshold,
                                 numiter_geo2rdr=cfg.geo2rdr_params.numiter)
             
-            logger.info(f'file saved: {layover_shadow_mask_file}')
-
-            (temp_files_list
-             if flag_bursts_files_are_temporary
-             else output_file_list).append(layover_shadow_mask_file)
+            if flag_bursts_files_are_temporary:
+                temp_files_list.append(layover_shadow_mask_file)
+            else:
+                output_file_list.append(layover_shadow_mask_file)
+                logger.info(f'file saved: {layover_shadow_mask_file}')
             
 
         else:
