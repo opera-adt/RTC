@@ -149,17 +149,17 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
 
 
 def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
-                                 geogrid_in: isce3.product.GeoGridParameters,
-                                 path_dem: str,
-                                 filename_out: str,
-                                 threshold_rdr2geo: float=1.0e-7,
-                                 numiter_rdr2geo: int=25,
-                                 extraiter_rdr2geo: int=10,
-                                 lines_per_block_rdr2geo: int=1000,
-                                 threshold_geo2rdr: float=1.0e-8,
-                                 numiter_geo2rdr: int=25,
-                                 dem_block_margin_geo2rdr: float=0.1,
-                                 nlooks_az: int=1, nlooks_rg: int=1):
+                                  geogrid_in: isce3.product.GeoGridParameters,
+                                  path_dem: str,
+                                  filename_out: str,
+                                  threshold_rdr2geo: float=1.0e-7,
+                                  numiter_rdr2geo: int=25,
+                                  extraiter_rdr2geo: int=10,
+                                  lines_per_block_rdr2geo: int=1000,
+                                  threshold_geo2rdr: float=1.0e-8,
+                                  numiter_geo2rdr: int=25,
+                                  dem_block_margin_geo2rdr: float=0.1,
+                                  nlooks_az: int=1, nlooks_rg: int=1):
     '''
     Generate the layover shadow mask and geodode the mask
 
