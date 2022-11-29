@@ -195,12 +195,8 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     str_datetime = burst_in.sensing_start.strftime('%Y%m%d_%H%M%S.%f')
 
     path_layover_shadow_mask = (f'layover_shadow_mask_{burst_in.burst_id}_'
-                                f'{burst_in.polarization}_{str_datetime}.tif')
-    #path_layover_shadow_mask_geogrid = (f'{path_scratch}/layover_shadow_mask_'
-    #                                    f'{burst_in.burst_id}_{burst_in.polarization}_'
-    #                                    f'{str_datetime}.geo.tif')
-
-
+                                f'{burst_in.polarization}_{str_datetime}')
+    
     # Run topo to get layover shadow mask
     dem_raster = isce3.io.Raster(path_dem)
     epsg = dem_raster.get_epsg()
