@@ -152,6 +152,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                                   geogrid_in: isce3.product.GeoGridParameters,
                                   path_dem: str,
                                   filename_out: str,
+                                  output_raster_format: str,
                                   threshold_rdr2geo: float=1.0e-7,
                                   numiter_rdr2geo: int=25,
                                   extraiter_rdr2geo: int=10,
@@ -172,6 +173,8 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
         Path to the DEM
     filename_out: str
         Path to the geocoded layover shadow mask
+    output_raster_format: str
+        File format of the layover shadow mask
     threshold_rdr2geo: float
         Iteration threshold for rdr2geo
     numiter_rdr2geo: int
@@ -250,7 +253,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
 
     geocoded_raster = isce3.io.Raster(filename_out, 
                                       geogrid_in.width, geogrid_in.length, 1,
-                                      gdal.GDT_Byte, "GTiff")
+                                      gdal.GDT_Byte, output_raster_format)
 
     geo.geocode(radar_grid=rdr_grid,
                 input_raster=mask_raster,
@@ -704,6 +707,7 @@ def run(cfg):
                                 geogrid,
                                 cfg.dem,
                                 layover_shadow_mask_file,
+                                output_raster_format,
                                 threshold_rdr2geo=cfg.rdr2geo_params.threshold,
                                 numiter_rdr2geo=cfg.rdr2geo_params.numiter,
                                 threshold_geo2rdr=cfg.geo2rdr_params.threshold,
