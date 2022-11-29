@@ -158,7 +158,6 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                                   lines_per_block_rdr2geo: int=1000,
                                   threshold_geo2rdr: float=1.0e-8,
                                   numiter_geo2rdr: int=25,
-                                  dem_block_margin_geo2rdr: float=0.1,
                                   nlooks_az: int=1, nlooks_rg: int=1):
     '''
     Generate the layover shadow mask and geodode the mask
@@ -185,8 +184,10 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
         Iteration threshold for geo2rdr
     numiter_geo2rdr: int
         Number of max. iteration for geo2rdr object
-    dem_block_margin_geo2rdr: float
-        Block margin of DEM
+    nlooks_az: int
+        Number of looks in azimuth direction. For the calculation in coarse grid
+    nlooks_rg: int
+        Number of looks in range direction. For the calculation in coarse grid
 
     '''
 
@@ -239,8 +240,6 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     geo.doppler = grid_doppler
     geo.threshold_geo2rdr = threshold_geo2rdr
     geo.numiter_geo2rdr = numiter_geo2rdr
-    # NOTE: `geo` did not accept the parameter below. Commenting this out
-    #geo.dem_block_margin = dem_block_margin_geo2rdr 
     geo.lines_per_block = lines_per_block_rdr2geo
     geo.data_interpolator = 'NEAREST'
     geo.geogrid(float(geogrid_in.start_x), #.start_x,
