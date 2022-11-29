@@ -249,8 +249,6 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                 int(geogrid_in.length),
                 int(geogrid_in.epsg))
 
-    #input_raster = isce3.io.Raster(path_layover_shadow_mask)
-
     geocoded_raster = isce3.io.Raster(filename_out, 
                                       geogrid_in.width, geogrid_in.length, 1,
                                       gdal.GDT_Byte, output_raster_format)
