@@ -23,7 +23,8 @@ logger = logging.getLogger('rtc_s1')
 def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                    clip_min, output_radiometry_str, output_file_list,
                    geogrid, pol_list, geo_burst_filename, nlooks_file,
-                   rtc_anf_file, radar_grid_file_dict, save_imagery=True):
+                   rtc_anf_file, layover_shadow_mask_file,
+                   radar_grid_file_dict, save_imagery=True):
 
     # save grids metadata
     h5_ds = os.path.join(FREQ_GRID_DS, 'listOfPolarizations')
@@ -65,6 +66,14 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
         save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
                            yds, xds, 'areaNormalizationFactor',
                            long_name = 'RTC area factor',
+                           units = '',
+                           valid_min = 0)
+
+    # save layover shadow mask
+    if layover_shadow_mask_file:
+        save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, FREQ_GRID_DS,
+                           yds, xds, 'layoverShadowMask',
+                           long_name = 'Layover shadow mask',
                            units = '',
                            valid_min = 0)
 
