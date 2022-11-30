@@ -4,6 +4,7 @@
 RTC Workflow
 '''
 
+import datetime
 import os
 import time
 
@@ -147,6 +148,118 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
     del band_out
 
 
+def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
+                                  geogrid_in: isce3.product.GeoGridParameters,
+                                  path_dem: str,
+                                  filename_out: str,
+                                  output_raster_format: str,
+                                  threshold_rdr2geo: float=1.0e-7,
+                                  numiter_rdr2geo: int=25,
+                                  extraiter_rdr2geo: int=10,
+                                  lines_per_block_rdr2geo: int=1000,
+                                  threshold_geo2rdr: float=1.0e-8,
+                                  numiter_geo2rdr: int=25,
+                                  nlooks_az: int=1, nlooks_rg: int=1):
+    '''
+    Generate the layover shadow mask and geodode the mask
+
+    Parameters:
+    -----------
+    burst_in: Sentinel1BurstSlc
+        Input burst
+    geogrid_in: isce3.product.GeoGridParameters
+        Geogrid to geocode the layover shadow mask in radar grid
+    path_dem: str
+        Path to the DEM
+    filename_out: str
+        Path to the geocoded layover shadow mask
+    output_raster_format: str
+        File format of the layover shadow mask
+    threshold_rdr2geo: float
+        Iteration threshold for rdr2geo
+    numiter_rdr2geo: int
+        Number of max. iteration for rdr2geo object
+    extraiter_rdr2geo: int
+        Extra number of iteration for rdr2geo object # TODO revise for better clarity
+    lines_per_block_rdr2geo: int
+        Lines per block for rdr2geo
+    threshold_geo2rdr: float
+        Iteration threshold for geo2rdr
+    numiter_geo2rdr: int
+        Number of max. iteration for geo2rdr object
+    nlooks_az: int
+        Number of looks in azimuth direction. For the calculation in coarse grid
+    nlooks_rg: int
+        Number of looks in range direction. For the calculation in coarse grid
+
+    '''
+
+    # determine the output filename
+    str_datetime = burst_in.sensing_start.strftime('%Y%m%d_%H%M%S.%f')
+
+    path_layover_shadow_mask = (f'layover_shadow_mask_{burst_in.burst_id}_'
+                                f'{burst_in.polarization}_{str_datetime}')
+    
+    # Run topo to get layover shadow mask
+    dem_raster = isce3.io.Raster(path_dem)
+    epsg = dem_raster.get_epsg()
+    proj = isce3.core.make_projection(epsg)
+    ellipsoid = proj.ellipsoid
+
+    Rdr2Geo = isce3.geometry.Rdr2Geo
+
+    rdr_grid = burst_in.as_isce3_radargrid()
+
+    # when requested, apply mulitilooking on radar grid for the computation in coarse resolution
+    if nlooks_az > 1 or nlooks_rg > 1:
+        rdr_grid = rdr_grid.multilook(nlooks_az, nlooks_rg)
+    
+    isce3_orbit = burst_in.orbit
+    grid_doppler = isce3.core.LUT2d()
+
+    rdr2geo_obj = Rdr2Geo(rdr_grid,
+                          isce3_orbit,
+                          ellipsoid,
+                          grid_doppler,
+                          threshold=threshold_rdr2geo,
+                          numiter=numiter_rdr2geo,
+                          extraiter=extraiter_rdr2geo,
+                          lines_per_block=lines_per_block_rdr2geo)
+
+    mask_raster = isce3.io.Raster(path_layover_shadow_mask, rdr_grid.width,
+                                  rdr_grid.length, 1, gdal.GDT_Byte, 'MEM')
+
+    rdr2geo_obj.topo(dem_raster, None, None, None,
+                     layover_shadow_raster=mask_raster)
+    
+    # geocode the layover shadow mask
+    geo = isce3.geocode.GeocodeFloat32()
+    geo.orbit = isce3_orbit
+    geo.ellipsoid = ellipsoid
+    geo.doppler = grid_doppler
+    geo.threshold_geo2rdr = threshold_geo2rdr
+    geo.numiter_geo2rdr = numiter_geo2rdr
+    geo.lines_per_block = lines_per_block_rdr2geo
+    geo.data_interpolator = 'NEAREST'
+    geo.geogrid(float(geogrid_in.start_x), #.start_x,
+                float(geogrid_in.start_y), #.start_y,
+                float(geogrid_in.spacing_x), #.spacing_x,
+                float(geogrid_in.spacing_y), #.spacing_y,
+                int(geogrid_in.width),
+                int(geogrid_in.length),
+                int(geogrid_in.epsg))
+
+    geocoded_raster = isce3.io.Raster(filename_out, 
+                                      geogrid_in.width, geogrid_in.length, 1,
+                                      gdal.GDT_Byte, output_raster_format)
+
+    geo.geocode(radar_grid=rdr_grid,
+                input_raster=mask_raster,
+                output_raster=geocoded_raster,
+                dem_raster=dem_raster,
+                output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
+
+
 def run(cfg):
     '''
     Run geocode burst workflow with user-defined
@@ -267,6 +380,7 @@ def run(cfg):
 
     save_rtc_anf = geocode_namespace.save_rtc_anf
     save_dem = geocode_namespace.save_dem
+    save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
 
     flag_call_radar_grid = (save_incidence_angle or
         save_local_inc_angle or save_projection_angle or
@@ -584,6 +698,30 @@ def run(cfg):
                            ' from this ISCE3 version. The sub-swath masking'
                            ' was disabled.')
 
+        # Calculate layover shadow mask when requested
+        if save_layover_shadow_mask:
+            layover_shadow_mask_file = (f'{bursts_output_dir}/{product_id}'
+               f'_layover_shadow_mask.{imagery_extension}')
+            calculate_layover_shadow_mask(burst,
+                                geogrid,
+                                cfg.dem,
+                                layover_shadow_mask_file,
+                                output_raster_format,
+                                threshold_rdr2geo=cfg.rdr2geo_params.threshold,
+                                numiter_rdr2geo=cfg.rdr2geo_params.numiter,
+                                threshold_geo2rdr=cfg.geo2rdr_params.threshold,
+                                numiter_geo2rdr=cfg.geo2rdr_params.numiter)
+            
+            if flag_bursts_files_are_temporary:
+                temp_files_list.append(layover_shadow_mask_file)
+            else:
+                output_file_list.append(layover_shadow_mask_file)
+                logger.info(f'file saved: {layover_shadow_mask_file}')
+            
+
+        else:
+            layover_shadow_mask_file = None
+
         del geo_burst_raster
         if not flag_bursts_files_are_temporary:
             logger.info(f'file saved: {geo_burst_filename}')
@@ -629,7 +767,8 @@ def run(cfg):
                 hdf5_obj, output_hdf5_file_burst, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str, output_file_list,
                 geogrid, pol_list, geo_burst_filename, nlooks_file,
-                rtc_anf_file, radar_grid_file_dict,
+                rtc_anf_file, layover_shadow_mask_file,
+                radar_grid_file_dict,
                 save_imagery = save_imagery_as_hdf5)
 
         # Create mosaic HDF5 

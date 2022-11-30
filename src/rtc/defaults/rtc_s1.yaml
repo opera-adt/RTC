@@ -55,6 +55,9 @@ runconfig:
             geo2rdr:
                 threshold: 1.0e-8
                 numiter: 25
+            rdr2geo:
+                threshold: 1.0e-7
+                numiter: 25
 
             dem_interpolation_method: biquintic
 
@@ -129,6 +132,9 @@ runconfig:
 
                 # Save the interpolated DEM used to generate the RTC product
                 save_dem: False
+
+                # Save layover shadow mask
+                save_layover_shadow_mask: False
 
                 # OPTIONAL - Absolute radiometric correction
                 abs_rad_cal: 1
