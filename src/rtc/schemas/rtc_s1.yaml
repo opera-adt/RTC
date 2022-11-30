@@ -95,6 +95,12 @@ processing_options:
    # Apply RTC
    apply_rtc: bool(required=False)
 
+   # Apply bistatic delay correction
+   apply_bistatic_delay_correction: bool(required=False)
+
+   # Apply dry tropospheric delay correction
+   apply_dry_tropospheric_delay_correction: bool(required=False)
+
    # Radiometric Terrain Correction (RTC)
    rtc: include('rtc_options', required=False)
 
