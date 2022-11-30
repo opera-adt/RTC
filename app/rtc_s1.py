@@ -868,7 +868,9 @@ def run(cfg):
                            clip_max, clip_min, output_radiometry_str,
                            output_file_list, cfg.geogrid, pol_list,
                            geo_filename, nlooks_mosaic_file,
-                           rtc_anf_mosaic_file, radar_grid_file_dict,
+                           rtc_anf_mosaic_file, 
+                           layover_shadow_mask_file, # TODO Decide if we will mosaic layover/shadow mask when save_mosaic is True
+                           radar_grid_file_dict,
                            save_imagery = save_imagery_as_hdf5)
 
     if output_imagery_format == 'COG':
