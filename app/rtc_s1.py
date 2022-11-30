@@ -468,8 +468,6 @@ def run(cfg):
         pols = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pols[0]]
 
-        # flag_bursts_files_are_temporary = \
-        #     save_imagery_as_hdf5 or (save_mosaics and not n_bursts == 1)
         flag_bursts_files_are_temporary = (not save_bursts or
                                            save_imagery_as_hdf5)
 
