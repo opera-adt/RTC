@@ -7,6 +7,7 @@ import logging
 from osgeo import gdal
 
 import isce3
+import shapely
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from rtc.runconfig import RunConfig
@@ -19,12 +20,40 @@ FREQ_GRID_DS = f'{BASE_DS}/{FREQ_GRID_SUB_PATH}'
 
 logger = logging.getLogger('rtc_s1')
 
+def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
+    '''
+    Get WKT for butst's bounding polygon
+    It returns "POLYGON" when
+    there is only one polygon that defines the burst's border
+    It returns "MULTIPOLYGON" when
+    there is more than one polygon that defines the burst's border
+
+    Parameters:
+    -----------
+    burst_in: Sentinel1BurstSlc
+        Input burst
+
+    Return:
+    _ : str
+        "POLYGON" or "MULTIPOLYGON" in WKT
+        as the bounding polygon of the input burst
+        
+    '''
+
+    if len(burst_in.border) ==1:
+        geometry_polygon = burst_in.border[0]
+    else:
+        geometry_polygon = shapely.geometry.MultiPolygon(burst_in.border)
+    
+    return geometry_polygon.wkt
+
 
 def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                    clip_min, output_radiometry_str, output_file_list,
                    geogrid, pol_list, geo_burst_filename, nlooks_file,
                    rtc_anf_file, layover_shadow_mask_file,
-                   radar_grid_file_dict, save_imagery=True):
+                   radar_grid_file_dict,
+                   save_imagery=True):
 
     # save grids metadata
     h5_ds = os.path.join(FREQ_GRID_DS, 'listOfPolarizations')
@@ -154,6 +183,8 @@ def populate_metadata_group(h5py_obj: h5py.File,
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
             [int(str(burst_in.burst_id).split('_')[1]), 'Track number'],
+        'identification/boundingPolygon':
+            [get_polygon_wkt(burst_in), 'bounding polygon of Burst as WKT'],
         'identification/missionId':
             [burst_in.platform_id, 'Mission identifier'],
         # NOTE maybe `SLC` has to be sth. like RTC?
