@@ -821,6 +821,7 @@ def run(cfg):
                 rtc_anf_file, layover_shadow_mask_file,
                 radar_grid_file_dict,
                 save_imagery = save_imagery_as_hdf5)
+            output_file_list.append(output_hdf5_file_burst)
 
         # Create mosaic HDF5 
         if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
@@ -936,10 +937,13 @@ def run(cfg):
                            rtc_anf_mosaic_file, layover_shadow_mask_file,
                            radar_grid_file_dict,
                            save_imagery = save_imagery_as_hdf5)
+            output_file_list.append(output_hdf5_file_burst)
 
     if output_imagery_format == 'COG':
         logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
         for filename in output_file_list:
+            if not filename.endswith('.tif'):
+                continue
             logger.info(f'    processing file: {filename}')
             save_as_cog(filename, scratch_path, logger,
                         compression=output_imagery_compression,
