@@ -13,7 +13,7 @@ from rtc.runconfig import RunConfig
 
 from nisar.workflows.h5_prep import set_get_geo_info
 
-BASE_DS = f'/science/CSAR'
+BASE_DS = f'/science/SENTINEL1'
 FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
 FREQ_GRID_DS = f'{BASE_DS}/{FREQ_GRID_SUB_PATH}'
 
