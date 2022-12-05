@@ -193,7 +193,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
             for burst in load_bursts(safe_file, orbit_path, i_subswath, pol,
                                      flag_apply_eap=False):
                 # get burst ID
-                burst_id = burst.burst_id
+                burst_id = str(burst.burst_id)
 
                 # is burst_id wanted? skip if not given in config
                 if (not cfg.input_file_group.burst_id is None and
@@ -425,7 +425,7 @@ class RunConfig:
                 date_str = lambda b : b.sensing_start.date().strftime('%Y%m%d')
 
                 # create an unique burst key
-                burst_as_key = lambda b : '_'.join([b.burst_id,
+                burst_as_key = lambda b : '_'.join([str(b.burst_id),
                                                     date_str(b),
                                                     b.polarization])
 
