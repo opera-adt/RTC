@@ -80,7 +80,7 @@ def _separate_pol_channels(multi_band_file, output_file_list, logger):
        logger : loggin.Logger
               Logger
     """
-    gdal_ds = gdal.Open(multi_band_file)
+    gdal_ds = gdal.Open(multi_band_file, gdal.GA_ReadOnly)
     num_bands = gdal_ds.RasterCount
     if num_bands != len(output_file_list):
         error_str = (f'ERROR number of output files ({len(output_file_list)})'
