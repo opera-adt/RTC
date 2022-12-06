@@ -4,7 +4,6 @@
 RTC Workflow
 '''
 
-import datetime
 import os
 import time
 
@@ -19,8 +18,8 @@ from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
 from rtc.geogrid import snap_coord
 from rtc.runconfig import RunConfig
-from rtc.mosaic_geobursts import weighted_mosaic, weighted_mosaic_single_band
-from rtc.core import create_logger, save_as_cog
+from rtc.mosaic_geobursts import weighted_mosaic
+from rtc.core import create_logger
 from rtc.h5_prep import save_hdf5_file, create_hdf5_file, \
     save_hdf5_dataset, BASE_DS
 
@@ -68,47 +67,10 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
         assert(mosaic_geogrid_dict['epsg'] == geogrid.epsg)
 
 
-def _separate_pol_channels(multi_band_file, output_file_list, logger):
-    """Save a multi-band raster file as individual single-band files
-
-       Parameters
-       ----------
-       multi_band_file : str
-              Multi-band raster file
-       output_file_list : list
-              Output file list
-       logger : loggin.Logger
-              Logger
-    """
-    gdal_ds = gdal.Open(multi_band_file)
-    num_bands = gdal_ds.RasterCount
-    if num_bands != len(output_file_list):
-        error_str = (f'ERROR number of output files ({len(output_file_list)})'
-                    f' does not match with the number'
-                     f' of input bursts` bands ({num_bands})')
-        raise ValueError(error_str)
-
-    for b, output_file in enumerate(output_file_list):
-        gdal_band = gdal_ds.GetRasterBand(b + 1)
-        gdal_dtype = gdal_band.DataType
-        band_image = gdal_band.ReadAsArray()
-
-        # Save the corrected image
-        driver_out = gdal.GetDriverByName('GTiff')
-        raster_out = driver_out.Create(
-            output_file, band_image.shape[1],
-            band_image.shape[0], 1, gdal_dtype)
-        band_out = raster_out.GetRasterBand(1)
-        band_out.WriteArray(band_image)
-        band_out.FlushCache()
-        del band_out
-        logger.info(f'file saved: {output_file}')
-
-
 def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
-                radar_grid_file_dict, output_obj_list, flag_create_raster_obj,
+                radar_grid_file_dict, output_obj_list, flag_save_vector_1,
                 extension):
-    if flag_create_raster_obj is not True:
+    if flag_save_vector_1 is not True:
         return None
 
     output_file = os.path.join(output_dir, ds_name) + '.' + extension
@@ -150,7 +112,7 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
 
     # Apply the correction
     if flag_thermal_correction:
-        logger.info(f'    applying thermal noise correction to burst SLC')
+        logger.info(f'applying thermal noise correction to burst SLCs')
         corrected_image = np.abs(arr_slc_from) ** 2 - burst_in.thermal_noise_lut
         min_backscatter = 0
         max_backscatter = None
@@ -160,7 +122,7 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
         corrected_image=np.abs(arr_slc_from) ** 2
 
     if flag_apply_abs_rad_correction:
-        logger.info(f'    applying absolute radiometric correction to burst SLC')
+        logger.info(f'applying absolute radiometric correction to burst SLCs')
     if flag_output_complex:
         factor_mag = np.sqrt(corrected_image) / np.abs(arr_slc_from)
         factor_mag[np.isnan(factor_mag)] = 0.0
@@ -185,118 +147,6 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
     del band_out
 
 
-def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
-                                  geogrid_in: isce3.product.GeoGridParameters,
-                                  path_dem: str,
-                                  filename_out: str,
-                                  output_raster_format: str,
-                                  threshold_rdr2geo: float=1.0e-7,
-                                  numiter_rdr2geo: int=25,
-                                  extraiter_rdr2geo: int=10,
-                                  lines_per_block_rdr2geo: int=1000,
-                                  threshold_geo2rdr: float=1.0e-8,
-                                  numiter_geo2rdr: int=25,
-                                  nlooks_az: int=1, nlooks_rg: int=1):
-    '''
-    Generate the layover shadow mask and geodode the mask
-
-    Parameters:
-    -----------
-    burst_in: Sentinel1BurstSlc
-        Input burst
-    geogrid_in: isce3.product.GeoGridParameters
-        Geogrid to geocode the layover shadow mask in radar grid
-    path_dem: str
-        Path to the DEM
-    filename_out: str
-        Path to the geocoded layover shadow mask
-    output_raster_format: str
-        File format of the layover shadow mask
-    threshold_rdr2geo: float
-        Iteration threshold for rdr2geo
-    numiter_rdr2geo: int
-        Number of max. iteration for rdr2geo object
-    extraiter_rdr2geo: int
-        Extra number of iteration for rdr2geo object # TODO revise for better clarity
-    lines_per_block_rdr2geo: int
-        Lines per block for rdr2geo
-    threshold_geo2rdr: float
-        Iteration threshold for geo2rdr
-    numiter_geo2rdr: int
-        Number of max. iteration for geo2rdr object
-    nlooks_az: int
-        Number of looks in azimuth direction. For the calculation in coarse grid
-    nlooks_rg: int
-        Number of looks in range direction. For the calculation in coarse grid
-
-    '''
-
-    # determine the output filename
-    str_datetime = burst_in.sensing_start.strftime('%Y%m%d_%H%M%S.%f')
-
-    path_layover_shadow_mask = (f'layover_shadow_mask_{burst_in.burst_id}_'
-                                f'{burst_in.polarization}_{str_datetime}')
-    
-    # Run topo to get layover shadow mask
-    dem_raster = isce3.io.Raster(path_dem)
-    epsg = dem_raster.get_epsg()
-    proj = isce3.core.make_projection(epsg)
-    ellipsoid = proj.ellipsoid
-
-    Rdr2Geo = isce3.geometry.Rdr2Geo
-
-    rdr_grid = burst_in.as_isce3_radargrid()
-
-    # when requested, apply mulitilooking on radar grid for the computation in coarse resolution
-    if nlooks_az > 1 or nlooks_rg > 1:
-        rdr_grid = rdr_grid.multilook(nlooks_az, nlooks_rg)
-    
-    isce3_orbit = burst_in.orbit
-    grid_doppler = isce3.core.LUT2d()
-
-    rdr2geo_obj = Rdr2Geo(rdr_grid,
-                          isce3_orbit,
-                          ellipsoid,
-                          grid_doppler,
-                          threshold=threshold_rdr2geo,
-                          numiter=numiter_rdr2geo,
-                          extraiter=extraiter_rdr2geo,
-                          lines_per_block=lines_per_block_rdr2geo)
-
-    mask_raster = isce3.io.Raster(path_layover_shadow_mask, rdr_grid.width,
-                                  rdr_grid.length, 1, gdal.GDT_Byte, 'MEM')
-
-    rdr2geo_obj.topo(dem_raster, None, None, None,
-                     layover_shadow_raster=mask_raster)
-    
-    # geocode the layover shadow mask
-    geo = isce3.geocode.GeocodeFloat32()
-    geo.orbit = isce3_orbit
-    geo.ellipsoid = ellipsoid
-    geo.doppler = grid_doppler
-    geo.threshold_geo2rdr = threshold_geo2rdr
-    geo.numiter_geo2rdr = numiter_geo2rdr
-    geo.lines_per_block = lines_per_block_rdr2geo
-    geo.data_interpolator = 'NEAREST'
-    geo.geogrid(float(geogrid_in.start_x),
-                float(geogrid_in.start_y),
-                float(geogrid_in.spacing_x),
-                float(geogrid_in.spacing_y),
-                int(geogrid_in.width),
-                int(geogrid_in.length),
-                int(geogrid_in.epsg))
-
-    geocoded_raster = isce3.io.Raster(filename_out, 
-                                      geogrid_in.width, geogrid_in.length, 1,
-                                      gdal.GDT_Byte, output_raster_format)
-
-    geo.geocode(radar_grid=rdr_grid,
-                input_raster=mask_raster,
-                output_raster=geocoded_raster,
-                dem_raster=dem_raster,
-                output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
-
-
 def run(cfg):
     '''
     Run geocode burst workflow with user-defined
@@ -311,7 +161,7 @@ def run(cfg):
     # Start tracking processing time
     t_start = time.time()
     time_stamp = str(float(time.time()))
-    logger.info("Starting the RTC-S1 Science Application Software (SAS)")
+    logger.info("Starting geocode burst")
 
     # unpack processing parameters
     processing_namespace = cfg.groups.processing
@@ -331,56 +181,26 @@ def run(cfg):
     scratch_path = os.path.join(
         cfg.groups.product_path_group.scratch_path, f'temp_{time_stamp}')
     output_dir = cfg.groups.product_path_group.output_dir
+    flag_mosaic = cfg.groups.product_path_group.mosaic_bursts
 
-    # RTC-S1 imagery
-    save_bursts = cfg.groups.product_path_group.save_bursts
-    save_mosaics = cfg.groups.product_path_group.save_mosaics
+    output_format = cfg.groups.product_path_group.output_format
 
-    if not save_bursts and not save_mosaics:
-        err_msg = (f"ERROR either `save_bursts` or `save_mosaics` needs to be"
-                   " set")
-        raise ValueError(err_msg)
+    flag_hdf5 = (output_format == 'HDF5' or output_format == 'NETCDF')
 
-    output_imagery_format = \
-        cfg.groups.product_path_group.output_imagery_format
-    output_imagery_compression = \
-        cfg.groups.product_path_group.output_imagery_compression
-    output_imagery_nbits = \
-        cfg.groups.product_path_group.output_imagery_nbits
-
-    logger.info(f'Processing parameters:')
-    logger.info(f'    apply RTC: {flag_apply_rtc}')
-    logger.info(f'    apply thermal noise correction:'
-                f' {flag_apply_thermal_noise_correction}')
-    logger.info(f'    apply thermal noise correction:'
-                f' {flag_apply_abs_rad_correction}')
-    logger.info(f'    product ID: {product_id}')
-    logger.info(f'    scratch dir: {scratch_path}')
-    logger.info(f'    output dir: {output_dir}')
-    logger.info(f'    save bursts: {save_bursts}')
-    logger.info(f'    save mosaics: {save_mosaics}')
-    logger.info(f'    output imagery format: {output_imagery_format}')
-    logger.info(f'    output imagery compression: {output_imagery_compression}')
-    logger.info(f'    output imagery nbits: {output_imagery_nbits}')
-
-    save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
-                            output_imagery_format == 'NETCDF')
-    save_metadata = cfg.groups.product_path_group.save_metadata
-
-    if output_imagery_format == 'NETCDF':
+    if output_format == 'NETCDF':
         hdf5_file_extension = 'nc'
     else:
         hdf5_file_extension = 'h5'
 
-    if save_imagery_as_hdf5 or output_imagery_format == 'COG':
+    if flag_hdf5:
         output_raster_format = 'GTiff'
     else:
-        output_raster_format = output_imagery_format
+        output_raster_format = output_format
 
     if output_raster_format == 'GTiff':
-        imagery_extension = 'tif'
+        extension = 'tif'
     else:
-        imagery_extension = 'bin'
+        extension = 'bin'
 
     # unpack geocode run parameters
     geocode_namespace = cfg.groups.processing.geocoding
@@ -397,33 +217,20 @@ def run(cfg):
     clip_min = geocode_namespace.clip_min
     # geogrids = geocode_namespace.geogrids
     flag_upsample_radar_grid = geocode_namespace.upsample_radargrid
-    save_incidence_angle = geocode_namespace.save_incidence_angle
-    save_local_inc_angle = geocode_namespace.save_local_inc_angle
-    save_projection_angle = geocode_namespace.save_projection_angle
-    save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
-    save_range_slope = \
+    flag_save_incidence_angle = geocode_namespace.save_incidence_angle
+    flag_save_local_inc_angle = geocode_namespace.save_local_inc_angle
+    flag_save_projection_angle = geocode_namespace.save_projection_angle
+    flag_save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
+    flag_save_range_slope = \
         geocode_namespace.save_range_slope
-    save_nlooks = geocode_namespace.save_nlooks
+    flag_save_nlooks = geocode_namespace.save_nlooks
+    flag_save_rtc_anf = geocode_namespace.save_rtc_anf
+    flag_save_dem = geocode_namespace.save_dem
 
-
-
-
-
-    # TODO remove the lines below:
-    if save_mosaics:
-        save_nlooks = True
-
-
-
-
-    save_rtc_anf = geocode_namespace.save_rtc_anf
-    save_dem = geocode_namespace.save_dem
-    save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
-
-    flag_call_radar_grid = (save_incidence_angle or
-        save_local_inc_angle or save_projection_angle or
-        save_rtc_anf_psi or save_dem or
-        save_range_slope)
+    flag_call_radar_grid = (flag_save_incidence_angle or
+        flag_save_local_inc_angle or flag_save_projection_angle or
+        flag_save_rtc_anf_psi or flag_save_dem or
+        flag_save_range_slope)
 
     # unpack RTC run parameters
     rtc_namespace = cfg.groups.processing.rtc
@@ -462,26 +269,22 @@ def run(cfg):
                      flag_apply_abs_rad_correction) else 2
 
     # output mosaics
-    geo_filename = f'{output_dir}/'f'{product_id}.{imagery_extension}'
+    geo_filename = f'{output_dir}/'f'{product_id}.{extension}'
     output_imagery_list = []
     output_file_list = []
     output_metadata_dict = {}
 
-    if save_imagery_as_hdf5:
+    if flag_hdf5:
         output_dir_mosaic_raster = scratch_path
     else:
         output_dir_mosaic_raster = output_dir
 
     _add_output_to_output_metadata_dict(
-        save_layover_shadow_mask, 'layover_shadow_mask',
-        output_dir_mosaic_raster,
-        output_metadata_dict, product_id, imagery_extension)
+        flag_save_nlooks, 'nlooks', output_dir_mosaic_raster,
+        output_metadata_dict, product_id, extension)
     _add_output_to_output_metadata_dict(
-        save_nlooks, 'nlooks', output_dir_mosaic_raster,
-        output_metadata_dict, product_id, imagery_extension)
-    _add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc', output_dir_mosaic_raster,
-        output_metadata_dict, product_id, imagery_extension)
+        flag_save_rtc_anf, 'rtc', output_dir_mosaic_raster,
+        output_metadata_dict, product_id, extension)
 
     mosaic_geogrid_dict = {}
     temp_files_list = []
@@ -491,7 +294,7 @@ def run(cfg):
     vrt_options_mosaic = gdal.BuildVRTOptions(separate=True)
 
     n_bursts = len(cfg.bursts.items())
-    print('Number of bursts to process:', n_bursts)
+    print('number of bursts to process:', n_bursts)
 
     hdf5_obj = None
     output_hdf5_file = os.path.join(output_dir,
@@ -503,23 +306,21 @@ def run(cfg):
         # start burst processing
 
         t_burst_start = time.time()
-        logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
+        logger.info(f'processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
-        pol_list = list(burst_pol_dict.keys())
-        burst = burst_pol_dict[pol_list[0]]
+        pols = list(burst_pol_dict.keys())
+        burst = burst_pol_dict[pols[0]]
 
-        flag_bursts_files_are_temporary = (not save_bursts or
-                                           save_imagery_as_hdf5)
+        flag_bursts_files_are_temporary = \
+            flag_hdf5 or (flag_mosaic and not n_bursts == 1)
 
         burst_scratch_path = f'{scratch_path}/{burst_id}/'
         os.makedirs(burst_scratch_path, exist_ok=True)
 
-        if not save_bursts:
-            # burst files are saved in scratch dir
+        if flag_bursts_files_are_temporary:
             bursts_output_dir = burst_scratch_path
         else:
-            # burst files (individual or HDF5) are saved in burst_id dir 
             bursts_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(bursts_output_dir, exist_ok=True)
         
@@ -534,7 +335,7 @@ def run(cfg):
         # update mosaic boundaries
         _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
 
-        logger.info(f'    reading burst SLCs')
+        logger.info(f'reading burst SLCs')
         radar_grid = burst.as_isce3_radargrid()
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
@@ -546,12 +347,12 @@ def run(cfg):
             mosaic_geogrid_dict['lookside'] = radar_grid.lookside
 
         input_file_list = []
-
+        pol_list = list(burst_pol_dict.keys())
         for pol, burst_pol in burst_pol_dict.items():
             temp_slc_path = \
                 f'{burst_scratch_path}/rslc_{pol}.vrt'
             temp_slc_corrected_path = (
-                f'{burst_scratch_path}/rslc_{pol}_corrected.{imagery_extension}')
+                f'{burst_scratch_path}/rslc_{pol}_corrected.{extension}')
             burst_pol.slc_to_vrt_file(temp_slc_path)
 
             if (flag_apply_thermal_noise_correction or
@@ -565,11 +366,10 @@ def run(cfg):
                         flag_apply_thermal_noise_correction,
                     flag_apply_abs_rad_correction=True)
                 input_burst_filename = temp_slc_corrected_path
-                temp_files_list.append(temp_slc_corrected_path)
             else:
                 input_burst_filename = temp_slc_path
 
-            temp_files_list.append(temp_slc_path)
+            temp_files_list.append(input_burst_filename)
             input_file_list.append(input_burst_filename)
 
         # create multi-band VRT
@@ -582,12 +382,18 @@ def run(cfg):
             rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
             temp_files_list.append(temp_vrt_path)
 
-        # At this point, burst imagery files are always temporary
-        geo_burst_filename = \
-            f'{burst_scratch_path}/{product_id}.{imagery_extension}'
-        temp_files_list.append(geo_burst_filename)
-
-        # Generate output geocoded burst raster        
+        # Generate output geocoded burst raster
+        if flag_bursts_files_are_temporary:
+            # files are temporary
+            geo_burst_filename = \
+                f'{burst_scratch_path}/{product_id}.{extension}'
+            temp_files_list.append(geo_burst_filename)
+        else:
+            os.makedirs(f'{output_dir}/{burst_id}', exist_ok=True)
+            geo_burst_filename = \
+                f'{output_dir}/{burst_id}/{product_id}.{extension}'
+            output_file_list.append(geo_burst_filename)
+        
         geo_burst_raster = isce3.io.Raster(
             geo_burst_filename,
             geogrid.width, geogrid.length,
@@ -622,9 +428,9 @@ def run(cfg):
                         geogrid.spacing_x, geogrid.spacing_y,
                         geogrid.width, geogrid.length, geogrid.epsg)
 
-        if save_nlooks:
+        if flag_save_nlooks:
             nlooks_file = (f'{bursts_output_dir}/{product_id}'
-                           f'_nlooks.{imagery_extension}')
+                           f'_nlooks.{extension}')
             if flag_bursts_files_are_temporary:
                 temp_files_list.append(nlooks_file)
             else:
@@ -636,9 +442,9 @@ def run(cfg):
             nlooks_file = None
             out_geo_nlooks_obj = None
 
-        if save_rtc_anf:
+        if flag_save_rtc_anf:
             rtc_anf_file = (f'{bursts_output_dir}/{product_id}'
-               f'_rtc_anf.{imagery_extension}')
+               f'_rtc_anf.{extension}')
             if flag_bursts_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
             else:
@@ -669,163 +475,80 @@ def run(cfg):
         sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
 
         # geocode
-        flag_error_sub_swaths = False
-        try:
-            geo_obj.geocode(radar_grid=radar_grid,
-                            input_raster=rdr_burst_raster,
-                            output_raster=geo_burst_raster,
-                            dem_raster=dem_raster,
-                            output_mode=geocode_algorithm,
-                            geogrid_upsampling=geogrid_upsampling,
-                            flag_apply_rtc=flag_apply_rtc,
-                            input_terrain_radiometry=input_terrain_radiometry,
-                            output_terrain_radiometry=output_terrain_radiometry,
-                            exponent=exponent,
-                            rtc_min_value_db=rtc_min_value_db,
-                            rtc_upsampling=rtc_upsampling,
-                            rtc_algorithm=rtc_algorithm,
-                            abs_cal_factor=abs_cal_factor,
-                            flag_upsample_radar_grid=flag_upsample_radar_grid,
-                            clip_min = clip_min,
-                            clip_max = clip_max,
-                            # out_off_diag_terms=out_off_diag_terms_obj,
-                            out_geo_nlooks=out_geo_nlooks_obj,
-                            out_geo_rtc=out_geo_rtc_obj,
-                            input_rtc=None,
-                            output_rtc=None,
-                            dem_interp_method=dem_interp_method_enum,
-                            memory_mode=memory_mode,
-                            sub_swaths=sub_swaths)
-        except TypeError:
-            flag_error_sub_swaths = True
-            logger.warning('WARNING there was an error executing geocode().'
-                           ' Retrying it with less parameters')
-
-            # geocode (without sub_swaths)
-            geo_obj.geocode(radar_grid=radar_grid,
-                            input_raster=rdr_burst_raster,
-                            output_raster=geo_burst_raster,
-                            dem_raster=dem_raster,
-                            output_mode=geocode_algorithm,
-                            geogrid_upsampling=geogrid_upsampling,
-                            flag_apply_rtc=flag_apply_rtc,
-                            input_terrain_radiometry=input_terrain_radiometry,
-                            output_terrain_radiometry=output_terrain_radiometry,
-                            exponent=exponent,
-                            rtc_min_value_db=rtc_min_value_db,
-                            rtc_upsampling=rtc_upsampling,
-                            rtc_algorithm=rtc_algorithm,
-                            abs_cal_factor=abs_cal_factor,
-                            flag_upsample_radar_grid=flag_upsample_radar_grid,
-                            clip_min = clip_min,
-                            clip_max = clip_max,
-                            # out_off_diag_terms=out_off_diag_terms_obj,
-                            out_geo_nlooks=out_geo_nlooks_obj,
-                            out_geo_rtc=out_geo_rtc_obj,
-                            input_rtc=None,
-                            output_rtc=None,
-                            dem_interp_method=dem_interp_method_enum,
-                            memory_mode=memory_mode)
-
-        if flag_error_sub_swaths:
-            logger.warning('WARNING the sub-swath masking is not available'
-                           ' from this ISCE3 version. The sub-swath masking'
-                           ' was disabled.')
-
-        # Calculate layover shadow mask when requested
-        if save_layover_shadow_mask:
-            layover_shadow_mask_file = (f'{bursts_output_dir}/{product_id}'
-               f'_layover_shadow_mask.{imagery_extension}')
-            calculate_layover_shadow_mask(burst,
-                                geogrid,
-                                cfg.dem,
-                                layover_shadow_mask_file,
-                                output_raster_format,
-                                threshold_rdr2geo=cfg.rdr2geo_params.threshold,
-                                numiter_rdr2geo=cfg.rdr2geo_params.numiter,
-                                threshold_geo2rdr=cfg.geo2rdr_params.threshold,
-                                numiter_geo2rdr=cfg.geo2rdr_params.numiter)
-            
-            if flag_bursts_files_are_temporary:
-                temp_files_list.append(layover_shadow_mask_file)
-            else:
-                output_file_list.append(layover_shadow_mask_file)
-                logger.info(f'file saved: {layover_shadow_mask_file}')
-            output_metadata_dict['layover_shadow_mask'][1].append(
-                layover_shadow_mask_file)
-
-        else:
-            layover_shadow_mask_file = None
+        geo_obj.geocode(radar_grid=radar_grid,
+                        input_raster=rdr_burst_raster,
+                        output_raster=geo_burst_raster,
+                        dem_raster=dem_raster,
+                        output_mode=geocode_algorithm,
+                        geogrid_upsampling=geogrid_upsampling,
+                        flag_apply_rtc=flag_apply_rtc,
+                        input_terrain_radiometry=input_terrain_radiometry,
+                        output_terrain_radiometry=output_terrain_radiometry,
+                        exponent=exponent,
+                        rtc_min_value_db=rtc_min_value_db,
+                        rtc_upsampling=rtc_upsampling,
+                        rtc_algorithm=rtc_algorithm,
+                        abs_cal_factor=abs_cal_factor,
+                        flag_upsample_radar_grid=flag_upsample_radar_grid,
+                        clip_min = clip_min,
+                        clip_max = clip_max,
+                        # radargrid_nlooks=radar_grid_nlooks,
+                        # out_off_diag_terms=out_off_diag_terms_obj,
+                        out_geo_nlooks=out_geo_nlooks_obj,
+                        out_geo_rtc=out_geo_rtc_obj,
+                        # out_geo_dem=out_geo_dem_obj,
+                        input_rtc=None,
+                        output_rtc=None,
+                        dem_interp_method=dem_interp_method_enum,
+                        memory_mode=memory_mode,
+                        sub_swaths=sub_swaths)
 
         del geo_burst_raster
-
-        # Output imagery list contains multi-band files that
-        # will be used for mosaicking
+        if not flag_bursts_files_are_temporary:
+            logger.info(f'file saved: {geo_burst_filename}')
         output_imagery_list.append(geo_burst_filename)
 
-        # If burst imagery is not temporary, separate polarization channels
-        if not flag_bursts_files_are_temporary:
-            output_burst_imagery_list = []
-            for pol in pol_list:
-                geo_burst_pol_filename = \
-                    (f'{output_dir}/{burst_id}/{product_id}_{pol}.'
-                     f'{imagery_extension}')
-                output_burst_imagery_list.append(geo_burst_pol_filename)
-
-            _separate_pol_channels(geo_burst_filename,
-                                   output_burst_imagery_list,
-                                   logger)
-
-            output_file_list += output_burst_imagery_list
-
-        if save_nlooks:
+        if flag_save_nlooks:
             del out_geo_nlooks_obj
             if not flag_bursts_files_are_temporary:
                 logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
     
-        if save_rtc_anf:
+        if flag_save_rtc_anf:
             del out_geo_rtc_obj
             if not flag_bursts_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
             output_metadata_dict['rtc'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
-        if flag_call_radar_grid and save_bursts:
+        if flag_call_radar_grid and not flag_mosaic:
             get_radar_grid(
                 geogrid, dem_interp_method_enum, product_id,
-                bursts_output_dir, imagery_extension, save_incidence_angle,
-                save_local_inc_angle, save_projection_angle,
-                save_rtc_anf_psi,
-                save_range_slope, save_dem,
+                bursts_output_dir, extension, flag_save_incidence_angle,
+                flag_save_local_inc_angle, flag_save_projection_angle,
+                flag_save_rtc_anf_psi,
+                flag_save_range_slope, flag_save_dem,
                 dem_raster, radar_grid_file_dict,
                 mosaic_geogrid_dict, orbit,
                 verbose = not flag_bursts_files_are_temporary)
-            if save_imagery_as_hdf5:
+            if flag_hdf5:
                 # files are temporary
                 temp_files_list += list(radar_grid_file_dict.values())
             else:
                 output_file_list += list(radar_grid_file_dict.values())
 
-        # Create burst HDF5
-        if ((save_imagery_as_hdf5 or save_metadata) and save_bursts):
+        if flag_hdf5 and not flag_mosaic:
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
-            output_hdf5_file_burst =  os.path.join(
+            output_hdf5_file =  os.path.join(
                 hdf5_file_output_dir, f'{product_id}.{hdf5_file_extension}')
-            hdf5_obj = create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg)
+            hdf5_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
             save_hdf5_file(
-                hdf5_obj, output_hdf5_file_burst, flag_apply_rtc,
+                hdf5_obj, output_hdf5_file, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str, output_file_list,
                 geogrid, pol_list, geo_burst_filename, nlooks_file,
-                rtc_anf_file, layover_shadow_mask_file,
-                radar_grid_file_dict,
-                save_imagery = save_imagery_as_hdf5)
-            output_file_list.append(output_hdf5_file_burst)
-
-        # Create mosaic HDF5 
-        if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
-                and burst_index == 0):
+                rtc_anf_file, radar_grid_file_dict)
+        elif flag_hdf5 and flag_mosaic and burst_index == 0:
             hdf5_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
 
         t_burst_end = time.time()
@@ -835,77 +558,61 @@ def run(cfg):
         # end burst processing
         # ===========================================================
 
-    if flag_call_radar_grid and save_mosaics:
+    if flag_call_radar_grid and flag_mosaic:
         radar_grid_file_dict = {}
 
-        if save_imagery_as_hdf5:
+        if flag_hdf5:
             radar_grid_output_dir = scratch_path
         else:
             radar_grid_output_dir = output_dir
         get_radar_grid(cfg.geogrid, dem_interp_method_enum, product_id,
-                       radar_grid_output_dir, imagery_extension, save_incidence_angle,
-                       save_local_inc_angle, save_projection_angle,
-                       save_rtc_anf_psi,
-                       save_range_slope, save_dem,
+                       radar_grid_output_dir, extension, flag_save_incidence_angle,
+                       flag_save_local_inc_angle, flag_save_projection_angle,
+                       flag_save_rtc_anf_psi,
+                       flag_save_range_slope, flag_save_dem,
                        dem_raster, radar_grid_file_dict,
                        mosaic_geogrid_dict,
-                       orbit, verbose = not save_imagery_as_hdf5)
-        if save_imagery_as_hdf5:
+                       orbit, verbose = not flag_hdf5)
+        if flag_hdf5:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
         else:
             output_file_list += list(radar_grid_file_dict.values())
 
-    if save_mosaics:
-
-        # Mosaic sub-bursts imagery
-        logger.info(f'mosaicking files:')
-        output_imagery_filename_list = []
-        for pol in pol_list:
-            geo_pol_filename = \
-                (f'{output_dir_mosaic_raster}/{product_id}_{pol}.'
-                 f'{imagery_extension}')
-            logger.info(f'    {geo_pol_filename}')
-            output_imagery_filename_list.append(geo_pol_filename)
-
-        # geo_filename = f'{output_dir_mosaic_raster}/{product_id}.{imagery_extension}'
+    if flag_mosaic:
+        # mosaic sub-bursts
+        geo_filename = f'{output_dir_mosaic_raster}/{product_id}.{extension}'
+        logger.info(f'mosaicking file: {geo_filename}')
 
         nlooks_list = output_metadata_dict['nlooks'][1]
-        weighted_mosaic_single_band(
-            output_imagery_list, nlooks_list,
-            output_imagery_filename_list, cfg.geogrid, verbose=False)
+        weighted_mosaic(output_imagery_list, nlooks_list,
+                        geo_filename, cfg.geogrid, verbose=False)
 
-        if save_imagery_as_hdf5:
-            temp_files_list += output_imagery_filename_list
+        if flag_hdf5:
+            temp_files_list.append(geo_filename)
         else:
-            output_file_list += output_imagery_filename_list
+            output_file_list.append(geo_filename)
 
-        # Mosaic other bands
+        # mosaic other bands
         for key in output_metadata_dict.keys():
             output_file, input_files = output_metadata_dict[key]
             logger.info(f'mosaicking file: {output_file}')
             weighted_mosaic(input_files, nlooks_list, output_file,
                             cfg.geogrid, verbose=False)
-            if save_imagery_as_hdf5:
+            if flag_hdf5:
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
 
-        # Save HDF5
-        if save_imagery_as_hdf5 or save_metadata:
-            if save_nlooks:
+        if flag_hdf5:
+            if flag_save_nlooks:
                 nlooks_mosaic_file = output_metadata_dict['nlooks'][0]
             else:
                 nlooks_mosaic_file = None
-            if save_rtc_anf:
+            if flag_save_rtc_anf:
                 rtc_anf_mosaic_file = output_metadata_dict['rtc'][0]
             else:
                 rtc_anf_mosaic_file = None
-            if save_layover_shadow_mask:
-                layover_shadow_mask_file = output_metadata_dict[
-                    'layover_shadow_mask'][0]
-            else:
-                layover_shadow_mask_file = None
 
             # Update metadata datasets that depend on all bursts
             sensing_start = None
@@ -913,13 +620,18 @@ def run(cfg):
             for burst_id, burst_pol_dict in cfg.bursts.items():
                 pols = list(burst_pol_dict.keys())
                 burst = burst_pol_dict[pols[0]]
-
+                print('this burst:')
+                if sensing_start is not None:
+                    print('    ', sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'))
+                if sensing_stop is not None:
+                    print('    ', sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'))
                 if (sensing_start is None or
                         burst.sensing_start < sensing_start):
                     sensing_start = burst.sensing_start
-
+                    print('updated sensing start')
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
+                    print('updated sensing stop')
 
             sensing_start_ds = f'{BASE_DS}/identification/zeroDopplerStartTime'
             sensing_end_ds = f'{BASE_DS}/identification/zeroDopplerEndTime'
@@ -934,20 +646,7 @@ def run(cfg):
                            clip_max, clip_min, output_radiometry_str,
                            output_file_list, cfg.geogrid, pol_list,
                            geo_filename, nlooks_mosaic_file,
-                           rtc_anf_mosaic_file, layover_shadow_mask_file,
-                           radar_grid_file_dict,
-                           save_imagery = save_imagery_as_hdf5)
-            output_file_list.append(output_hdf5_file_burst)
-
-    if output_imagery_format == 'COG':
-        logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
-        for filename in output_file_list:
-            if not filename.endswith('.tif'):
-                continue
-            logger.info(f'    processing file: {filename}')
-            save_as_cog(filename, scratch_path, logger,
-                        compression=output_imagery_compression,
-                        nbits=output_imagery_nbits)
+                           rtc_anf_mosaic_file, radar_grid_file_dict)
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:
@@ -966,10 +665,10 @@ def run(cfg):
 
 
 def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
-                   output_dir, extension, save_incidence_angle,
-                   save_local_inc_angle, save_projection_angle,
-                   save_rtc_anf_psi,
-                   save_range_slope, save_dem, dem_raster,
+                   output_dir, extension, flag_save_incidence_angle,
+                   flag_save_local_inc_angle, flag_save_projection_angle,
+                   flag_save_rtc_anf_psi,
+                   flag_save_range_slope, flag_save_dem, dem_raster,
                    radar_grid_file_dict, mosaic_geogrid_dict, orbit,
                    verbose = True):
     output_obj_list = []
@@ -979,29 +678,29 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
     incidence_angle_raster = _create_raster_obj(
             output_dir, f'{product_id}_incidence_angle',
             'incidenceAngle', gdal.GDT_Float32, shape, radar_grid_file_dict,
-            output_obj_list, save_incidence_angle, extension)
+            output_obj_list, flag_save_incidence_angle, extension)
     local_incidence_angle_raster = _create_raster_obj(
             output_dir, f'{product_id}_local_incidence_angle',
             'localIncidenceAngle', gdal.GDT_Float32, shape,
-            radar_grid_file_dict, output_obj_list, save_local_inc_angle,
+            radar_grid_file_dict, output_obj_list, flag_save_local_inc_angle,
             extension)
     projection_angle_raster = _create_raster_obj(
             output_dir, f'{product_id}_projection_angle',
             'projectionAngle', gdal.GDT_Float32, shape, radar_grid_file_dict,
-            output_obj_list, save_projection_angle, extension)
+            output_obj_list, flag_save_projection_angle, extension)
     rtc_anf_psi_raster = _create_raster_obj(
             output_dir, f'{product_id}_rtc_anf_psi',
             'areaNormalizationFactorPsi', gdal.GDT_Float32, shape,
             radar_grid_file_dict, output_obj_list, 
-            save_rtc_anf_psi, extension)
+            flag_save_rtc_anf_psi, extension)
     range_slope_raster = _create_raster_obj(
             output_dir, f'{product_id}_range_slope',
             'rangeSlope', gdal.GDT_Float32, shape, radar_grid_file_dict,
-            output_obj_list, save_range_slope, extension)
+            output_obj_list, flag_save_range_slope, extension)
     interpolated_dem_raster = _create_raster_obj(
             output_dir, f'{product_id}_interpolated_dem',
             'interpolatedDem', gdal.GDT_Float32, shape, radar_grid_file_dict,
-            output_obj_list, save_dem, extension)
+            output_obj_list, flag_save_dem, extension)
 
     # TODO review this (Doppler)!!!
     # native_doppler = burst.doppler.lut2d
@@ -1009,13 +708,6 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
     native_doppler.bounds_error = False
     grid_doppler = isce3.core.LUT2d()
     grid_doppler.bounds_error = False
-
-    # TODO: update code below
-    # Computation of range slope is not merged to ISCE yet
-    kwargs_get_radar_grid = {}
-    if range_slope_raster:
-        kwargs_get_radar_grid['directional_slope_angle_raster'] = \
-            range_slope_raster
 
     # call get_radar_grid()
     isce3.geogrid.get_radar_grid(mosaic_geogrid_dict['lookside'],
@@ -1033,10 +725,11 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
                                     projection_angle_raster,
                                  simulated_radar_brightness_raster =
                                     rtc_anf_psi_raster,
+                                 directional_slope_angle_raster =
+                                    range_slope_raster,
                                  interpolated_dem_raster =
                                     interpolated_dem_raster,
-                                 dem_interp_method=dem_interp_method_enum,
-                                 **kwargs_get_radar_grid)
+                                 dem_interp_method=dem_interp_method_enum)
 
     # Flush data
     for obj in output_obj_list:
