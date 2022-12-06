@@ -260,7 +260,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'RTC/metadata/processingInformation/inputs/configFiles':
             [cfg_in.run_config_path, 'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demSource':
-            [dem_description, 'DEM source']
+            [dem_description, 'DEM source description']
     }
     for fieldname, data in dict_field_and_data.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
