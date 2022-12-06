@@ -266,7 +266,7 @@ def get_point_epsg(lat, lon):
 
 def generate_geogrids(bursts, geo_dict, dem):
 
-    # dem_raster = isce3.io.Raster(dem)
+    dem_raster = isce3.io.Raster(dem)
 
     # Unpack values from geocoding disctionary
     epsg = geo_dict['output_epsg']
@@ -289,8 +289,8 @@ def generate_geogrids(bursts, geo_dict, dem):
         y_list = []
         x_list = []
         for burst_pol in bursts.values():
-            pol_list = list(burst_pol.keys())
-            burst = burst_pol[pol_list[0]]
+            pols = list(burst_pol.keys())
+            burst = burst_pol[pols[0]]
             y_list.append(burst.center.y)
             x_list.append(burst.center.x)
         y_mean = np.nanmean(y_list)
@@ -324,9 +324,9 @@ def generate_geogrids(bursts, geo_dict, dem):
 
     geogrids_dict = {}
     for burst_id, burst_pol in bursts.items():
-        pol_list = list(burst_pol.keys())
-        burst = burst_pol[pol_list[0]]
-        if burst_id in geogrids_dict.keys():
+        pols = list(burst_pol.keys())
+        burst = burst_pol[pols[0]]
+        if burst_id in geogrids_dict:
             continue
 
         radar_grid = burst.as_isce3_radargrid()
