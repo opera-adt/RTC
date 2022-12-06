@@ -352,7 +352,7 @@ def run(cfg):
     logger.info(f'    apply RTC: {flag_apply_rtc}')
     logger.info(f'    apply thermal noise correction:'
                 f' {flag_apply_thermal_noise_correction}')
-    logger.info(f'    apply thermal noise correction:'
+    logger.info(f'    apply absolute radiometric correction:'
                 f' {flag_apply_abs_rad_correction}')
     logger.info(f'    product ID: {product_id}')
     logger.info(f'    scratch dir: {scratch_path}')
