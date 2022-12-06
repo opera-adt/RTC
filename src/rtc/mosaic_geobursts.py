@@ -106,7 +106,7 @@ def check_reprojection(geogrid_mosaic,
 def _weighted_mosaic(list_rtc_images, list_nlooks,
                      geogrid_in=None, verbose = True):
     '''
-    Mosaic S-1 geobursts and return mosaic dictionary
+    Mosaic S-1 geobursts and return the mosaic as dictionary
     paremeters:
     -----------
         list_rtc: list
