@@ -198,7 +198,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                                   numiter_geo2rdr: int=25,
                                   nlooks_az: int=1, nlooks_rg: int=1):
     '''
-    Generate the layover shadow mask and geodode the mask
+    Generate the layover shadow mask and geocode the mask
 
     Parameters:
     -----------
