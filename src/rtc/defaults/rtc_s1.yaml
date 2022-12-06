@@ -17,6 +17,9 @@ runconfig:
             # Digital elevation model
             dem_file:
 
+            # Digital elevation model source description
+            dem_description:
+
         product_path_group:
             # Directory where PGE will place results
             product_path:
@@ -51,14 +54,24 @@ runconfig:
             product_type: RTC_S1
 
         processing:
+
+            # Check if ancillary input cover entirely output products
+            check_ancillary_inputs_coverage: True
+
+            # Polarization channels to process. 
             polarization:
+
+            # Options to run geo2rdr
             geo2rdr:
                 threshold: 1.0e-8
                 numiter: 25
+
+            # Options to run rdr2geo
             rdr2geo:
                 threshold: 1.0e-7
                 numiter: 25
 
+            # DEM interpolation method
             dem_interpolation_method: biquintic
 
             # Apply absolute radiometric correction

@@ -17,6 +17,9 @@ runconfig:
             # Digital Elevation Model.
             dem_file: str(required=False)
 
+            # Digital elevation model description
+            dem_description: str(required=False)
+
         product_path_group:
             # Directory where PGE will place results
             product_path: str()
@@ -72,18 +75,23 @@ rdr2geo_options:
 
 # Group of processing options
 processing_options:
-   # Polarization to process. 3 modes below correspond to VV, VH, VV+VH
+
+   # Check if ancillary input cover entirely output products
+   check_ancillary_inputs_coverage: bool(required=False)
+
+   # Polarization channels to process. 3 modes below correspond to VV, VH, VV+VH
    polarization: enum('co-pol', 'cross-pol', 'dual-pol', required=False)
 
    # Options to run geo2rdr
    geo2rdr: include('geo2rdr_options', required=False)
 
-   # Options to run rdr2geo (for running topo when calculating layoer shadow mask)
+   # Options to run rdr2geo (for running topo when calculating layover shadow mask)
    rdr2geo: include('rdr2geo_options', required=False)
 
    # Range split-spectrum options
    range_split_spectrum: include('range_split_spectrum_options', required=False)
 
+   # DEM interpolation method
    dem_interpolation_method: enum('sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic', required=False)
 
    # Apply absolute radiometric correction
