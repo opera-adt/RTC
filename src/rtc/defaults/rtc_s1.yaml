@@ -20,6 +20,9 @@ runconfig:
             # Digital elevation model source description
             dem_description:
 
+           # burst database sqlite file
+           burst_database_file: str(required=False)
+
         product_path_group:
             # Directory where PGE will place results
             product_path:
