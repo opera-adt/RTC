@@ -170,7 +170,12 @@ def populate_metadata_group(h5py_obj: h5py.File,
     '''
     orbit_files = [os.path.basename(f) for f in cfg_in.orbit_path]
     l1_slc_granules = [os.path.basename(f) for f in cfg_in.safe_files]
-    dem_files = [os.path.basename(cfg_in.dem)]
+
+    dem_description = [cfg_in.description]
+
+    if not dem_description:
+        # If the DEM description is not provided, use DEM source
+        dem_description = [os.path.basename(cfg_in.dem)]
 
     # Manifests the field names, corresponding values from RTC workflow, and the description.
     # To extend this, add the lines with the format below:
@@ -254,8 +259,8 @@ def populate_metadata_group(h5py_obj: h5py.File,
              'List of input calibration files used'],
         'RTC/metadata/processingInformation/inputs/configFiles':
             [cfg_in.run_config_path, 'List of input config files used'],
-        'RTC/metadata/processingInformation/inputs/demFiles':
-            [dem_files, 'List of input dem files used']
+        'RTC/metadata/processingInformation/inputs/demSource':
+            [dem_description, 'DEM source']
     }
     for fieldname, data in dict_field_and_data.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
