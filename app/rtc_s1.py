@@ -68,7 +68,8 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
         assert(mosaic_geogrid_dict['epsg'] == geogrid.epsg)
 
 
-def _separate_pol_channels(multi_band_file, output_file_list, logger):
+def _separate_pol_channels(multi_band_file, output_file_list, logger,
+                           output_raster_format):
     """Save a multi-band raster file as individual single-band files
 
        Parameters
@@ -94,7 +95,7 @@ def _separate_pol_channels(multi_band_file, output_file_list, logger):
         band_image = gdal_band.ReadAsArray()
 
         # Save the corrected image
-        driver_out = gdal.GetDriverByName('GTiff')
+        driver_out = gdal.GetDriverByName(output_raster_format)
         raster_out = driver_out.Create(
             output_file, band_image.shape[1],
             band_image.shape[0], 1, gdal_dtype)
@@ -108,6 +109,33 @@ def _separate_pol_channels(multi_band_file, output_file_list, logger):
 def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
                 radar_grid_file_dict, output_obj_list, flag_create_raster_obj,
                 extension):
+    """Create an ISCE3 raster object (GTiff) for a radar geometry layer.
+
+       Parameters
+       ----------
+       output_dir: str
+              Output directory
+       ds_name: str
+              Dataset (geometry layer) name
+       ds_hdf5: str
+              HDF5 dataset name
+       dtype:: gdal.DataType
+              GDAL data type
+       shape: list
+              Shape of the output raster
+       radar_grid_file_dict: dict
+              Dictionary that will hold the name of the output file
+              referenced by the contents of `ds_hdf5` (dict key)
+       output_obj_list: list
+              Mutable list of output raster objects
+       flag_create_raster_obj: bool
+              Flag indicating if raster object should be created
+
+       Returns
+       -------
+       raster_obj : isce3.io.Raster
+              ISCE3 raster object
+    """
     if flag_create_raster_obj is not True:
         return None
 
@@ -774,7 +802,7 @@ def run(cfg):
 
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
-                                   logger)
+                                   logger, output_raster_format)
 
             output_file_list += output_burst_imagery_list
 
