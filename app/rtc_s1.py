@@ -217,7 +217,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     numiter_rdr2geo: int
         Number of max. iteration for rdr2geo object
     extraiter_rdr2geo: int
-        Extra number of iteration for rdr2geo object # TODO revise for better clarity
+        Extra number of iteration for rdr2geo object
     lines_per_block_rdr2geo: int
         Lines per block for rdr2geo
     threshold_geo2rdr: float
