@@ -5,6 +5,7 @@ import sys
 import shutil
 import logging
 import tempfile
+
 from osgeo import gdal
 
 logger = logging.getLogger('rtc_s1')
