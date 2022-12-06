@@ -115,7 +115,6 @@ def save_as_cog(filename, scratch_dir = '.', logger = None,
     if compression:
         gdal_translate_options += [f'COMPRESS={compression}']
 
-    is_integer = 'byte' in dtype_name  or 'int' in dtype_name
     if is_integer:
         gdal_translate_options += ['PREDICTOR=2']
     else:
