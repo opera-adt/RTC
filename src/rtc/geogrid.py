@@ -265,7 +265,28 @@ def get_point_epsg(lat, lon):
 
 
 def generate_geogrids(bursts, geo_dict, dem):
+    '''
+    Compute frame and bursts geogrids
 
+    Parameters
+    ----------
+    bursts: list[s1reader.s1_burst_slc.Sentinel1BurstSlc]
+        List of S-1 burst SLC objects
+    geo_dict: dict
+        Dictionary containing runconfig processing.geocoding
+        parameters
+    dem_file: str
+        Dem file
+
+    Returns
+    -------
+    geogrid_all: isce3.product.GeoGridParameters
+        Frame geogrid
+    geogrids_dict: dict
+        Dict containing bursts geogrids indexed by burst_id
+    '''
+
+    # TODO use `dem_raster` to update `epsg`, if not provided in the runconfig
     # dem_raster = isce3.io.Raster(dem)
 
     # Unpack values from geocoding disctionary
