@@ -103,7 +103,7 @@ def check_reprojection(geogrid_mosaic,
     return flag_requires_reprojection
 
 
-def _weighted_mosaic(list_rtc_images, list_nlooks,
+def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
                      geogrid_in=None, verbose = True):
     '''
     Mosaic S-1 geobursts and return the mosaic as dictionary
@@ -262,7 +262,7 @@ def _weighted_mosaic(list_rtc_images, list_nlooks,
 
 
 
-def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
+def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
                     geogrid_in=None, verbose = True):
     '''
     Mosaic the snapped S1 geobursts
@@ -279,7 +279,7 @@ def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
             The geogrid of the output mosaic will automatically determined when it is None
 
     '''
-    mosaic_dict = _weighted_mosaic(list_rtc_images, list_nlooks,
+    mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
                                    geogrid_in=geogrid_in, verbose = verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']
@@ -330,7 +330,7 @@ def weighted_mosaic_single_band(list_rtc_images, list_nlooks,
             The geogrid of the output mosaic will automatically determined when it is None
 
     '''
-    mosaic_dict = _weighted_mosaic(list_rtc_images, list_nlooks,
+    mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
                                      geogrid_in=geogrid_in, verbose = verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']

@@ -912,7 +912,7 @@ def run(cfg):
         for key in output_metadata_dict.keys():
             output_file, input_files = output_metadata_dict[key]
             logger.info(f'mosaicking file: {output_file}')
-            weighted_mosaic(input_files, nlooks_list, output_file,
+            compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
                             cfg.geogrid, verbose=False)
             if save_imagery_as_hdf5:
                 temp_files_list.append(output_file)
