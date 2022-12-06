@@ -19,7 +19,7 @@ from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
 from rtc.geogrid import snap_coord
 from rtc.runconfig import RunConfig
-from rtc.mosaic_geobursts import weighted_mosaic, weighted_mosaic_single_band
+from rtc.mosaic_geobursts import compute_weighted_mosaic_raster, compute_weighted_mosaic_raster_single_band
 from rtc.core import create_logger, save_as_cog
 from rtc.h5_prep import save_hdf5_file, create_hdf5_file, \
     save_hdf5_dataset, BASE_DS
@@ -423,7 +423,6 @@ def run(cfg):
     abs_cal_factor = geocode_namespace.abs_rad_cal
     clip_max = geocode_namespace.clip_max
     clip_min = geocode_namespace.clip_min
-    # geogrids = geocode_namespace.geogrids
     flag_upsample_radar_grid = geocode_namespace.upsample_radargrid
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
@@ -899,7 +898,7 @@ def run(cfg):
         # geo_filename = f'{output_dir_mosaic_raster}/{product_id}.{imagery_extension}'
 
         nlooks_list = output_metadata_dict['nlooks'][1]
-        weighted_mosaic_single_band(
+        compute_weighted_mosaic_raster_single_band(
             output_imagery_list, nlooks_list,
             output_imagery_filename_list, cfg.geogrid, verbose=False)
 

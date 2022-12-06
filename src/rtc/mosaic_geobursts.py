@@ -312,7 +312,7 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
 
 
 
-def weighted_mosaic_single_band(list_rtc_images, list_nlooks,
+def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
                                 output_file_list,
                                 geogrid_in=None, verbose = True):
     '''
