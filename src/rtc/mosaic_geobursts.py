@@ -280,7 +280,7 @@ def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
 
     '''
     mosaic_dict = _weighted_mosaic(list_rtc_images, list_nlooks,
-                                     geogrid_in=geogrid_in, verbose = verbose)
+                                   geogrid_in=geogrid_in, verbose = verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']
     length = mosaic_dict['length']
