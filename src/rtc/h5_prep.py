@@ -13,7 +13,7 @@ from rtc.runconfig import RunConfig
 
 from nisar.workflows.h5_prep import set_get_geo_info
 
-BASE_DS = f'/science/CSAR'
+BASE_DS = f'/science/SENTINEL1'
 FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
 FREQ_GRID_DS = f'{BASE_DS}/{FREQ_GRID_SUB_PATH}'
 
@@ -73,7 +73,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     if layover_shadow_mask_file:
         save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, FREQ_GRID_DS,
                            yds, xds, 'layoverShadowMask',
-                           long_name = 'Layover shadow mask',
+                           long_name = 'Layover/shadow mask',
                            units = '',
                            valid_min = 0)
 

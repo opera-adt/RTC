@@ -13,11 +13,11 @@ RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
 RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
 
 LIST_EXCLUDE_COMPARISON = \
-    ['//science/CSAR/RTC/metadata/processingInformation/algorithms/ISCEVersion',
-     '//science/CSAR/RTC/metadata/processingInformation/inputs/auxcalFiles',
-     '//science/CSAR/RTC/metadata/processingInformation/inputs/configFiles',
-     '//science/CSAR/RTC/metadata/processingInformation/inputs/demFiles',
-     '//science/CSAR/RTC/metadata/processingInformation/inputs/orbitFiles']
+    ['//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/ISCEVersion',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/auxcalFiles',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/configFiles',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/demFiles',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/orbitFiles']
 
 
 def _get_parser():
@@ -259,9 +259,9 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     # convert object reference to the path to which it is pointing
     # Example:
     # attribute `REFERENCE_LIST` in
-    # /science/CSAR/RTC/grids/frequencyA/xCoordinates'
+    # /science/SENTINEL1/RTC/grids/frequencyA/xCoordinates'
     # attribute `DIMENSION_LIST` in
-    # /science/CSAR/RTC/grids/frequencyA/VH
+    # /science/SENTINEL1/RTC/grids/frequencyA/VH
     if (len(val_1.shape) >= 1) and ('shape' in dir(val_1[0])):
         if (isinstance(val_1[0], np.void) or
         ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)))):
