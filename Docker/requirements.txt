@@ -5,3 +5,7 @@ ruamel.yaml
 scipy
 pytest
 requests
+sqlite3
+pyproj
+shapely
+
