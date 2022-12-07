@@ -8,10 +8,13 @@ import logging
 from nisar.workflows.geogrid import _grid_size
 import isce3
 
+from rtc.helpers import burst_bboxes_from_db
+
 logger = logging.getLogger('rtc_s1')
 
-def assign_check_geogrid(geogrid, x_start=None, y_start=None,
-                         x_end=None, y_end=None):
+
+def assign_check_geogrid(geogrid, xmin=None, ymax=None,
+                         xmax=None, ymin=None):
     '''
     Initialize geogrid with user defined parameters.
     Check the validity of user-defined parameters
@@ -20,13 +23,13 @@ def assign_check_geogrid(geogrid, x_start=None, y_start=None,
     ----------
     geogrid: isce3.product.GeoGridParameters
         ISCE3 object defining the geogrid
-    x_start: float
+    xmin: float
         Geogrid top-left X coordinate
-    y_start: float
+    ymax: float
         Geogrid top-left Y coordinate
-    x_end: float
+    xmax: float
         Geogrid bottom-right X coordinate
-    y_end: float
+    ymin: float
         Geogrid bottom-right Y coordinate
 
     Returns
@@ -36,29 +39,29 @@ def assign_check_geogrid(geogrid, x_start=None, y_start=None,
     '''
 
     # Check assigned input coordinates and initialize geogrid accordingly
-    if x_start is not None:
+    if xmin is not None:
         current_end_x = geogrid.start_x + geogrid.spacing_x * geogrid.width
-        geogrid.start_x = x_start
-        geogrid.width = int(np.ceil((current_end_x - x_start) /
+        geogrid.start_x = xmin
+        geogrid.width = int(np.ceil((current_end_x - xmin) /
                                      geogrid.spacing_x))
     # Restore geogrid end point if provided by the user
-    if x_end is not None:
-        geogrid.width = int(np.ceil((x_end - geogrid.start_x) /
+    if xmax is not None:
+        geogrid.width = int(np.ceil((xmax - geogrid.start_x) /
                                      geogrid.spacing_x))
-    if y_start is not None:
+    if ymax is not None:
         current_end_y = geogrid.start_y + geogrid.spacing_y * geogrid.length
-        geogrid.start_y = y_start
-        geogrid.length = int(np.ceil((current_end_y - y_start) /
+        geogrid.start_y = ymax
+        geogrid.length = int(np.ceil((current_end_y - ymax) /
                                       geogrid.spacing_y))
-    if y_end is not None:
-        geogrid.length = int(np.ceil((y_end - geogrid.start_y) /
+    if ymin is not None:
+        geogrid.length = int(np.ceil((ymin - geogrid.start_y) /
                                       geogrid.spacing_y))
 
     return geogrid
 
 
-def intersect_geogrid(geogrid, x_start=None, y_start=None,
-                      x_end=None, y_end=None):
+def intersect_geogrid(geogrid, xmin=None, ymax=None,
+                      xmax=None, ymin=None):
     '''
     Return intersected geogrid with user defined parameters.
 
@@ -66,13 +69,13 @@ def intersect_geogrid(geogrid, x_start=None, y_start=None,
     ----------
     geogrid: isce3.product.GeoGridParameters
         ISCE3 object defining the geogrid
-    x_start: float
+    xmin: float
         Geogrid top-left X coordinate
-    y_start: float
+    ymax: float
         Geogrid top-left Y coordinate
-    x_end: float
+    xmax: float
         Geogrid bottom-right X coordinate
-    y_end: float
+    ymin: float
         Geogrid bottom-right Y coordinate
 
     Returns
@@ -81,31 +84,31 @@ def intersect_geogrid(geogrid, x_start=None, y_start=None,
         ISCE3 geogrid
     '''
 
-    if x_start is not None and x_start > geogrid.start_x:
+    if xmin is not None and xmin > geogrid.start_x:
         current_end_x = geogrid.start_x + geogrid.spacing_x * geogrid.width
-        geogrid.start_x = x_start
-        geogrid.width = int(np.ceil((current_end_x - x_start) /
+        geogrid.start_x = xmin
+        geogrid.width = int(np.ceil((current_end_x - xmin) /
                                      geogrid.spacing_x))
 
-    if (x_end is not None and
-            (x_end < geogrid.start_x + geogrid.width * geogrid.spacing_x)):
-        geogrid.width = int(np.ceil((x_end - geogrid.start_x) /
+    if (xmax is not None and
+            (xmax < geogrid.start_x + geogrid.width * geogrid.spacing_x)):
+        geogrid.width = int(np.ceil((xmax - geogrid.start_x) /
                                      geogrid.spacing_x))
-    if y_start is not None and y_start < geogrid.start_y:
+    if ymax is not None and ymax < geogrid.start_y:
         current_end_y = geogrid.start_y + geogrid.spacing_y * geogrid.length
-        geogrid.start_y = y_start
-        geogrid.length = int(np.ceil((current_end_y - y_start) /
+        geogrid.start_y = ymax
+        geogrid.length = int(np.ceil((current_end_y - ymax) /
                                       geogrid.spacing_y))
 
-    if (y_end is not None and 
-            (y_end > geogrid.start_y + geogrid.length * geogrid.spacing_y)):
-        geogrid.length = int(np.ceil((y_end - geogrid.start_y) /
+    if (ymin is not None and 
+            (ymin > geogrid.start_y + geogrid.length * geogrid.spacing_y)):
+        geogrid.length = int(np.ceil((ymin - geogrid.start_y) /
                                       geogrid.spacing_y))
 
     return geogrid
 
 
-def check_geogrid_endpoints(geogrid, x_end=None, y_end=None):
+def check_geogrid_endpoints(geogrid, xmax=None, ymin=None):
     '''
     Check validity of geogrid end points
 
@@ -113,25 +116,26 @@ def check_geogrid_endpoints(geogrid, x_end=None, y_end=None):
     -----------
     geogrid: isce3.product.GeoGridParameters
         ISCE3 object defining the geogrid
-    x_end: float
+    xmax: float
         Geogrid bottom right X coordinate
-    y_end: float
+    ymin: float
         Geogrid bottom right Y coordinates
 
     Returns
     -------
-    x_end: float
+    xmax: float
         Verified geogrid bottom-right X coordinate
-    y_end: float
+    ymin: float
         Verified geogrid bottom-right Y coordinate
     '''
     end_pt = lambda start, sz, spacing: start + spacing * sz
 
-    if x_end is None:
-        x_end = end_pt(geogrid.start_x, geogrid.spacing_x, geogrid.width)
-    if y_end is None:
-        y_end = end_pt(geogrid.start_y, geogrid.spacing_y, geogrid.length)
-    return x_end, y_end
+    if xmax is None:
+        xmax = end_pt(geogrid.start_x, geogrid.spacing_x, geogrid.width)
+    if ymin is None:
+        ymin = end_pt(geogrid.start_y, geogrid.spacing_y, geogrid.length)
+
+    return xmax, ymin
 
 
 def check_snap_values(x_snap, y_snap, x_spacing, y_spacing):
@@ -213,16 +217,16 @@ def snap_geogrid(geogrid, x_snap, y_snap):
     geogrid: isce3.product.GeoGridParameters
         ISCE3 object containing the snapped geogrid
     '''
-    x_end = geogrid.start_x + geogrid.width * geogrid.spacing_x
-    y_end = geogrid.start_y + geogrid.length * geogrid.spacing_y
+    xmax = geogrid.start_x + geogrid.width * geogrid.spacing_x
+    ymin = geogrid.start_y + geogrid.length * geogrid.spacing_y
 
     if x_snap is not None:
         geogrid.start_x = snap_coord(geogrid.start_x, x_snap, np.floor)
-        end_x = snap_coord(x_end, x_snap, np.ceil)
+        end_x = snap_coord(xmax, x_snap, np.ceil)
         geogrid.width = _grid_size(end_x, geogrid.start_x, geogrid.spacing_x)
     if y_snap is not None:
         geogrid.start_y = snap_coord(geogrid.start_y, y_snap, np.ceil)
-        end_y = snap_coord(y_end, y_snap, np.floor)
+        end_y = snap_coord(ymin, y_snap, np.floor)
         geogrid.length = _grid_size(end_y, geogrid.start_y,
                                      geogrid.spacing_y)
     return geogrid
@@ -264,6 +268,171 @@ def get_point_epsg(lat, lon):
         raise ValueError(err_str)
 
 
+
+
+
+
+
+
+def generate_geogrids_from_db(bursts, geo_dict, dem, burst_db_file):
+    '''
+    Compute frame and bursts geogrids
+
+    Parameters
+    ----------
+    bursts: list[s1reader.s1_burst_slc.Sentinel1BurstSlc]
+        List of S-1 burst SLC objects
+    geo_dict: dict
+        Dictionary containing runconfig processing.geocoding
+        parameters
+    dem_file: str
+        Dem file
+    burst_db_file : str
+        Location of burst database sqlite file
+
+    Returns
+    -------
+    geogrid_all: isce3.product.GeoGridParameters
+        Frame geogrid
+    geogrids_dict: dict
+        Dict containing bursts geogrids indexed by burst_id
+    '''
+
+    # TODO use `dem_raster` to update `epsg`, if not provided in the runconfig
+    # dem_raster = isce3.io.Raster(dem)
+
+    # Unpack values from geocoding disctionary
+    epsg_runconfig = geo_dict['output_epsg']
+    xmin_runconfig = geo_dict['top_left']['x']
+    ymax_runconfig = geo_dict['top_left']['y']
+    x_spacing = geo_dict['x_posting']
+    y_spacing_positive = geo_dict['y_posting']
+    xmax_runconfig = geo_dict['bottom_right']['x']
+    ymin_runconfig = geo_dict['bottom_right']['y']
+    x_snap = geo_dict['x_snap']
+    y_snap = geo_dict['y_snap']
+
+    xmin_all_bursts = np.inf
+    ymax_all_bursts = -np.inf
+    xmax_all_bursts = -np.inf
+    ymin_all_bursts = np.inf
+
+    # Check spacing in X direction
+    if x_spacing is not None and x_spacing <= 0:
+        err_str = 'Pixel spacing in X/longitude direction needs to be positive'
+        err_str += f' (x_spacing: {x_spacing})'
+        logger.error(err_str)
+        raise ValueError(err_str)
+
+    # Check spacing in Y direction
+    if y_spacing_positive is not None and y_spacing_positive <= 0:
+        err_str = 'Pixel spacing in Y/latitude direction needs to be positive'
+        err_str += f'(y_spacing: {y_spacing_positive})'
+        logger.error(err_str)
+        raise ValueError(err_str)
+    elif y_spacing_positive is not None:
+        y_spacing = - y_spacing_positive
+    else:
+        y_spacing = None
+
+    geogrids_dict = {}
+
+    # get all burst IDs and their EPSGs + bounding boxes
+    burst_ids = [str(b.burst_id) for b in bursts]
+    epsg_bbox_dict = burst_bboxes_from_db(burst_ids, burst_db_file)
+
+    for burst_id, burst_pol in bursts.items():
+        pol_list = list(burst_pol.keys())
+        burst = burst_pol[pol_list[0]]
+        if burst_id in geogrids_dict.keys():
+            continue
+
+        radar_grid = burst.as_isce3_radargrid()
+        orbit = burst.orbit
+
+        # extract EPSG and bbox for current burst from dict
+        # bottom right = (xmax, ymin) and top left = (xmin, ymax)
+        epsg, (xmin, ymin, xmax, ymax) = epsg_bbox_dict[burst_id]
+
+        if epsg != epsg_runconfig:
+            err_str = 'ERROR runconfig and burst-DB EPSG codes do not match:'
+            err_str += f' runconfig: {epsg_runconfig}.'
+            err_str += f' burst-DB: {epsg}'
+            logger.error(err_str)
+            raise NotImplementedError(err_str)
+
+        if x_spacing is None and epsg == 4326:
+            x_spacing = -0.00027
+        elif x_spacing is None:
+            x_spacing = -30
+
+        if y_spacing_positive is None and epsg == 4326:
+            y_spacing = -0.00027
+        elif y_spacing_positive is None:
+            y_spacing = -30
+
+        # Initialize geogrid with estimated boundaries
+        geogrid_burst = isce3.product.bbox_to_geogrid(
+            radar_grid, orbit, isce3.core.LUT2d(), x_spacing, y_spacing,
+            epsg)
+
+        width = int(np.ceil((xmax - xmin) / x_spacing))
+        length = int(np.ceil((ymin - ymax) / y_spacing))
+
+        geogrid_burst = isce3.product.GeoGridParameters(
+            xmin, ymax, x_spacing, y_spacing, width,
+            length, epsg)
+
+        # intersect burst geogrid with runconfig parameters
+        geogrid_burst = intersect_geogrid(
+            geogrid_burst, xmin_runconfig, ymax_runconfig, xmax_runconfig,
+            ymin_runconfig)
+
+        # Check snap values
+        check_snap_values(x_snap, y_snap, x_spacing, y_spacing)
+
+        # Snap coordinates
+        geogrid = snap_geogrid(geogrid_burst, x_snap, y_snap)
+
+        xmin_all_bursts = min([xmin_all_bursts, geogrid.start_x])
+        ymax_all_bursts = max([ymax_all_bursts, geogrid.start_y])
+        xmax_all_bursts = max([xmax_all_bursts,
+                                geogrid.start_x + geogrid.spacing_x *
+                                geogrid.width])
+        ymin_all_bursts = min([ymin_all_bursts,
+                                geogrid.start_y + geogrid.spacing_y *
+                                geogrid.length])
+
+        geogrids_dict[burst_id] = geogrid
+
+    # make sure that user's runconfig parameters have precedence
+    if xmin_runconfig is None:
+        xmin_all_bursts = xmin_runconfig
+    if ymax_runconfig is None:
+        ymax_all_bursts = ymax_runconfig
+    if xmax_runconfig is None:
+        xmax_all_bursts = xmax_runconfig
+    if ymin_runconfig is None:
+        ymin_all_bursts = ymin_runconfig
+
+    width_all = _grid_size(xmax_all_bursts, xmin_all_bursts, x_spacing)
+    length_all = _grid_size(ymin_all_bursts, ymax_all_bursts, y_spacing)
+    geogrid_all = isce3.product.GeoGridParameters(
+        xmin_all_bursts, ymax_all_bursts, x_spacing, y_spacing, width_all,
+        length_all, epsg)
+
+    # Check snap values
+    check_snap_values(x_snap, y_snap, x_spacing, y_spacing)
+
+    # Snap coordinates
+    geogrid_all = snap_geogrid(geogrid_all, x_snap, y_snap)
+    return geogrid_all, geogrids_dict
+
+
+
+
+
+
 def generate_geogrids(bursts, geo_dict, dem):
     '''
     Compute frame and bursts geogrids
@@ -291,19 +460,19 @@ def generate_geogrids(bursts, geo_dict, dem):
 
     # Unpack values from geocoding disctionary
     epsg = geo_dict['output_epsg']
-    x_start = geo_dict['top_left']['x']
-    y_start = geo_dict['top_left']['y']
+    xmin = geo_dict['top_left']['x']
+    ymax = geo_dict['top_left']['y']
     x_spacing = geo_dict['x_posting']
     y_spacing_positive = geo_dict['y_posting']
-    x_end = geo_dict['bottom_right']['x']
-    y_end = geo_dict['bottom_right']['y']
+    xmax = geo_dict['bottom_right']['x']
+    ymin = geo_dict['bottom_right']['y']
     x_snap = geo_dict['x_snap']
     y_snap = geo_dict['y_snap']
 
-    x_start_all_bursts = np.inf
-    y_start_all_bursts = -np.inf
-    x_end_all_bursts = -np.inf
-    y_end_all_bursts = np.inf
+    xmin_all_bursts = np.inf
+    ymax_all_bursts = -np.inf
+    xmax_all_bursts = -np.inf
+    ymin_all_bursts = np.inf
 
     # Compute burst EPSG if not assigned in runconfig
     if epsg is None:
@@ -354,25 +523,25 @@ def generate_geogrids(bursts, geo_dict, dem):
         orbit = burst.orbit
 
         geogrid_burst = None
-        if len(bursts) > 1 or None in [x_start, y_start, x_end, y_end]:
+        if len(bursts) > 1 or None in [xmin, ymax, xmax, ymin]:
             # Initialize geogrid with estimated boundaries
             geogrid_burst = isce3.product.bbox_to_geogrid(
                 radar_grid, orbit, isce3.core.LUT2d(), x_spacing, y_spacing,
                 epsg)
 
-            if len(bursts) == 1 and None in [x_start, y_start, x_end, y_end]:
+            if len(bursts) == 1 and None in [xmin, ymax, xmax, ymin]:
                 # Check and further initialize geogrid
                 geogrid_burst = assign_check_geogrid(
-                    geogrid_burst, x_start, y_start, x_end, y_end)
+                    geogrid_burst, xmin, ymax, xmax, ymin)
             geogrid_burst = intersect_geogrid(
-                geogrid_burst, x_start, y_start, x_end, y_end)
+                geogrid_burst, xmin, ymax, xmax, ymin)
         else:
             # If all the start/end coordinates have been assigned,
             # initialize the geogrid with them
-            width = _grid_size(x_end, x_start, x_spacing)
-            length = _grid_size(y_end, y_start, y_spacing)
+            width = _grid_size(xmax, xmin, x_spacing)
+            length = _grid_size(ymin, ymax, y_spacing)
             geogrid_burst = isce3.product.GeoGridParameters(
-                x_start, y_start, x_spacing, y_spacing, width, length,
+                xmin, ymax, x_spacing, y_spacing, width, length,
                 epsg)
 
         # Check snap values
@@ -380,30 +549,30 @@ def generate_geogrids(bursts, geo_dict, dem):
         # Snap coordinates
         geogrid = snap_geogrid(geogrid_burst, x_snap, y_snap)
 
-        x_start_all_bursts = min([x_start_all_bursts, geogrid.start_x])
-        y_start_all_bursts = max([y_start_all_bursts, geogrid.start_y])
-        x_end_all_bursts = max([x_end_all_bursts,
+        xmin_all_bursts = min([xmin_all_bursts, geogrid.start_x])
+        ymax_all_bursts = max([ymax_all_bursts, geogrid.start_y])
+        xmax_all_bursts = max([xmax_all_bursts,
                                 geogrid.start_x + geogrid.spacing_x *
                                 geogrid.width])
-        y_end_all_bursts = min([y_end_all_bursts,
+        ymin_all_bursts = min([ymin_all_bursts,
                                 geogrid.start_y + geogrid.spacing_y *
                                 geogrid.length])
 
         geogrids_dict[burst_id] = geogrid
 
-    if x_start is None:
-        x_start = x_start_all_bursts
-    if y_start is None:
-        y_start = y_start_all_bursts
-    if x_end is None:
-        x_end = x_end_all_bursts
-    if y_end is None:
-        y_end = y_end_all_bursts
+    if xmin is None:
+        xmin = xmin_all_bursts
+    if ymax is None:
+        ymax = ymax_all_bursts
+    if xmax is None:
+        xmax = xmax_all_bursts
+    if ymin is None:
+        ymin = ymin_all_bursts
 
-    width = _grid_size(x_end, x_start, x_spacing)
-    length = _grid_size(y_end, y_start, y_spacing)
+    width = _grid_size(xmax, xmin, x_spacing)
+    length = _grid_size(ymin, ymax, y_spacing)
     geogrid_all = isce3.product.GeoGridParameters(
-        x_start, y_start, x_spacing, y_spacing, width, length, epsg)
+        xmin, ymax, x_spacing, y_spacing, width, length, epsg)
 
     # Check snap values
     check_snap_values(x_snap, y_snap, x_spacing, y_spacing)

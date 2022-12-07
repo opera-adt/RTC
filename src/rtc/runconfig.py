@@ -13,7 +13,7 @@ from ruamel.yaml import YAML
 
 from rtc import helpers
 from rtc.radar_grid import file_to_rdr_grid
-from rtc.geogrid import generate_geogrids
+from rtc.geogrid import generate_geogrids, generate_geogrids_from_db
 from rtc.wrap_namespace import wrap_namespace, unwrap_to_dict
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from s1reader.s1_orbit import get_orbit_file_from_list
@@ -334,6 +334,15 @@ class RunConfig:
 
         # Load geogrids
         dem_file = groups_cfg['dynamic_ancillary_file_group']['dem_file']
+        burst_database_file = groups_cfg['dynamic_ancillary_file_group']['burst_database_file']
+        if burst_database_file is None:
+            geogrids = generate_geogrids(bursts, geocoding_dict, dem_file)
+        else:
+            geogrids = generate_geogrids_from_db(bursts, geocoding_dict,
+                                                 dem_file, burst_database_file)
+
+        # Load geogrids
+        dem_file = groups_cfg['dynamic_ancillary_file_group']['dem_file']
         geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict,
                                                   dem_file)
 
@@ -354,6 +363,10 @@ class RunConfig:
     @property
     def dem(self) -> str:
         return self.groups.dynamic_ancillary_file_group.dem_file
+
+    @property
+    def dem_description(self) -> str:
+        return self.groups.dynamic_ancillary_file_group.dem_description
 
     @property
     def is_reference(self) -> bool:

@@ -66,8 +66,8 @@ runconfig:
 
             # Options to run geo2rdr
             geo2rdr:
-                threshold: 1.0e-8
-                numiter: 25
+                threshold: 1.0e-7
+                numiter: 50
 
             # Options to run rdr2geo
             rdr2geo:
@@ -114,7 +114,7 @@ runconfig:
                 rtc_min_value_db: -40
 
                 # RTC DEM upsampling
-                dem_upsampling: 1
+                dem_upsampling: 2
 
             # Geocoding options
             geocoding:
