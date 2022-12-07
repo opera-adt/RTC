@@ -7,23 +7,53 @@ import logging
 from osgeo import gdal
 
 import isce3
+import shapely
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from rtc.runconfig import RunConfig
 
 from nisar.workflows.h5_prep import set_get_geo_info
 
-BASE_DS = f'/science/CSAR'
+BASE_DS = f'/science/SENTINEL1'
 FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
 FREQ_GRID_DS = f'{BASE_DS}/{FREQ_GRID_SUB_PATH}'
 
 logger = logging.getLogger('rtc_s1')
 
+def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
+    '''
+    Get WKT for butst's bounding polygon
+    It returns "POLYGON" when
+    there is only one polygon that defines the burst's border
+    It returns "MULTIPOLYGON" when
+    there is more than one polygon that defines the burst's border
+
+    Parameters:
+    -----------
+    burst_in: Sentinel1BurstSlc
+        Input burst
+
+    Return:
+    _ : str
+        "POLYGON" or "MULTIPOLYGON" in WKT
+        as the bounding polygon of the input burst
+        
+    '''
+
+    if len(burst_in.border) ==1:
+        geometry_polygon = burst_in.border[0]
+    else:
+        geometry_polygon = shapely.geometry.MultiPolygon(burst_in.border)
+    
+    return geometry_polygon.wkt
+
 
 def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                    clip_min, output_radiometry_str, output_file_list,
                    geogrid, pol_list, geo_burst_filename, nlooks_file,
-                   rtc_anf_file, radar_grid_file_dict):
+                   rtc_anf_file, layover_shadow_mask_file,
+                   radar_grid_file_dict,
+                   save_imagery=True):
 
     # save grids metadata
     h5_ds = os.path.join(FREQ_GRID_DS, 'listOfPolarizations')
@@ -38,6 +68,9 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     if h5_ds in hdf5_obj:
         del hdf5_obj[h5_ds]
     dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
+
+    if not save_imagery:
+        return
 
     # save geogrid coordinates
     yds, xds = set_get_geo_info(hdf5_obj, FREQ_GRID_DS, geogrid)
@@ -62,6 +95,14 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
         save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
                            yds, xds, 'areaNormalizationFactor',
                            long_name = 'RTC area factor',
+                           units = '',
+                           valid_min = 0)
+
+    # save layover shadow mask
+    if layover_shadow_mask_file:
+        save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, FREQ_GRID_DS,
+                           yds, xds, 'layoverShadowMask',
+                           long_name = 'Layover/shadow mask',
                            units = '',
                            valid_min = 0)
 
@@ -129,7 +170,12 @@ def populate_metadata_group(h5py_obj: h5py.File,
     '''
     orbit_files = [os.path.basename(f) for f in cfg_in.orbit_path]
     l1_slc_granules = [os.path.basename(f) for f in cfg_in.safe_files]
-    dem_files = [os.path.basename(cfg_in.dem)]
+
+    dem_description = cfg_in.dem_description
+
+    if not dem_description:
+        # If the DEM description is not provided, use DEM source
+        dem_description = os.path.basename(cfg_in.dem)
 
     # Manifests the field names, corresponding values from RTC workflow, and the description.
     # To extend this, add the lines with the format below:
@@ -141,7 +187,9 @@ def populate_metadata_group(h5py_obj: h5py.File,
         # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
-            [int(burst_in.burst_id.split('_')[1]), 'Track number'],
+            [burst_in.burst_id.esa_burst_id, 'Track number'],
+        'identification/boundingPolygon':
+            [get_polygon_wkt(burst_in), 'bounding polygon of Burst as WKT'],
         'identification/missionId':
             [burst_in.platform_id, 'Mission identifier'],
         # NOTE maybe `SLC` has to be sth. like RTC?
@@ -211,8 +259,8 @@ def populate_metadata_group(h5py_obj: h5py.File,
              'List of input calibration files used'],
         'RTC/metadata/processingInformation/inputs/configFiles':
             [cfg_in.run_config_path, 'List of input config files used'],
-        'RTC/metadata/processingInformation/inputs/demFiles':
-            [dem_files, 'List of input dem files used']
+        'RTC/metadata/processingInformation/inputs/demSource':
+            [dem_description, 'DEM source description']
     }
     for fieldname, data in dict_field_and_data.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)

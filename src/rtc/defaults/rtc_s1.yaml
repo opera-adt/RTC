@@ -1,147 +1,183 @@
 runconfig:
-  name: rtc_s1_workflow_default
+    name: rtc_s1_workflow_default
 
-  groups:
-      pge_name_group:
-          pge_name: RTC_S1_PGE
+    groups:
+        pge_name_group:
+            pge_name: RTC_S1_PGE
 
-      input_file_group:
-          # Required. List of SAFE files (min=1)
-          safe_file_path:
-          # Required. List of orbit (EOF) files (min=1)
-          orbit_file_path:
-          # Required. The unique burst ID to process
-          burst_id:
+        input_file_group:
+            # Required. List of SAFE files (min=1)
+            safe_file_path:
+            # Required. List of orbit (EOF) files (min=1)
+            orbit_file_path:
+            # Required. The unique burst ID to process
+            burst_id:
 
-      dynamic_ancillary_file_group:
-          # Digital elevation model
-          dem_file:
+        dynamic_ancillary_file_group:
+            # Digital elevation model
+            dem_file:
 
-      product_path_group:
-          # Directory where PGE will place results
-          product_path:
-          # Directory where SAS writes temporary data
-          scratch_path:
+            # Digital elevation model source description
+            dem_description:
 
-          # If option `mosaic_bursts` is not set, output files are saved to:
-          #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
-          # If option `mosaic_bursts` is set, output files are saved to:
-          #     {output_dir}/{product_id}{suffix}.{ext}
-          # If the field `product_id`` is left empty, the prefix "rtc_product"
-          # will be used instead.
-          # `suffix` is only used when there are multiple output files.
-          # `ext` is determined by geocoding_options.output_format.
-          output_dir:
-          product_id:
-          mosaic_bursts: False
+            # burst database sqlite file
+            burst_database_file:
 
-          # Format of output file
-          output_format: NETCDF
+        product_path_group:
+            # Directory where PGE will place results
+            product_path:
+            # Directory where SAS writes temporary data
+            scratch_path:
 
+            # If option `save_bursts` is set, output bursts are saved to:
+            #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
+            # If option `save_mosaics` is set, output mosaics are saved to:
+            #     {output_dir}/{product_id}{suffix}.{ext}
+            # If the field `product_id`` is left empty, the prefix "rtc_product"
+            # will be used instead.
+            # `suffix` is only used when there are multiple output files.
+            # `ext` is determined by geocoding_options.output_imagery_format.
+            output_dir:
+            product_id:
 
-      primary_executable:
-          product_type: RTC_S1
+            # RTC-S1 imagery
+            save_bursts: True
+            save_mosaics: False
+            output_imagery_format: COG
+            output_imagery_compression: DEFLATE
+            output_imagery_nbits: 16
 
-      processing:
-          polarization:
-          geo2rdr:
-              threshold: 1.0e-8
-              numiter: 25
+            # Save RTC-S1 metadata in the HDF5 format
+            # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
+            # 'COG', and enabled by default for `output_imagery_format` equal
+            # to 'HDF5' or 'NETCDF'
+            save_metadata: True
 
-          dem_interpolation_method: biquintic
+        primary_executable:
+            product_type: RTC_S1
 
-          # Apply absolute radiometric correction
-          apply_absolute_radiometric_correction: True
+        processing:
+
+            # Check if ancillary input cover entirely output products
+            check_ancillary_inputs_coverage: True
+
+            # Polarization channels to process. 
+            polarization:
+
+            # Options to run geo2rdr
+            geo2rdr:
+                threshold: 1.0e-7
+                numiter: 50
+
+            # Options to run rdr2geo
+            rdr2geo:
+                threshold: 1.0e-7
+                numiter: 25
+
+            # DEM interpolation method
+            dem_interpolation_method: biquintic
+
+            # Apply absolute radiometric correction
+            apply_absolute_radiometric_correction: True
  
-          # Apply thermal noise correction
-          apply_thermal_noise_correction: True
+            # Apply thermal noise correction
+            apply_thermal_noise_correction: True
 
-          # OPTIONAL - Apply RTC
-          apply_rtc: True
+            # OPTIONAL - Apply RTC
+            apply_rtc: True
+
+            # Apply bistatic delay correction
+            apply_bistatic_delay_correction: True
+
+            # Apply dry tropospheric delay correction
+            apply_dry_tropospheric_delay_correction: True
  
-          # OPTIONAL - to control behavior of RTC module
-          # (only applicable if geocode.apply_rtc is True)
-          rtc:
-              # OPTIONAL - Choices:
-              # "gamma0" (default)
-              # "sigma0"
-              output_type: gamma0
+            # OPTIONAL - to control behavior of RTC module
+            # (only applicable if geocode.apply_rtc is True)
+            rtc:
+                # OPTIONAL - Choices:
+                # "gamma0" (default)
+                # "sigma0"
+                output_type: gamma0
 
-              # OPTIONAL - Choices:
-              # "bilinear_distribution" (default)
-              # "area_projection"
-              algorithm_type: area_projection
+                # OPTIONAL - Choices:
+                # "bilinear_distribution" (default)
+                # "area_projection"
+                algorithm_type: area_projection
 
-              # OPTIONAL - Choices:
-              # "beta0" (default)
-              # "sigma0"
-              input_terrain_radiometry: beta0
+                # OPTIONAL - Choices:
+                # "beta0" (default)
+                # "sigma0"
+                input_terrain_radiometry: beta0
 
-              # OPTIONAL - Minimum RTC area factor in dB
-              rtc_min_value_db:
+                # OPTIONAL - Minimum RTC area factor in dB
+                rtc_min_value_db: -40
 
-              # RTC DEM upsampling
-              dem_upsampling: 1
+                # RTC DEM upsampling
+                dem_upsampling: 2
 
-          # Geocoding options
-          geocoding:
+            # Geocoding options
+            geocoding:
 
-              # OPTIONAL - Algorithm type, area projection or
-              # interpolation: sinc, bilinear, bicubic, nearest, and biquintic
-              algorithm_type: area_projection
+                # OPTIONAL - Algorithm type, area projection or
+                # interpolation: sinc, bilinear, bicubic, nearest, and biquintic
+                algorithm_type: area_projection
     
-              # OPTIONAL - Choices: "single_block", "geogrid", "geogrid_and_radargrid", and "auto" (default)
-              memory_mode:
+                # OPTIONAL - Choices: "single_block", "geogrid", "geogrid_and_radargrid", and "auto" (default)
+                memory_mode:
 
-              # OPTIONAL - Processing upsampling factor applied to input geogrid
-              geogrid_upsampling: 1
+                # OPTIONAL - Processing upsampling factor applied to input geogrid
+                geogrid_upsampling: 1
 
-              # Save the incidence angle
-              save_incidence_angle: False
+                # Save the incidence angle
+                save_incidence_angle: False
 
-              # Save the local-incidence angle
-              save_local_inc_angle: False
+                # Save the local-incidence angle
+                save_local_inc_angle: False
 
-              # Save the projection angle
-              save_projection_angle: False
+                # Save the projection angle
+                save_projection_angle: False
 
-              # Save the RTC area normalization factor (ANF) computed with
-              # the projection angle method
-              save_rtc_anf_psi: False
+                # Save the RTC area normalization factor (ANF) computed with
+                # the projection angle method
+                save_rtc_anf_psi: False
 
-              # Save the range slope angle
-              save_range_slope: False
+                # Save the range slope angle
+                save_range_slope: False
 
-              # Save the number of looks used to generate the RTC product
-              save_nlooks: True
+                # Save the number of looks used to generate the RTC product
+                save_nlooks: True
               
-              # Save the RTC area normalization factor (ANF) used to generate
-              # the RTC product
-              save_rtc_anf: True
+                # Save the RTC area normalization factor (ANF) used to generate
+                # the RTC product
+                save_rtc_anf: True
 
-              # Save the interpolated DEM used to generate the RTC product
-              save_dem: False
+                # Save the interpolated DEM used to generate the RTC product
+                save_dem: False
 
-              # OPTIONAL - Absolute radiometric correction
-              abs_rad_cal: 1
+                # Save layover shadow mask
+                save_layover_shadow_mask: True
 
-              # OPTIONAL - Clip values above threshold
-              clip_max:
+                # OPTIONAL - Absolute radiometric correction
+                abs_rad_cal: 1
 
-              # OPTIONAL - Clip values below threshold
-              clip_min:
+                # OPTIONAL - Clip values above threshold
+                clip_max:
 
-              # Double SLC sampling in the range direction
-              upsample_radargrid: False
+                # OPTIONAL - Clip values below threshold
+                clip_min:
 
-              output_epsg:
-              x_posting: 30
-              y_posting: 30
-              x_snap: 30
-              y_snap: 30
-              top_left:
-                  x:
-                  y:
-              bottom_right:
-                  x:
-                  y:
+                # Double SLC sampling in the range direction
+                upsample_radargrid: False
+
+                output_epsg:
+                x_posting: 30
+                y_posting: 30
+                x_snap: 30
+                y_snap: 30
+                top_left:
+                    x:
+                    y:
+                bottom_right:
+                    x:
+                    y:
