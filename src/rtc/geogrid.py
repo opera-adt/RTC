@@ -338,7 +338,7 @@ def generate_geogrids_from_db(bursts, geo_dict, dem, burst_db_file):
     geogrids_dict = {}
 
     # get all burst IDs and their EPSGs + bounding boxes
-    burst_ids = [str(b.burst_id) for b in bursts]
+    burst_ids = [b[0] for b in bursts]
     epsg_bbox_dict = burst_bboxes_from_db(burst_ids, burst_db_file)
 
     for burst_id, burst_pol in bursts.items():
