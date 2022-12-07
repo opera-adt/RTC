@@ -82,6 +82,11 @@ def _separate_pol_channels(multi_band_file, output_file_list, logger,
               Logger
     """
     gdal_ds = gdal.Open(multi_band_file, gdal.GA_ReadOnly)
+    description = gdal_ds.GetDescription()
+    projection = gdal_ds.GetProjectionRef()
+    geotransform = gdal_ds.GetGeoTransform()
+    metadata = gdal_ds.GetMetadata()
+
     num_bands = gdal_ds.RasterCount
     if num_bands != len(output_file_list):
         error_str = (f'ERROR number of output files ({len(output_file_list)})'
@@ -99,6 +104,12 @@ def _separate_pol_channels(multi_band_file, output_file_list, logger,
         raster_out = driver_out.Create(
             output_file, band_image.shape[1],
             band_image.shape[0], 1, gdal_dtype)
+
+        raster_out.SetDescription(description)
+        raster_out.SetProjection(projection)
+        raster_out.SetGeoTransform(geotransform)
+        raster_out.SetMetadata(metadata)
+
         band_out = raster_out.GetRasterBand(1)
         band_out.WriteArray(band_image)
         band_out.FlushCache()
@@ -325,15 +336,15 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
 
 
-def run(cfg):
+def run(cfg: RunConfig):
     '''
     Run geocode burst workflow with user-defined
     args stored in dictionary runconfig `cfg`
 
     Parameters
     ---------
-    cfg: dict
-        Dictionary with user runconfig options
+    cfg: RunConfig
+        RunConfig object with user runconfig options
     '''
 
     # Start tracking processing time
