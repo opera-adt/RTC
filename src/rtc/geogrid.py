@@ -338,7 +338,7 @@ def generate_geogrids_from_db(bursts, geo_dict, dem, burst_db_file):
     geogrids_dict = {}
 
     # get all burst IDs and their EPSGs + bounding boxes
-    burst_ids = [b[0] for b in bursts]
+    burst_ids = [b for b in bursts]
     epsg_bbox_dict = burst_bboxes_from_db(burst_ids, burst_db_file)
 
     for burst_id, burst_pol in bursts.items():
@@ -354,7 +354,7 @@ def generate_geogrids_from_db(bursts, geo_dict, dem, burst_db_file):
         # bottom right = (xmax, ymin) and top left = (xmin, ymax)
         epsg, (xmin, ymin, xmax, ymax) = epsg_bbox_dict[burst_id]
 
-        if epsg != epsg_runconfig:
+        if epsg_runconfig and epsg != epsg_runconfig:
             err_str = 'ERROR runconfig and burst-DB EPSG codes do not match:'
             err_str += f' runconfig: {epsg_runconfig}.'
             err_str += f' burst-DB: {epsg}'
@@ -406,13 +406,13 @@ def generate_geogrids_from_db(bursts, geo_dict, dem, burst_db_file):
         geogrids_dict[burst_id] = geogrid
 
     # make sure that user's runconfig parameters have precedence
-    if xmin_runconfig is None:
+    if xmin_runconfig is not None:
         xmin_all_bursts = xmin_runconfig
-    if ymax_runconfig is None:
+    if ymax_runconfig is not None:
         ymax_all_bursts = ymax_runconfig
-    if xmax_runconfig is None:
+    if xmax_runconfig is not None:
         xmax_all_bursts = xmax_runconfig
-    if ymin_runconfig is None:
+    if ymin_runconfig is not None:
         ymin_all_bursts = ymin_runconfig
 
     width_all = _grid_size(xmax_all_bursts, xmin_all_bursts, x_spacing)
