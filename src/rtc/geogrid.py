@@ -301,7 +301,7 @@ def generate_geogrids_from_db(bursts, geo_dict, dem, burst_db_file):
     # TODO use `dem_raster` to update `epsg`, if not provided in the runconfig
     # dem_raster = isce3.io.Raster(dem)
 
-    # Unpack values from geocoding disctionary
+    # Unpack values from geocoding dictionary
     epsg_runconfig = geo_dict['output_epsg']
     xmin_runconfig = geo_dict['top_left']['x']
     ymax_runconfig = geo_dict['top_left']['y']
@@ -458,7 +458,7 @@ def generate_geogrids(bursts, geo_dict, dem):
     # TODO use `dem_raster` to update `epsg`, if not provided in the runconfig
     # dem_raster = isce3.io.Raster(dem)
 
-    # Unpack values from geocoding disctionary
+    # Unpack values from geocoding dictionary
     epsg = geo_dict['output_epsg']
     xmin = geo_dict['top_left']['x']
     ymax = geo_dict['top_left']['y']
