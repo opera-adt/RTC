@@ -14,9 +14,9 @@ from rtc.runconfig import RunConfig
 
 from nisar.workflows.h5_prep import set_get_geo_info
 
-BASE_DS = f'/science/SENTINEL1'
+BASE_HDF5_DATASET = f'/science/SENTINEL1'
 FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
-FREQ_GRID_DS = f'{BASE_DS}/{FREQ_GRID_SUB_PATH}'
+FREQ_GRID_DS = f'{BASE_HDF5_DATASET}/{FREQ_GRID_SUB_PATH}'
 
 logger = logging.getLogger('rtc_s1')
 
@@ -126,7 +126,8 @@ def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
     populate_metadata_group(hdf5_obj, burst, cfg)
 
     # save orbit
-    orbit_group = hdf5_obj.require_group(f'{BASE_DS}/RTC/metadata/orbit')
+    orbit_group = hdf5_obj.require_group(
+        f'{BASE_HDF5_DATASET}/RTC/metadata/orbit')
     save_orbit(orbit, orbit_group)
     return hdf5_obj
 
@@ -154,7 +155,7 @@ def save_orbit(orbit, orbit_group):
 def populate_metadata_group(h5py_obj: h5py.File,
                             burst_in: Sentinel1BurstSlc,
                             cfg_in: RunConfig,
-                            root_path: str = BASE_DS):
+                            root_path: str = BASE_HDF5_DATASET):
     '''Populate RTC metadata based on Sentinel1BurstSlc and RunConfig
 
     Parameters:

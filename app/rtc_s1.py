@@ -21,8 +21,7 @@ from rtc.geogrid import snap_coord
 from rtc.runconfig import RunConfig
 from rtc.mosaic_geobursts import compute_weighted_mosaic_raster, compute_weighted_mosaic_raster_single_band
 from rtc.core import create_logger, save_as_cog
-from rtc.h5_prep import save_hdf5_file, create_hdf5_file, \
-    save_hdf5_dataset, BASE_DS
+from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
 
 logger = logging.getLogger('rtc_s1')
 
@@ -278,9 +277,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     
     # Run topo to get layover shadow mask
     dem_raster = isce3.io.Raster(path_dem)
-    epsg = dem_raster.get_epsg()
-    proj = isce3.core.make_projection(epsg)
-    ellipsoid = proj.ellipsoid
+    ellipsoid = isce3.core.Ellipsoid()
 
     Rdr2Geo = isce3.geometry.Rdr2Geo
 
@@ -490,9 +487,7 @@ def run(cfg: RunConfig):
 
     # Common initializations
     dem_raster = isce3.io.Raster(cfg.dem)
-    epsg = dem_raster.get_epsg()
-    proj = isce3.core.make_projection(epsg)
-    ellipsoid = proj.ellipsoid
+    ellipsoid = isce3.core.Ellipsoid()
     zero_doppler = isce3.core.LUT2d()
     threshold = cfg.geo2rdr_params.threshold
     maxiter = cfg.geo2rdr_params.numiter
@@ -959,8 +954,8 @@ def run(cfg: RunConfig):
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
 
-            sensing_start_ds = f'{BASE_DS}/identification/zeroDopplerStartTime'
-            sensing_end_ds = f'{BASE_DS}/identification/zeroDopplerEndTime'
+            sensing_start_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
+            sensing_end_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
             del hdf5_obj[sensing_start_ds]
             del hdf5_obj[sensing_end_ds]
             hdf5_obj[sensing_start_ds] = \

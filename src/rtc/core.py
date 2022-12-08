@@ -125,7 +125,7 @@ def save_as_cog(filename, scratch_dir = '.', logger = None,
         gdal_translate_options += [f'NBITS={nbits}']
 
         # suppress type casting errors
-        gdal_translate_options += [f"CPL_LOG='/dev/null'"]
+        gdal.SetConfigOption('CPL_LOG', '/dev/null')
 
     gdal.Translate(temp_file, filename,
                    creationOptions=gdal_translate_options)
