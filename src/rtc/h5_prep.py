@@ -190,12 +190,12 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/trackNumber':
             [burst_in.burst_id.esa_burst_id, 'Track number'],
         'identification/boundingPolygon':
-            [get_polygon_wkt(burst_in), 'bounding polygon of Burst as WKT'],
+            [get_polygon_wkt(burst_in),
+            'OGR compatible WKT representation of bounding polygon of the image'],
         'identification/missionId':
             [burst_in.platform_id, 'Mission identifier'],
-        # NOTE maybe `SLC` has to be sth. like RTC?
         'identification/productType':
-            ['SLC', 'Product type'],
+            ['RTC-S1', 'Product type'],
         # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'identification/lookDirection':
             ['Right', 'Look direction can be left or right'],
