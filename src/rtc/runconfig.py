@@ -334,7 +334,7 @@ class RunConfig:
 
         # Load geogrids
         dem_file = groups_cfg['dynamic_ancillary_file_group']['dem_file']
-        burst_database_file = groups_cfg['dynamic_ancillary_file_group']['burst_database_file']
+        burst_database_file = groups_cfg['static_ancillary_file_group']['burst_database_file']
         if burst_database_file is None:
             geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict, dem_file)
         else:
