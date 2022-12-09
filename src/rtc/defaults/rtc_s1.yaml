@@ -10,7 +10,7 @@ runconfig:
             safe_file_path:
             # Required. List of orbit (EOF) files (min=1)
             orbit_file_path:
-            # Optional. Unique burst ID to process (empty to process all bursts)
+            # Optional. Burst ID to process (empty for all bursts)
             burst_id:
 
         dynamic_ancillary_file_group:
