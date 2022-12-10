@@ -53,7 +53,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                    geogrid, pol_list, geo_burst_filename, nlooks_file,
                    rtc_anf_file, layover_shadow_mask_file,
                    radar_grid_file_dict,
-                   save_imagery=True):
+                   save_imagery=True, save_secondary_layers=True):
 
     # save grids metadata
     h5_ds = os.path.join(FREQ_GRID_DS, 'listOfPolarizations')
@@ -69,46 +69,48 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
         del hdf5_obj[h5_ds]
     dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
 
-    if not save_imagery:
-        return
+
 
     # save geogrid coordinates
     yds, xds = set_get_geo_info(hdf5_obj, FREQ_GRID_DS, geogrid)
 
-    # save RTC imagery
-    save_hdf5_dataset(geo_burst_filename, hdf5_obj, FREQ_GRID_DS,
-                       yds, xds, pol_list,
-                       long_name=output_radiometry_str,
-                       units='',
-                       valid_min=clip_min,
-                       valid_max=clip_max)
-    # save nlooks
-    if nlooks_file:
-        save_hdf5_dataset(nlooks_file, hdf5_obj, FREQ_GRID_DS,
-                           yds, xds, 'numberOfLooks',
-                           long_name = 'number of looks',
-                           units = '',
-                           valid_min = 0)
+    if save_imagery:
+        # save RTC imagery
+        save_hdf5_dataset(geo_burst_filename, hdf5_obj, FREQ_GRID_DS,
+                           yds, xds, pol_list,
+                           long_name=output_radiometry_str,
+                           units='',
+                           valid_min=clip_min,
+                           valid_max=clip_max)
 
-    # save rtc
-    if rtc_anf_file:
-        save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
-                           yds, xds, 'areaNormalizationFactor',
-                           long_name = 'RTC area factor',
-                           units = '',
-                           valid_min = 0)
+    if save_secondary_layers:
+        # save nlooks
+        if nlooks_file:
+            save_hdf5_dataset(nlooks_file, hdf5_obj, FREQ_GRID_DS,
+                               yds, xds, 'numberOfLooks',
+                               long_name = 'number of looks',
+                               units = '',
+                               valid_min = 0)
 
-    # save layover shadow mask
-    if layover_shadow_mask_file:
-        save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, FREQ_GRID_DS,
-                           yds, xds, 'layoverShadowMask',
-                           long_name = 'Layover/shadow mask',
-                           units = '',
-                           valid_min = 0)
+        # save rtc
+        if rtc_anf_file:
+            save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
+                               yds, xds, 'areaNormalizationFactor',
+                               long_name = 'RTC area factor',
+                               units = '',
+                               valid_min = 0)
 
-    for ds_hdf5, filename in radar_grid_file_dict.items():
-         save_hdf5_dataset(filename, hdf5_obj, FREQ_GRID_DS, yds, xds, ds_hdf5,
-                            long_name = '', units = '')
+        # save layover shadow mask
+        if layover_shadow_mask_file:
+            save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, FREQ_GRID_DS,
+                               yds, xds, 'layoverShadowMask',
+                               long_name = 'Layover/shadow mask',
+                               units = '',
+                               valid_min = 0)
+
+        for ds_hdf5, filename in radar_grid_file_dict.items():
+             save_hdf5_dataset(filename, hdf5_obj, FREQ_GRID_DS, yds, xds, ds_hdf5,
+                                long_name = '', units = '')
 
     logger.info(f'file saved: {output_hdf5_file}')
     output_file_list.append(output_hdf5_file)

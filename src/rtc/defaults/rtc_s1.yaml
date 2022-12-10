@@ -49,11 +49,16 @@ runconfig:
             output_imagery_compression: ZSTD
             output_imagery_nbits: 16
 
+            # Optional. Save secondary layers (e.g., inc. angle) within 
+            # the HDF5 file
+            save_secondary_layers_as_hdf5: True
+
             # Save RTC-S1 metadata in the HDF5 format
             # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
             # 'COG', and enabled by default for `output_imagery_format` equal
-            # to 'HDF5' or 'NETCDF'
+            # to 'HDF5' or 'NETCDF' or `save_secondary_layers_as_hdf5` is True
             save_metadata: True
+
 
         primary_executable:
             product_type: RTC_S1
@@ -148,11 +153,11 @@ runconfig:
                 save_range_slope: False
 
                 # Save the number of looks used to generate the RTC product
-                save_nlooks: True
+                save_nlooks: False
               
                 # Save the RTC area normalization factor (ANF) used to generate
                 # the RTC product
-                save_rtc_anf: True
+                save_rtc_anf: False
 
                 # Save the interpolated DEM used to generate the RTC product
                 save_dem: False

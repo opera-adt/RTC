@@ -401,7 +401,12 @@ def run(cfg: RunConfig):
 
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
-    save_metadata = cfg.groups.product_path_group.save_metadata
+    save_secondary_layers_as_hdf5 = \
+        cfg.groups.product_path_group.save_secondary_layers_as_hdf5
+
+    save_metadata = (cfg.groups.product_path_group.save_metadata or
+                     save_imagery_as_hdf5 or
+                     save_secondary_layers_as_hdf5)
 
     if output_imagery_format == 'NETCDF':
         hdf5_file_extension = 'nc'
@@ -544,6 +549,8 @@ def run(cfg: RunConfig):
 
         flag_bursts_files_are_temporary = (not save_bursts or
                                            save_imagery_as_hdf5)
+        flag_bursts_secondary_files_are_temporary = (
+            not save_bursts or save_secondary_layers_as_hdf5)
 
         burst_scratch_path = f'{scratch_path}/{burst_id}/'
         os.makedirs(burst_scratch_path, exist_ok=True)
@@ -658,7 +665,7 @@ def run(cfg: RunConfig):
         if save_nlooks:
             nlooks_file = (f'{bursts_output_dir}/{product_id}'
                            f'_nlooks.{imagery_extension}')
-            if flag_bursts_files_are_temporary:
+            if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
             else:
                 output_file_list.append(nlooks_file)
@@ -672,7 +679,7 @@ def run(cfg: RunConfig):
         if save_rtc_anf:
             rtc_anf_file = (f'{bursts_output_dir}/{product_id}'
                f'_rtc_anf.{imagery_extension}')
-            if flag_bursts_files_are_temporary:
+            if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
             else:
                 output_file_list.append(rtc_anf_file)
@@ -779,7 +786,7 @@ def run(cfg: RunConfig):
                                 threshold_geo2rdr=cfg.geo2rdr_params.threshold,
                                 numiter_geo2rdr=cfg.geo2rdr_params.numiter)
             
-            if flag_bursts_files_are_temporary:
+            if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
             else:
                 output_file_list.append(layover_shadow_mask_file)
@@ -813,13 +820,13 @@ def run(cfg: RunConfig):
 
         if save_nlooks:
             del out_geo_nlooks_obj
-            if not flag_bursts_files_are_temporary:
+            if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
     
         if save_rtc_anf:
             del out_geo_rtc_obj
-            if not flag_bursts_files_are_temporary:
+            if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
             output_metadata_dict['rtc'][1].append(rtc_anf_file)
 
@@ -833,8 +840,8 @@ def run(cfg: RunConfig):
                 save_range_slope, save_dem,
                 dem_raster, radar_grid_file_dict,
                 mosaic_geogrid_dict, orbit,
-                verbose = not flag_bursts_files_are_temporary)
-            if save_imagery_as_hdf5:
+                verbose = not flag_bursts_secondary_files_are_temporary)
+            if flag_bursts_secondary_files_are_temporary:
                 # files are temporary
                 temp_files_list += list(radar_grid_file_dict.values())
             else:
@@ -853,7 +860,8 @@ def run(cfg: RunConfig):
                 geogrid, pol_list, geo_burst_filename, nlooks_file,
                 rtc_anf_file, layover_shadow_mask_file,
                 radar_grid_file_dict,
-                save_imagery = save_imagery_as_hdf5)
+                save_imagery = save_imagery_as_hdf5,
+                save_secondary_layers = save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
 
         # Create mosaic HDF5 
@@ -871,7 +879,7 @@ def run(cfg: RunConfig):
     if flag_call_radar_grid and save_mosaics:
         radar_grid_file_dict = {}
 
-        if save_imagery_as_hdf5:
+        if save_secondary_layers_as_hdf5:
             radar_grid_output_dir = scratch_path
         else:
             radar_grid_output_dir = output_dir
@@ -963,13 +971,15 @@ def run(cfg: RunConfig):
             hdf5_obj[sensing_end_ds] = \
                 sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f')
 
-            save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc,
-                           clip_max, clip_min, output_radiometry_str,
-                           output_file_list, cfg.geogrid, pol_list,
-                           geo_filename, nlooks_mosaic_file,
-                           rtc_anf_mosaic_file, layover_shadow_mask_file,
-                           radar_grid_file_dict,
-                           save_imagery = save_imagery_as_hdf5)
+            save_hdf5_file(
+                hdf5_obj, output_hdf5_file, flag_apply_rtc,
+                clip_max, clip_min, output_radiometry_str,
+                output_file_list, cfg.geogrid, pol_list,
+                geo_filename, nlooks_mosaic_file,
+                rtc_anf_mosaic_file, layover_shadow_mask_file,
+                radar_grid_file_dict,
+                save_imagery = save_imagery_as_hdf5,
+                save_secondary_layers = save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
 
     if output_imagery_format == 'COG':
