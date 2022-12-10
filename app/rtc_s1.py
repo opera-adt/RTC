@@ -863,7 +863,7 @@ def run(cfg: RunConfig):
             hdf5_obj = create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg)
             save_hdf5_file(
                 hdf5_obj, output_hdf5_file_burst, flag_apply_rtc,
-                clip_max, clip_min, output_radiometry_str, output_file_list,
+                clip_max, clip_min, output_radiometry_str,
                 geogrid, pol_list, geo_burst_filename, nlooks_file,
                 rtc_anf_file, layover_shadow_mask_file,
                 radar_grid_file_dict,
@@ -915,18 +915,13 @@ def run(cfg: RunConfig):
                  f'{imagery_extension}')
             logger.info(f'    {geo_pol_filename}')
             output_imagery_filename_list.append(geo_pol_filename)
-        if save_imagery_as_hdf5:
-            temp_files_list += output_imagery_filename_list
-        else:
-            output_file_list += output_imagery_filename_list
 
-        output_imagery_filename_list = []
         nlooks_list = output_metadata_dict['nlooks'][1]
         compute_weighted_mosaic_raster_single_band(
             output_imagery_list, nlooks_list,
             output_imagery_filename_list, cfg.geogrid, verbose=False)
 
-        if save_secondary_layers_as_hdf5 or not save_nlooks:
+        if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
         else:
             output_file_list += output_imagery_filename_list
@@ -937,10 +932,20 @@ def run(cfg: RunConfig):
             logger.info(f'mosaicking file: {output_file}')
             compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
                             cfg.geogrid, verbose=False)
-            if save_secondary_layers_as_hdf5:
+
+
+
+
+            # TODO: Remove nlooks exception below
+            if (save_secondary_layers_as_hdf5 or
+                    (key == 'nlooks' and not save_nlooks)):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
+
+
+
+
 
         # Save HDF5
         if save_imagery_as_hdf5 or save_metadata:
@@ -984,13 +989,11 @@ def run(cfg: RunConfig):
             save_hdf5_file(
                 hdf5_obj, output_hdf5_file, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str,
-                output_file_list, cfg.geogrid, pol_list,
-                geo_filename, nlooks_mosaic_file,
+                cfg.geogrid, pol_list, geo_filename, nlooks_mosaic_file,
                 rtc_anf_mosaic_file, layover_shadow_mask_file,
-                radar_grid_file_dict,
-                save_imagery = save_imagery_as_hdf5,
+                radar_grid_file_dict, save_imagery = save_imagery_as_hdf5,
                 save_secondary_layers = save_secondary_layers_as_hdf5)
-            output_file_list.append(output_hdf5_file_burst)
+            output_file_list.append(output_hdf5_file)
 
     if output_imagery_format == 'COG':
         logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')

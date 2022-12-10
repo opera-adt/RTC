@@ -49,7 +49,7 @@ def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
 
 
 def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
-                   clip_min, output_radiometry_str, output_file_list,
+                   clip_min, output_radiometry_str,
                    geogrid, pol_list, geo_burst_filename, nlooks_file,
                    rtc_anf_file, layover_shadow_mask_file,
                    radar_grid_file_dict,
@@ -113,7 +113,6 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                                 long_name = '', units = '')
 
     logger.info(f'file saved: {output_hdf5_file}')
-    output_file_list.append(output_hdf5_file)
 
 
 def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
