@@ -55,7 +55,7 @@ runconfig:
 
             # Save RTC-S1 metadata in the HDF5 format
             # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
-            # 'COG', and enabled by default if `output_imagery_format` equal
+            # 'COG', and enabled by default for `output_imagery_format` equal
             # to 'HDF5' or 'NETCDF' or `save_secondary_layers_as_hdf5` is True
             save_metadata: bool(required=False)
 

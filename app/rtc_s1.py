@@ -915,7 +915,12 @@ def run(cfg: RunConfig):
                  f'{imagery_extension}')
             logger.info(f'    {geo_pol_filename}')
             output_imagery_filename_list.append(geo_pol_filename)
+        if save_imagery_as_hdf5:
+            temp_files_list += output_imagery_filename_list
+        else:
+            output_file_list += output_imagery_filename_list
 
+        output_imagery_filename_list = []
         nlooks_list = output_metadata_dict['nlooks'][1]
         compute_weighted_mosaic_raster_single_band(
             output_imagery_list, nlooks_list,
