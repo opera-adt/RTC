@@ -499,26 +499,33 @@ def run(cfg: RunConfig):
     exponent = 1 if (flag_apply_thermal_noise_correction or
                      flag_apply_abs_rad_correction) else 2
 
-    # output mosaics
+    # output mosaics variables
     geo_filename = f'{output_dir}/'f'{product_id}.{imagery_extension}'
     output_imagery_list = []
     output_file_list = []
     output_metadata_dict = {}
 
+    # output dir (imagery mosaics)
     if save_imagery_as_hdf5:
         output_dir_mosaic_raster = scratch_path
     else:
         output_dir_mosaic_raster = output_dir
 
+    # output dir (secondary layers mosaics)
+    if save_secondary_layers_as_hdf5:
+        output_dir_sec_mosaic_raster = scratch_path
+    else:
+        output_dir_sec_mosaic_raster = output_dir
+
     _add_output_to_output_metadata_dict(
         save_layover_shadow_mask, 'layover_shadow_mask',
-        output_dir_mosaic_raster,
+        output_dir_sec_mosaic_raster,
         output_metadata_dict, product_id, imagery_extension)
     _add_output_to_output_metadata_dict(
-        save_nlooks, 'nlooks', output_dir_mosaic_raster,
+        save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_id, imagery_extension)
     _add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc', output_dir_mosaic_raster,
+        save_rtc_anf, 'rtc', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_id, imagery_extension)
 
     mosaic_geogrid_dict = {}
@@ -909,14 +916,12 @@ def run(cfg: RunConfig):
             logger.info(f'    {geo_pol_filename}')
             output_imagery_filename_list.append(geo_pol_filename)
 
-        # geo_filename = f'{output_dir_mosaic_raster}/{product_id}.{imagery_extension}'
-
         nlooks_list = output_metadata_dict['nlooks'][1]
         compute_weighted_mosaic_raster_single_band(
             output_imagery_list, nlooks_list,
             output_imagery_filename_list, cfg.geogrid, verbose=False)
 
-        if save_imagery_as_hdf5:
+        if save_secondary_layers_as_hdf5 or not save_nlooks:
             temp_files_list += output_imagery_filename_list
         else:
             output_file_list += output_imagery_filename_list
@@ -927,7 +932,7 @@ def run(cfg: RunConfig):
             logger.info(f'mosaicking file: {output_file}')
             compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
                             cfg.geogrid, verbose=False)
-            if save_imagery_as_hdf5:
+            if save_secondary_layers_as_hdf5:
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
