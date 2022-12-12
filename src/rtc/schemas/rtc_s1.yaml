@@ -25,7 +25,7 @@ runconfig:
             # burst database sqlite file
             burst_database_file: str(required=False)
 
-        output_product_group:
+        output_group:
             # Directory where PGE will place results
             product_path: str()
             # Directory where SAS can write temporary data
