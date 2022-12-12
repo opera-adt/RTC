@@ -129,11 +129,11 @@ def validate_group_dict(group_cfg: dict, workflow_name) -> None:
     helpers.check_file_path(dem_path)
     helpers.check_dem(dem_path)
 
-    # Check 'product_path_group' section of runconfig.
+    # Check 'output_product_group' section of runconfig.
     # Check that directories herein have writing permissions
-    product_path_group = group_cfg['product_path_group']
-    helpers.check_write_dir(product_path_group['product_path'])
-    helpers.check_write_dir(product_path_group['scratch_path'])
+    output_product_group = group_cfg['output_product_group']
+    helpers.check_write_dir(output_product_group['product_path'])
+    helpers.check_write_dir(output_product_group['scratch_path'])
 
 
 def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
@@ -378,7 +378,7 @@ class RunConfig:
 
     @property
     def product_path(self):
-        return self.groups.product_path_group.product_path
+        return self.groups.output_product_group.product_path
 
     @property
     def reference_path(self) -> str:
@@ -406,11 +406,11 @@ class RunConfig:
 
     @property
     def product_id(self):
-        return self.groups.product_path_group.product_id
+        return self.groups.output_product_group.product_id
 
     @property
     def scratch_path(self):
-        return self.groups.product_path_group.scratch_path
+        return self.groups.output_product_group.scratch_path
 
     @property
     def gpu_enabled(self):
