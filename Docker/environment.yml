@@ -9,9 +9,6 @@ dependencies:
   - gdal
   - gmock
   - gtest
-  - gcc_linux-64 < 10
-  - gxx_linux-64 < 10
-  - gfortran_linux-64
   - h5py
   - hdf5
   - libgcc-ng
@@ -26,3 +23,4 @@ dependencies:
   - shapely
   - yamale
   - backoff
+  - isce3=0.9.0
