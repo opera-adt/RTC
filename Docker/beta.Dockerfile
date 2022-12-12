@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 LABEL author="OPERA ADT" \
       description="RTC interface release" \
-      version="interface_0.1"
+      version="beta_0.2"
 
 RUN apt-get -y update &&\
     apt-get -y install curl zip make &&\
