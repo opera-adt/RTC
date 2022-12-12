@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 
 LABEL author="OPERA ADT" \
-      description="RTC interface release" \
+      description="RTC beta release" \
       version="beta_0.2"
 
 RUN apt-get -y update &&\
