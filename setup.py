@@ -23,7 +23,7 @@ setup(
     scripts = ['app/rtc_s1.py'],
     install_requires = ['argparse', 'numpy', 'yamale',
                        'scipy', 'pytest', 'requests',
-                       'sqlite3', 'pyproj', 'shapely'],
+                       'pyproj', 'shapely'],
     url = 'https://github.com/opera-adt/RTC',
     author = ('Gustavo H. X. Shiroma', 'Seongsu Jeong'),
     author_email = ('gustavo.h.shiroma@jpl.nasa.gov, seongsu.jeong@jpl.nasa.gov'),
