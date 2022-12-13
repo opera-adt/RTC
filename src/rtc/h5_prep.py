@@ -178,11 +178,21 @@ def populate_metadata_group(h5py_obj: h5py.File,
     root_path: str
         Root path inside the HDF5 object on which the metadata will be placed
     '''
+
+    # orbit files
     orbit_files = [os.path.basename(f) for f in cfg_in.orbit_path]
+
+    # L1 SLC granules
     l1_slc_granules = [os.path.basename(f) for f in cfg_in.safe_files]
 
-    processing_type = cfg_in.groups.primary_executable.processing_type
+    # processing type
+    processing_type = cfg_in.groups.product_group.processing_type
 
+    # product version
+    product_version_float = cfg_in.groups.product_group.product_version
+    product_version = f'{product_version_float:.1f}'
+
+    # DEM description
     dem_description = cfg_in.dem_description
 
     if not dem_description:
@@ -231,6 +241,8 @@ def populate_metadata_group(h5py_obj: h5py.File,
             [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
         'identification/processingType':
             [processing_type, 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+        'identification/productVersion':
+            [product_version, 'Product version'],
         # 'identification/frameNumber':  # TBD
         # 'identification/productVersion': # Defined by RTC SAS
         # 'identification/plannedDatatakeId':
@@ -264,7 +276,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'RTC/metadata/processingInformation/algorithms/ISCEVersion':
             [isce3.__version__, 'ISCE version used for processing'],
         'RTC/metadata/processingInformation/algorithms/RTCVersion':
-            [__version__, 'RTC-S1 SAS version used for processing'],
+            [str(__version__), 'RTC-S1 SAS version used for processing'],
         'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
             [release_version, 'S1-Reader version used for processing'],
 

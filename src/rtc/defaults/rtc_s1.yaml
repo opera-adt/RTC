@@ -25,7 +25,7 @@ runconfig:
             # burst database sqlite file
             burst_database_file:
 
-        output_group:
+        product_group:
             # Directory where PGE will place results
             product_path:
             # Directory where SAS writes temporary data
@@ -63,6 +63,8 @@ runconfig:
             product_type: RTC_S1
 
             processing_type: UNDEFINED
+
+            product_version:
 
         processing:
 

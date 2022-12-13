@@ -28,9 +28,12 @@ runconfig:
         primary_executable:
             product_type: enum('RTC_S1')
 
+        product_group:
+
             processing_type: enum('NOMINAL', 'URGENT', 'CUSTOM', 'UNDEFINED', required=False)
 
-        output_group:
+            product_version: num(required=False)
+
             # Directory where PGE will place results
             product_path: str()
             # Directory where SAS can write temporary data

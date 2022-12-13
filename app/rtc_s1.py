@@ -349,7 +349,10 @@ def run(cfg: RunConfig):
     time_stamp = str(float(time.time()))
     logger.info("Starting the RTC-S1 Science Application Software (SAS)")
 
-    processing_type = cfg.groups.primary_executable.processing_type
+    # primary executable
+    processing_type = cfg.groups.product_group.processing_type
+    product_version_float = cfg.groups.product_group.product_version
+    product_version = f'{product_version_float:.1f}'
 
     # unpack processing parameters
     processing_namespace = cfg.groups.processing
@@ -362,17 +365,17 @@ def run(cfg: RunConfig):
         processing_namespace.apply_absolute_radiometric_correction
 
     # read product path group / output format
-    product_id = cfg.groups.output_group.product_id
+    product_id = cfg.groups.product_group.product_id
     if product_id is None:
         product_id = 'rtc_product'
 
     scratch_path = os.path.join(
-        cfg.groups.output_group.scratch_path, f'temp_{time_stamp}')
-    output_dir = cfg.groups.output_group.output_dir
+        cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
+    output_dir = cfg.groups.product_group.output_dir
 
     # RTC-S1 imagery
-    save_bursts = cfg.groups.output_group.save_bursts
-    save_mosaics = cfg.groups.output_group.save_mosaics
+    save_bursts = cfg.groups.product_group.save_bursts
+    save_mosaics = cfg.groups.product_group.save_mosaics
 
     if not save_bursts and not save_mosaics:
         err_msg = (f"ERROR either `save_bursts` or `save_mosaics` needs to be"
@@ -380,14 +383,16 @@ def run(cfg: RunConfig):
         raise ValueError(err_msg)
 
     output_imagery_format = \
-        cfg.groups.output_group.output_imagery_format
+        cfg.groups.product_group.output_imagery_format
     output_imagery_compression = \
-        cfg.groups.output_group.output_imagery_compression
+        cfg.groups.product_group.output_imagery_compression
     output_imagery_nbits = \
-        cfg.groups.output_group.output_imagery_nbits
+        cfg.groups.product_group.output_imagery_nbits
 
     logger.info(f'Processing parameters:')
     logger.info(f'    processing type: {processing_type}')
+    logger.info(f'    product version: {product_version}')
+    logger.info(f'')
     logger.info(f'    apply RTC: {flag_apply_rtc}')
     logger.info(f'    apply thermal noise correction:'
                 f' {flag_apply_thermal_noise_correction}')
@@ -405,9 +410,9 @@ def run(cfg: RunConfig):
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
     save_secondary_layers_as_hdf5 = \
-        cfg.groups.output_group.save_secondary_layers_as_hdf5
+        cfg.groups.product_group.save_secondary_layers_as_hdf5
 
-    save_metadata = (cfg.groups.output_group.save_metadata or
+    save_metadata = (cfg.groups.product_group.save_metadata or
                      save_imagery_as_hdf5 or
                      save_secondary_layers_as_hdf5)
 
