@@ -17,7 +17,7 @@ USER rtc_user
 ENV CONDA_PREFIX=/home/rtc_user/miniconda3
 
 
-#Install conda and 
+# Install conda and RTC
 WORKDIR /home/rtc_user
 RUN curl -sSL https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh &&\
     bash miniconda.sh -b -p ${CONDA_PREFIX} &&\
@@ -33,10 +33,10 @@ SHELL ["conda", "run", "-n", "RTC", "/bin/bash", "-c"]
 
 RUN echo "Installing OPERA s1-reader and RTC" &&\
     cd $HOME/OPERA &&\
-    curl -sSL https://github.com/seongsujeong/s1-reader/archive/refs/tags/v0.1.4-beta.temp.zip -o s1_reader.zip &&\
+    curl -sSL https://github.com/opera-adt/s1-reader/archive/refs/tags/v0.1.3.zip -o s1_reader.zip &&\
     unzip s1_reader.zip &&\
-    chmod -R 755 s1-reader-0.1.4-beta.temp &&\
-    ln -s s1-reader-0.1.4-beta.temp s1-reader &&\
+    chmod -R 755 s1-reader-0.1.3 &&\
+    ln -s s1-reader-0.1.3 s1-reader &&\
     rm s1_reader.zip &&\
     python -m pip install ./s1-reader &&\
     python -m pip install ./RTC &&\
