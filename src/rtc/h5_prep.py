@@ -209,7 +209,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
-            [burst_in.burst_id.esa_burst_id, 'Track number'],
+            [burst_in.burst_id.track_number, 'Track number'],
         'identification/burstID':
             [str(burst_in.burst_id), 'Burst identification (burst ID)'],
         'identification/boundingPolygon':
