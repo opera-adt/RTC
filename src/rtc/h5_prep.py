@@ -145,6 +145,9 @@ def save_orbit(orbit, orbit_group):
     orbit_group["velocity"].attrs["description"] = np.string_("Velocity vector"
         " record. This record contains the platform velocity data with"
         " respect to WGS84 G1762 reference frame")
+    orbit_group.create_dataset(
+        'referenceEpoch',
+        data=np.string_(orbit.reference_epoch.isoformat()))
 
     # Orbit source/type
     # TODO: Update orbit type:
