@@ -392,7 +392,6 @@ def run(cfg: RunConfig):
     logger.info(f'Processing parameters:')
     logger.info(f'    processing type: {processing_type}')
     logger.info(f'    product version: {product_version}')
-    logger.info(f'')
     logger.info(f'    apply RTC: {flag_apply_rtc}')
     logger.info(f'    apply thermal noise correction:'
                 f' {flag_apply_thermal_noise_correction}')

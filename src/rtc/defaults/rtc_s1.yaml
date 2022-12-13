@@ -26,6 +26,11 @@ runconfig:
             burst_database_file:
 
         product_group:
+
+            processing_type: UNDEFINED
+
+            product_version: 0.2
+
             # Directory where PGE will place results
             product_path:
             # Directory where SAS writes temporary data
@@ -61,10 +66,6 @@ runconfig:
 
         primary_executable:
             product_type: RTC_S1
-
-            processing_type: UNDEFINED
-
-            product_version:
 
         processing:
 
