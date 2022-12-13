@@ -190,6 +190,8 @@ def populate_metadata_group(h5py_obj: h5py.File,
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
             [burst_in.burst_id.esa_burst_id, 'Track number'],
+        'identification/burstID':
+            [str(burst_in.burst_id), 'Burst identification (burst ID)'],
         'identification/boundingPolygon':
             [get_polygon_wkt(burst_in),
             'OGR compatible WKT representation of bounding polygon of the image'],

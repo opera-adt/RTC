@@ -82,7 +82,7 @@ rdr2geo_options:
 # Group of processing options
 processing_options:
 
-   # Check if ancillary input cover entirely output products
+   # Check if ancillary inputs cover entirely the output product
    check_ancillary_inputs_coverage: bool(required=False)
 
    # Polarization channels to process. 3 modes below correspond to VV, VH, VV+VH
