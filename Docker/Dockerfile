@@ -17,7 +17,7 @@ USER rtc_user
 ENV CONDA_PREFIX=/home/rtc_user/miniconda3
 
 
-#Install conda and RTC
+# Install conda and RTC
 WORKDIR /home/rtc_user
 RUN curl -sSL https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -o miniconda.sh &&\
     bash miniconda.sh -b -p ${CONDA_PREFIX} &&\
