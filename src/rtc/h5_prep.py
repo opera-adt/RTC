@@ -10,9 +10,14 @@ import isce3
 import shapely
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
+from s1reader.version import release_version
 from rtc.runconfig import RunConfig
 
 from nisar.workflows.h5_prep import set_get_geo_info
+
+# Version: BETA v0.2
+__version__ = 0.2
+
 
 BASE_HDF5_DATASET = f'/science/SENTINEL1'
 FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
@@ -176,6 +181,8 @@ def populate_metadata_group(h5py_obj: h5py.File,
     orbit_files = [os.path.basename(f) for f in cfg_in.orbit_path]
     l1_slc_granules = [os.path.basename(f) for f in cfg_in.safe_files]
 
+    processing_type = cfg_in.groups.primary_executable.processing_type
+
     dem_description = cfg_in.dem_description
 
     if not dem_description:
@@ -223,7 +230,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/diagnosticModeFlag':
             [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
         'identification/processingType':
-            ['UNDEFINED', 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+            [processing_type, 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
         # 'identification/frameNumber':  # TBD
         # 'identification/productVersion': # Defined by RTC SAS
         # 'identification/plannedDatatakeId':
@@ -256,6 +263,10 @@ def populate_metadata_group(h5py_obj: h5py.File,
             'Radiometric terrain correction (RTC) algorithm'],
         'RTC/metadata/processingInformation/algorithms/ISCEVersion':
             [isce3.__version__, 'ISCE version used for processing'],
+        'RTC/metadata/processingInformation/algorithms/RTCVersion':
+            [__version__, 'RTC-S1 SAS version used for processing'],
+        'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
+            [release_version, 's1-reader version used for processing'],
 
         'RTC/metadata/processingInformation/inputs/l1SlcGranules':
             [l1_slc_granules, 'List of input L1 RSLC products used'],
