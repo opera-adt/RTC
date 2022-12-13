@@ -9,11 +9,17 @@ RUN apt-get -y update &&\
     adduser --disabled-password rtc_user
 
 # TODO downlaod the source code from the release. Not from the local
-RUN mkdir -p /home/rtc_user/OPERA/RTC
-COPY . /home/rtc_user/OPERA/RTC
+USER rtc_user
+
+RUN mkdir -p /home/rtc_user/OPERA &&\
+    cd /home/rtc_user/OPERA &&\
+    curl -sSL https://github.com/seongsujeong/RTC/archive/refs/tags/v0.2.0-beta.zip -o rtc.zip &&\
+    unzip rtc.zip &&\
+    ln -s RTC-0.2.0-beta RTC
+
 RUN chmod -R 755 /home/rtc_user &&\
     chown -R rtc_user:rtc_user /home/rtc_user/OPERA
-USER rtc_user 
+
 
 ENV CONDA_PREFIX=/home/rtc_user/miniconda3
 
@@ -33,7 +39,6 @@ SHELL ["conda", "run", "-n", "RTC", "/bin/bash", "-c"]
 
 
 RUN echo "Installing OPERA s1-reader and RTC" &&\
-    mkdir -p $HOME/OPERA &&\
     cd $HOME/OPERA &&\
     curl -sSL https://github.com/seongsujeong/s1-reader/archive/refs/tags/v0.1.4-beta.temp.zip -o s1_reader.zip &&\
     unzip s1_reader.zip &&\
@@ -41,9 +46,9 @@ RUN echo "Installing OPERA s1-reader and RTC" &&\
     ln -s s1-reader-0.1.4-beta.temp s1-reader &&\
     rm s1_reader.zip &&\
     python -m pip install ./s1-reader &&\
-    cd $HOME/OPERA &&\
-    pip install ./RTC &&\
+    python -m pip install ./RTC &&\
     mkdir /home/rtc_user/scratch &&\
+    chmod -R 755 /home/rtc_user/scratch &&\
     echo 'conda activate RTC' >>/home/rtc_user/.bashrc
 
 WORKDIR /home/rtc_user/scratch
