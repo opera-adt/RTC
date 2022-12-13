@@ -25,16 +25,24 @@ runconfig:
             # burst database sqlite file
             burst_database_file: str(required=False)
 
-        output_group:
+        primary_executable:
+            product_type: enum('RTC_S1')
+
+        product_group:
+
+            processing_type: enum('NOMINAL', 'URGENT', 'CUSTOM', 'UNDEFINED', required=False)
+
+            product_version: num(required=False)
+
             # Directory where PGE will place results
             product_path: str()
             # Directory where SAS can write temporary data
             scratch_path: str()
 
             # If option `save_bursts` is set, output bursts are saved to:
-            #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
+            #     {output_dir}/{burst_id}/{product_id}_v{product_version}{suffix}.{ext}
             # If option `save_mosaics` is set, output mosaics are saved to:
-            #     {output_dir}/{product_id}{suffix}.{ext}
+            #     {output_dir}/{product_id}_v{product_version}{suffix}.{ext}
             # If the field `product_id`` is left empty, the prefix "rtc_product"
             # will be used instead.
             # `suffix` is only used when there are multiple output files.
@@ -59,9 +67,6 @@ runconfig:
             # to 'HDF5' or 'NETCDF' or `save_secondary_layers_as_hdf5` is True
             save_metadata: bool(required=False)
 
-        primary_executable:
-            product_type: enum('RTC_S1')
-
         # This section includes parameters to tweak the workflow
         processing: include('processing_options', required=False)
 
@@ -82,7 +87,7 @@ rdr2geo_options:
 # Group of processing options
 processing_options:
 
-   # Check if ancillary input cover entirely output products
+   # Check if ancillary inputs cover entirely the output product
    check_ancillary_inputs_coverage: bool(required=False)
 
    # Polarization channels to process. 3 modes below correspond to VV, VH, VV+VH

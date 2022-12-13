@@ -25,16 +25,21 @@ runconfig:
             # burst database sqlite file
             burst_database_file:
 
-        output_group:
+        product_group:
+
+            processing_type: UNDEFINED
+
+            product_version: 0.2
+
             # Directory where PGE will place results
             product_path:
             # Directory where SAS writes temporary data
             scratch_path:
 
             # If option `save_bursts` is set, output bursts are saved to:
-            #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
+            #     {output_dir}/{burst_id}/{product_id}_v{product_version}{suffix}.{ext}
             # If option `save_mosaics` is set, output mosaics are saved to:
-            #     {output_dir}/{product_id}{suffix}.{ext}
+            #     {output_dir}/{product_id}_v{product_version}{suffix}.{ext}
             # If the field `product_id`` is left empty, the prefix "rtc_product"
             # will be used instead.
             # `suffix` is only used when there are multiple output files.
@@ -59,13 +64,12 @@ runconfig:
             # to 'HDF5' or 'NETCDF' or `save_secondary_layers_as_hdf5` is True
             save_metadata: True
 
-
         primary_executable:
             product_type: RTC_S1
 
         processing:
 
-            # Check if ancillary input cover entirely output products
+            # Check if ancillary inputs cover entirely the output product
             check_ancillary_inputs_coverage: True
 
             # Polarization channels to process. 

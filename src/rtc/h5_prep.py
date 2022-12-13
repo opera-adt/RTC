@@ -10,9 +10,14 @@ import isce3
 import shapely
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
+from s1reader.version import release_version
 from rtc.runconfig import RunConfig
 
 from nisar.workflows.h5_prep import set_get_geo_info
+
+# Version: BETA v0.2
+__version__ = 0.2
+
 
 BASE_HDF5_DATASET = f'/science/SENTINEL1'
 FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
@@ -145,6 +150,9 @@ def save_orbit(orbit, orbit_group):
     orbit_group["velocity"].attrs["description"] = np.string_("Velocity vector"
         " record. This record contains the platform velocity data with"
         " respect to WGS84 G1762 reference frame")
+    orbit_group.create_dataset(
+        'referenceEpoch',
+        data=np.string_(orbit.reference_epoch.isoformat()))
 
     # Orbit source/type
     # TODO: Update orbit type:
@@ -170,9 +178,21 @@ def populate_metadata_group(h5py_obj: h5py.File,
     root_path: str
         Root path inside the HDF5 object on which the metadata will be placed
     '''
+
+    # orbit files
     orbit_files = [os.path.basename(f) for f in cfg_in.orbit_path]
+
+    # L1 SLC granules
     l1_slc_granules = [os.path.basename(f) for f in cfg_in.safe_files]
 
+    # processing type
+    processing_type = cfg_in.groups.product_group.processing_type
+
+    # product version
+    product_version_float = cfg_in.groups.product_group.product_version
+    product_version = f'{product_version_float:.1f}'
+
+    # DEM description
     dem_description = cfg_in.dem_description
 
     if not dem_description:
@@ -189,7 +209,9 @@ def populate_metadata_group(h5py_obj: h5py.File,
         # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
-            [burst_in.burst_id.esa_burst_id, 'Track number'],
+            [burst_in.burst_id.track_number, 'Track number'],
+        'identification/burstID':
+            [str(burst_in.burst_id), 'Burst identification (burst ID)'],
         'identification/boundingPolygon':
             [get_polygon_wkt(burst_in),
             'OGR compatible WKT representation of bounding polygon of the image'],
@@ -218,7 +240,9 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/diagnosticModeFlag':
             [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
         'identification/processingType':
-            ['UNDEFINED', 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+            [processing_type, 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+        'identification/productVersion':
+            [product_version, 'Product version'],
         # 'identification/frameNumber':  # TBD
         # 'identification/productVersion': # Defined by RTC SAS
         # 'identification/plannedDatatakeId':
@@ -251,6 +275,10 @@ def populate_metadata_group(h5py_obj: h5py.File,
             'Radiometric terrain correction (RTC) algorithm'],
         'RTC/metadata/processingInformation/algorithms/ISCEVersion':
             [isce3.__version__, 'ISCE version used for processing'],
+        'RTC/metadata/processingInformation/algorithms/RTCVersion':
+            [str(__version__), 'RTC-S1 SAS version used for processing'],
+        'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
+            [release_version, 'S1-Reader version used for processing'],
 
         'RTC/metadata/processingInformation/inputs/l1SlcGranules':
             [l1_slc_granules, 'List of input L1 RSLC products used'],
