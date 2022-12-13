@@ -349,6 +349,8 @@ def run(cfg: RunConfig):
     time_stamp = str(float(time.time()))
     logger.info("Starting the RTC-S1 Science Application Software (SAS)")
 
+    processing_type = cfg.groups.primary_executable.processing_type
+
     # unpack processing parameters
     processing_namespace = cfg.groups.processing
     dem_interp_method_enum = \
@@ -385,6 +387,7 @@ def run(cfg: RunConfig):
         cfg.groups.output_group.output_imagery_nbits
 
     logger.info(f'Processing parameters:')
+    logger.info(f'    processing type: {processing_type}')
     logger.info(f'    apply RTC: {flag_apply_rtc}')
     logger.info(f'    apply thermal noise correction:'
                 f' {flag_apply_thermal_noise_correction}')

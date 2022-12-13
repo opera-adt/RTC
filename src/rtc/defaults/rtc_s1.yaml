@@ -59,9 +59,10 @@ runconfig:
             # to 'HDF5' or 'NETCDF' or `save_secondary_layers_as_hdf5` is True
             save_metadata: True
 
-
         primary_executable:
             product_type: RTC_S1
+
+            processing_type: UNDEFINED
 
         processing:
 
