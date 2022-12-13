@@ -266,7 +266,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'RTC/metadata/processingInformation/algorithms/RTCVersion':
             [__version__, 'RTC-S1 SAS version used for processing'],
         'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
-            [release_version, 's1-reader version used for processing'],
+            [release_version, 'S1-Reader version used for processing'],
 
         'RTC/metadata/processingInformation/inputs/l1SlcGranules':
             [l1_slc_granules, 'List of input L1 RSLC products used'],
