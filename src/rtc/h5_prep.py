@@ -7,23 +7,58 @@ import logging
 from osgeo import gdal
 
 import isce3
+import shapely
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
+from s1reader.version import release_version
 from rtc.runconfig import RunConfig
 
 from nisar.workflows.h5_prep import set_get_geo_info
 
-BASE_DS = f'/science/CSAR'
+# Version: BETA v0.2
+__version__ = 0.2
+
+
+BASE_HDF5_DATASET = f'/science/SENTINEL1'
 FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
-FREQ_GRID_DS = f'{BASE_DS}/{FREQ_GRID_SUB_PATH}'
+FREQ_GRID_DS = f'{BASE_HDF5_DATASET}/{FREQ_GRID_SUB_PATH}'
 
 logger = logging.getLogger('rtc_s1')
 
+def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
+    '''
+    Get WKT for butst's bounding polygon
+    It returns "POLYGON" when
+    there is only one polygon that defines the burst's border
+    It returns "MULTIPOLYGON" when
+    there is more than one polygon that defines the burst's border
+
+    Parameters:
+    -----------
+    burst_in: Sentinel1BurstSlc
+        Input burst
+
+    Return:
+    _ : str
+        "POLYGON" or "MULTIPOLYGON" in WKT
+        as the bounding polygon of the input burst
+        
+    '''
+
+    if len(burst_in.border) ==1:
+        geometry_polygon = burst_in.border[0]
+    else:
+        geometry_polygon = shapely.geometry.MultiPolygon(burst_in.border)
+    
+    return geometry_polygon.wkt
+
 
 def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
-                   clip_min, output_radiometry_str, output_file_list,
+                   clip_min, output_radiometry_str,
                    geogrid, pol_list, geo_burst_filename, nlooks_file,
-                   rtc_anf_file, radar_grid_file_dict):
+                   rtc_anf_file, layover_shadow_mask_file,
+                   radar_grid_file_dict,
+                   save_imagery=True, save_secondary_layers=True):
 
     # save grids metadata
     h5_ds = os.path.join(FREQ_GRID_DS, 'listOfPolarizations')
@@ -39,38 +74,50 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
         del hdf5_obj[h5_ds]
     dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
 
+
+
     # save geogrid coordinates
     yds, xds = set_get_geo_info(hdf5_obj, FREQ_GRID_DS, geogrid)
 
-    # save RTC imagery
-    save_hdf5_dataset(geo_burst_filename, hdf5_obj, FREQ_GRID_DS,
-                       yds, xds, pol_list,
-                       long_name=output_radiometry_str,
-                       units='',
-                       valid_min=clip_min,
-                       valid_max=clip_max)
-    # save nlooks
-    if nlooks_file:
-        save_hdf5_dataset(nlooks_file, hdf5_obj, FREQ_GRID_DS,
-                           yds, xds, 'numberOfLooks',
-                           long_name = 'number of looks',
-                           units = '',
-                           valid_min = 0)
+    if save_imagery:
+        # save RTC imagery
+        save_hdf5_dataset(geo_burst_filename, hdf5_obj, FREQ_GRID_DS,
+                           yds, xds, pol_list,
+                           long_name=output_radiometry_str,
+                           units='',
+                           valid_min=clip_min,
+                           valid_max=clip_max)
 
-    # save rtc
-    if rtc_anf_file:
-        save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
-                           yds, xds, 'areaNormalizationFactor',
-                           long_name = 'RTC area factor',
-                           units = '',
-                           valid_min = 0)
+    if save_secondary_layers:
+        # save nlooks
+        if nlooks_file:
+            save_hdf5_dataset(nlooks_file, hdf5_obj, FREQ_GRID_DS,
+                               yds, xds, 'numberOfLooks',
+                               long_name = 'number of looks',
+                               units = '',
+                               valid_min = 0)
 
-    for ds_hdf5, filename in radar_grid_file_dict.items():
-         save_hdf5_dataset(filename, hdf5_obj, FREQ_GRID_DS, yds, xds, ds_hdf5,
-                            long_name = '', units = '')
+        # save rtc
+        if rtc_anf_file:
+            save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
+                               yds, xds, 'areaNormalizationFactor',
+                               long_name = 'RTC area factor',
+                               units = '',
+                               valid_min = 0)
+
+        # save layover shadow mask
+        if layover_shadow_mask_file:
+            save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, FREQ_GRID_DS,
+                               yds, xds, 'layoverShadowMask',
+                               long_name = 'Layover/shadow mask',
+                               units = '',
+                               valid_min = 0)
+
+        for ds_hdf5, filename in radar_grid_file_dict.items():
+             save_hdf5_dataset(filename, hdf5_obj, FREQ_GRID_DS, yds, xds, ds_hdf5,
+                                long_name = '', units = '')
 
     logger.info(f'file saved: {output_hdf5_file}')
-    output_file_list.append(output_hdf5_file)
 
 
 def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
@@ -85,7 +132,8 @@ def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
     populate_metadata_group(hdf5_obj, burst, cfg)
 
     # save orbit
-    orbit_group = hdf5_obj.require_group(f'{BASE_DS}/RTC/metadata/orbit')
+    orbit_group = hdf5_obj.require_group(
+        f'{BASE_HDF5_DATASET}/RTC/metadata/orbit')
     save_orbit(orbit, orbit_group)
     return hdf5_obj
 
@@ -102,6 +150,9 @@ def save_orbit(orbit, orbit_group):
     orbit_group["velocity"].attrs["description"] = np.string_("Velocity vector"
         " record. This record contains the platform velocity data with"
         " respect to WGS84 G1762 reference frame")
+    orbit_group.create_dataset(
+        'referenceEpoch',
+        data=np.string_(orbit.reference_epoch.isoformat()))
 
     # Orbit source/type
     # TODO: Update orbit type:
@@ -113,7 +164,7 @@ def save_orbit(orbit, orbit_group):
 def populate_metadata_group(h5py_obj: h5py.File,
                             burst_in: Sentinel1BurstSlc,
                             cfg_in: RunConfig,
-                            root_path: str = BASE_DS):
+                            root_path: str = BASE_HDF5_DATASET):
     '''Populate RTC metadata based on Sentinel1BurstSlc and RunConfig
 
     Parameters:
@@ -127,9 +178,26 @@ def populate_metadata_group(h5py_obj: h5py.File,
     root_path: str
         Root path inside the HDF5 object on which the metadata will be placed
     '''
+
+    # orbit files
     orbit_files = [os.path.basename(f) for f in cfg_in.orbit_path]
+
+    # L1 SLC granules
     l1_slc_granules = [os.path.basename(f) for f in cfg_in.safe_files]
-    dem_files = [os.path.basename(cfg_in.dem)]
+
+    # processing type
+    processing_type = cfg_in.groups.product_group.processing_type
+
+    # product version
+    product_version_float = cfg_in.groups.product_group.product_version
+    product_version = f'{product_version_float:.1f}'
+
+    # DEM description
+    dem_description = cfg_in.dem_description
+
+    if not dem_description:
+        # If the DEM description is not provided, use DEM source
+        dem_description = os.path.basename(cfg_in.dem)
 
     # Manifests the field names, corresponding values from RTC workflow, and the description.
     # To extend this, add the lines with the format below:
@@ -141,12 +209,16 @@ def populate_metadata_group(h5py_obj: h5py.File,
         # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
-            [int(burst_in.burst_id.split('_')[1]), 'Track number'],
+            [burst_in.burst_id.track_number, 'Track number'],
+        'identification/burstID':
+            [str(burst_in.burst_id), 'Burst identification (burst ID)'],
+        'identification/boundingPolygon':
+            [get_polygon_wkt(burst_in),
+            'OGR compatible WKT representation of bounding polygon of the image'],
         'identification/missionId':
             [burst_in.platform_id, 'Mission identifier'],
-        # NOTE maybe `SLC` has to be sth. like RTC?
         'identification/productType':
-            ['SLC', 'Product type'],
+            ['RTC-S1', 'Product type'],
         # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'identification/lookDirection':
             ['Right', 'Look direction can be left or right'],
@@ -168,7 +240,9 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/diagnosticModeFlag':
             [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
         'identification/processingType':
-            ['UNDEFINED', 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+            [processing_type, 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+        'identification/productVersion':
+            [product_version, 'Product version'],
         # 'identification/frameNumber':  # TBD
         # 'identification/productVersion': # Defined by RTC SAS
         # 'identification/plannedDatatakeId':
@@ -201,6 +275,10 @@ def populate_metadata_group(h5py_obj: h5py.File,
             'Radiometric terrain correction (RTC) algorithm'],
         'RTC/metadata/processingInformation/algorithms/ISCEVersion':
             [isce3.__version__, 'ISCE version used for processing'],
+        'RTC/metadata/processingInformation/algorithms/RTCVersion':
+            [str(__version__), 'RTC-S1 SAS version used for processing'],
+        'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
+            [release_version, 'S1-Reader version used for processing'],
 
         'RTC/metadata/processingInformation/inputs/l1SlcGranules':
             [l1_slc_granules, 'List of input L1 RSLC products used'],
@@ -211,8 +289,8 @@ def populate_metadata_group(h5py_obj: h5py.File,
              'List of input calibration files used'],
         'RTC/metadata/processingInformation/inputs/configFiles':
             [cfg_in.run_config_path, 'List of input config files used'],
-        'RTC/metadata/processingInformation/inputs/demFiles':
-            [dem_files, 'List of input dem files used']
+        'RTC/metadata/processingInformation/inputs/demSource':
+            [dem_description, 'DEM source description']
     }
     for fieldname, data in dict_field_and_data.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)

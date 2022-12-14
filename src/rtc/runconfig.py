@@ -13,7 +13,7 @@ from ruamel.yaml import YAML
 
 from rtc import helpers
 from rtc.radar_grid import file_to_rdr_grid
-from rtc.geogrid import generate_geogrids
+from rtc.geogrid import generate_geogrids, generate_geogrids_from_db
 from rtc.wrap_namespace import wrap_namespace, unwrap_to_dict
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from s1reader.s1_orbit import get_orbit_file_from_list
@@ -129,11 +129,11 @@ def validate_group_dict(group_cfg: dict, workflow_name) -> None:
     helpers.check_file_path(dem_path)
     helpers.check_dem(dem_path)
 
-    # Check 'product_path_group' section of runconfig.
+    # Check 'product_group' section of runconfig.
     # Check that directories herein have writing permissions
-    product_path_group = group_cfg['product_path_group']
-    helpers.check_write_dir(product_path_group['product_path'])
-    helpers.check_write_dir(product_path_group['scratch_path'])
+    product_group = group_cfg['product_group']
+    helpers.check_write_dir(product_group['product_path'])
+    helpers.check_write_dir(product_group['scratch_path'])
 
 
 def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
@@ -193,7 +193,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
             for burst in load_bursts(safe_file, orbit_path, i_subswath, pol,
                                      flag_apply_eap=False):
                 # get burst ID
-                burst_id = burst.burst_id
+                burst_id = str(burst.burst_id)
 
                 # is burst_id wanted? skip if not given in config
                 if (not cfg.input_file_group.burst_id is None and
@@ -334,9 +334,14 @@ class RunConfig:
 
         # Load geogrids
         dem_file = groups_cfg['dynamic_ancillary_file_group']['dem_file']
-        geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict,
-                                                  dem_file)
+        burst_database_file = groups_cfg['static_ancillary_file_group']['burst_database_file']
+        if burst_database_file is None:
+            geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict, dem_file)
+        else:
+            geogrid_all, geogrids = generate_geogrids_from_db(bursts, geocoding_dict,
+                                                 dem_file, burst_database_file)
 
+        
         # Empty reference dict for base runconfig class constructor
         empty_ref_dict = {}
 
@@ -356,6 +361,10 @@ class RunConfig:
         return self.groups.dynamic_ancillary_file_group.dem_file
 
     @property
+    def dem_description(self) -> str:
+        return self.groups.dynamic_ancillary_file_group.dem_description
+
+    @property
     def is_reference(self) -> bool:
         return self.groups.input_file_group.reference_burst.is_reference
 
@@ -369,7 +378,7 @@ class RunConfig:
 
     @property
     def product_path(self):
-        return self.groups.product_path_group.product_path
+        return self.groups.product_group.product_path
 
     @property
     def reference_path(self) -> str:
@@ -397,11 +406,11 @@ class RunConfig:
 
     @property
     def product_id(self):
-        return self.groups.product_path_group.product_id
+        return self.groups.product_group.product_id
 
     @property
     def scratch_path(self):
-        return self.groups.product_path_group.scratch_path
+        return self.groups.product_group.scratch_path
 
     @property
     def gpu_enabled(self):
@@ -425,7 +434,7 @@ class RunConfig:
                 date_str = lambda b : b.sensing_start.date().strftime('%Y%m%d')
 
                 # create an unique burst key
-                burst_as_key = lambda b : '_'.join([b.burst_id,
+                burst_as_key = lambda b : '_'.join([str(b.burst_id),
                                                     date_str(b),
                                                     b.polarization])
 

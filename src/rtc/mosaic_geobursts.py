@@ -103,22 +103,22 @@ def check_reprojection(geogrid_mosaic,
     return flag_requires_reprojection
 
 
-def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
-                    geogrid_in=None, verbose = True):
+def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
+                     geogrid_in=None, verbose = True):
     '''
-    Mosaic the snapped S1 geobursts
+    Mosaic S-1 geobursts and return the mosaic as dictionary
     paremeters:
     -----------
         list_rtc: list
-            list of the path to the rtc geobursts
+            List of the path to the rtc geobursts
         list_nlooks: list
-            list of the nlooks raster that corresponds to list_rtc
-        geo_filename: str
-            Path to the output mosaic
+            List of the nlooks raster that corresponds to list_rtc
         geogrid_in: isce3.product.GeoGridParameters, default: None
-            geogrid information to determine the output mosaic's shape and projection
+            Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
-
+    Returns:
+        mosaic_dict: dict
+            Mosaic dictionary
     '''
 
     num_raster = len(list_rtc_images)
@@ -238,21 +238,6 @@ def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
         raster_rtc = None
         raster_nlooks = None
 
-    # Retreive the datatype information from the first input image
-    reference_raster = gdal.Open(list_rtc_images[0], gdal.GA_ReadOnly)
-    datatype_mosaic = reference_raster.GetRasterBand(1).DataType
-    reference_raster = None
-
-    # write out the array
-    drv_out = gdal.GetDriverByName('Gtiff')
-    raster_out = drv_out.Create(geo_filename,
-                                dim_mosaic[1], dim_mosaic[0], num_bands,
-                                datatype_mosaic)
-
-    raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
-
-    raster_out.SetProjection(wkt_projection)
-
     for i_band in range(num_bands):
         valid_ind = np.where(arr_denominator > 0)
         arr_numerator[i_band][valid_ind] = \
@@ -261,4 +246,125 @@ def weighted_mosaic(list_rtc_images, list_nlooks, geo_filename,
         invalid_ind = np.where(arr_denominator == 0)
         arr_numerator[i_band][invalid_ind] = np.nan
 
+    mosaic_dict = {
+        'mosaic_array': arr_numerator,
+        'length': dim_mosaic[0],
+        'width': dim_mosaic[1],
+        'num_bands': num_bands,
+        'wkt_projection': wkt_projection,
+        'xmin_mosaic': xmin_mosaic,
+        'ymax_mosaic': ymax_mosaic,
+        'posting_x': posting_x,
+        'posting_y': posting_y
+    }
+    return mosaic_dict
+
+
+
+
+def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
+                    geogrid_in=None, verbose = True):
+    '''
+    Mosaic the snapped S1 geobursts
+    paremeters:
+    -----------
+        list_rtc: list
+            List of the path to the rtc geobursts
+        list_nlooks: list
+            List of the nlooks raster that corresponds to list_rtc
+        geo_filename: str
+            Path to the output mosaic
+        geogrid_in: isce3.product.GeoGridParameters, default: None
+            Geogrid information to determine the output mosaic's shape and projection
+            The geogrid of the output mosaic will automatically determined when it is None
+
+    '''
+    mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
+                                   geogrid_in=geogrid_in, verbose = verbose)
+
+    arr_numerator = mosaic_dict['mosaic_array']
+    length = mosaic_dict['length']
+    width = mosaic_dict['width']
+    num_bands = mosaic_dict['num_bands']
+    wkt_projection = mosaic_dict['wkt_projection']
+    xmin_mosaic = mosaic_dict['xmin_mosaic']
+    ymax_mosaic = mosaic_dict['ymax_mosaic']
+    posting_x = mosaic_dict['posting_x']
+    posting_y = mosaic_dict['posting_y']
+
+    # Retrieve the datatype information from the first input image
+    reference_raster = gdal.Open(list_rtc_images[0], gdal.GA_ReadOnly)
+    datatype_mosaic = reference_raster.GetRasterBand(1).DataType
+    reference_raster = None
+
+    # Write out the array
+    drv_out = gdal.GetDriverByName('Gtiff')
+    raster_out = drv_out.Create(geo_filename,
+                                width, length, num_bands,
+                                datatype_mosaic)
+
+    raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
+
+    raster_out.SetProjection(wkt_projection)
+
+    for i_band in range(num_bands):
         raster_out.GetRasterBand(i_band+1).WriteArray(arr_numerator[i_band])
+
+
+
+def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
+                                output_file_list,
+                                geogrid_in=None, verbose = True):
+    '''
+    Mosaic the snapped S1 geobursts
+    paremeters:
+    -----------
+        list_rtc: list
+            List of the path to the rtc geobursts
+        list_nlooks: list
+            List of the nlooks raster that corresponds to list_rtc
+        output_file_list: list
+            Output file list
+        geogrid_in: isce3.product.GeoGridParameters, default: None
+            Geogrid information to determine the output mosaic's shape and projection
+            The geogrid of the output mosaic will automatically determined when it is None
+
+    '''
+    mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
+                                     geogrid_in=geogrid_in, verbose = verbose)
+
+    arr_numerator = mosaic_dict['mosaic_array']
+    length = mosaic_dict['length']
+    width = mosaic_dict['width']
+    num_bands = mosaic_dict['num_bands']
+    wkt_projection = mosaic_dict['wkt_projection']
+    xmin_mosaic = mosaic_dict['xmin_mosaic']
+    ymax_mosaic = mosaic_dict['ymax_mosaic']
+    posting_x = mosaic_dict['posting_x']
+    posting_y = mosaic_dict['posting_y']
+
+    if num_bands != len(output_file_list):
+        error_str = (f'ERROR number of output files ({len(output_file_list)})'
+                    f' does not match with the number'
+                     f' of input bursts` bands ({num_bands})')
+        raise ValueError(error_str)
+
+    for i_band, output_file in enumerate(output_file_list):
+
+        # Retrieve the datatype information from the first input image
+        reference_raster = gdal.Open(list_rtc_images[0], gdal.GA_ReadOnly)
+        datatype_mosaic = reference_raster.GetRasterBand(1).DataType
+        reference_raster = None
+
+        # Write out the array
+        drv_out = gdal.GetDriverByName('Gtiff')
+        raster_out = drv_out.Create(output_file,
+                                    width, length, num_bands,
+                                    datatype_mosaic)
+
+        raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
+
+        raster_out.SetProjection(wkt_projection)
+
+        for i_band in range(num_bands):
+            raster_out.GetRasterBand(i_band+1).WriteArray(arr_numerator[i_band])
