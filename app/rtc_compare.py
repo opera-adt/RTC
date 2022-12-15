@@ -711,7 +711,9 @@ def _print_first_value_diff(image_1, image_2, prefix):
                     np.isnan(image_1[i, j])):
                 continue
             if (abs(image_1[i, j] - image_2[i, j]) <=
-                    RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE):
+                    RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE +
+                    RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE *
+                    abs(image_2[i, j])):
                 continue
             print(prefix + f'     * input 1 has value'
                   f' "{image_1[i, j]}" in position'
