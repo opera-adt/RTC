@@ -549,6 +549,23 @@ def compare_rtc_hdf5_files(file_1: str, file_2: str,
 
 
 def _get_prefix_str(flag_same, flag_all_ok):
+    '''
+    Returns the prefix string for a comparison test, either the contents
+    of PASSED_STR or the FAILED_STR.
+
+    Parameters:
+    -----------
+    flag_same: bool
+        Result of the comparison test
+    flag_all_ok: list(bool)
+        Mutable list of booleans that will hold the overall test status
+
+    Return:
+    -------
+    _: str
+        Prefix string for the given comparison test
+
+    '''
     flag_all_ok[0] = flag_all_ok[0] and flag_same
     return f'{PASSED_STR} ' if flag_same else f'{FAILED_STR} '
 
