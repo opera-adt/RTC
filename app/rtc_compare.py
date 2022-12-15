@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+
+'''
+Compare two RTC products (in HDF5) if they are equivalent.
+Part of the codes are copied from PROTEUS SAS
+'''
+
 import os
 from osgeo import gdal
 import argparse
