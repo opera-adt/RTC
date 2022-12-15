@@ -46,4 +46,4 @@ RUN echo "Installing OPERA s1-reader and RTC" &&\
 
 WORKDIR /home/rtc_user/scratch
 
-ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "RTC","rtc_s1.py"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "RTC"]
