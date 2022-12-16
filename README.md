@@ -1,6 +1,46 @@
 # RTC
 OPERA Radiometric Terrain-Corrected (RTC) Product
 
+
+🚨 This toolbox is undergoing **rapid development**. 🚨
+
+### Install
+
+The following will install COMPASS into a conda environment.
+
+1. Download source code:
+
+```bash
+git clone https://github.com/opera-adt/RTC.git
+```
+
+2. Install dependencies:
+
+```bash
+python -m pip install git+https://github.com/opera-adt/s1-reader.git
+```
+
+3. Install `RTC` via pip:
+
+```bash
+# run "pip install -e" to install in development mode
+python -m pip install ./RTC
+```
+
+### Usage
+
+The command below generates the RTC product:
+
+```bash
+rtc_s1.py <path to rtc yaml file>
+```
+
+To compare the products (`.tif` or `.hd5`), use `rtc_compare.py`.
+
+```bash
+rtc_s1.py <1st file> <2nd file>
+```
+
 # License
 Copyright (c) 2021 California Institute of Technology (“Caltech”). U.S. Government sponsorship acknowledged.
 
