@@ -43,7 +43,7 @@ The command below generates the RTC product:
 rtc_s1.py <path to rtc yaml file>
 ```
 
-To compare the products (`.tif` or `.hd5`), use `rtc_compare.py`.
+To compare the RTC-S1 products, use `rtc_compare.py`.
 
 ```bash
 rtc_s1.py <1st file> <2nd file>
