@@ -46,7 +46,7 @@ rtc_s1.py <path to rtc yaml file>
 To compare the RTC-S1 products, use `rtc_compare.py`.
 
 ```bash
-rtc_s1.py <1st file> <2nd file>
+python rtc_s1.py <1st product HDF5> <2nd product HDF5>
 ```
 
 # License
