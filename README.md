@@ -8,7 +8,7 @@ OPERA Radiometric Terrain-Corrected (RTC) Product
 
 Instructions to install RTC under a conda environment.
 
-1. Download source code:
+1. Download the source code:
 
 ```bash
 git clone https://github.com/opera-adt/RTC.git RTC
