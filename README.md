@@ -6,7 +6,7 @@ OPERA Radiometric Terrain-Corrected (RTC) Product
 
 ### Install
 
-The following will install COMPASS into a conda environment.
+Instructions to install RTC under a conda environment.
 
 1. Download source code:
 
