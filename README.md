@@ -11,21 +11,29 @@ The following will install COMPASS into a conda environment.
 1. Download source code:
 
 ```bash
-git clone https://github.com/opera-adt/RTC.git
+git clone https://github.com/opera-adt/RTC.git RTC
 ```
 
-2. Install dependencies:
+2. Install `isce3`:
 
 ```bash
-python -m pip install git+https://github.com/opera-adt/s1-reader.git
+conda install -c conda-forge isce3
 ```
 
-3. Install `RTC` via pip:
-
+3. Install `s1-reader` via pip:
 ```bash
-# run "pip install -e" to install in development mode
+git clone https://github.com/opera-adt/s1-reader.git s1-reader
+conda install -c conda-forge --file s1-reader/requirements.txt
+python -m pip install ./s1-reader
+```
+
+4. Install `RTC` via pip:
+```bash
+git clone https://github.com/opera-adt/s1-reader.git s1-reader
 python -m pip install ./RTC
 ```
+
+
 
 ### Usage
 
