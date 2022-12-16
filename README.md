@@ -1,6 +1,54 @@
 # RTC
 OPERA Radiometric Terrain-Corrected (RTC) Product
 
+
+🚨 This toolbox is undergoing **rapid development**. 🚨
+
+### Install
+
+Instructions to install RTC under a conda environment.
+
+1. Download the source code:
+
+```bash
+git clone https://github.com/opera-adt/RTC.git RTC
+```
+
+2. Install `isce3`:
+
+```bash
+conda install -c conda-forge isce3
+```
+
+3. Install `s1-reader` via pip:
+```bash
+git clone https://github.com/opera-adt/s1-reader.git s1-reader
+conda install -c conda-forge --file s1-reader/requirements.txt
+python -m pip install ./s1-reader
+```
+
+4. Install `RTC` via pip:
+```bash
+git clone https://github.com/opera-adt/s1-reader.git s1-reader
+python -m pip install ./RTC
+```
+
+
+
+### Usage
+
+The command below generates the RTC product:
+
+```bash
+rtc_s1.py <path to rtc yaml file>
+```
+
+To compare the RTC-S1 products, use `rtc_compare.py`.
+
+```bash
+python rtc_s1.py <1st product HDF5> <2nd product HDF5>
+```
+
 # License
 Copyright (c) 2021 California Institute of Technology (“Caltech”). U.S. Government sponsorship acknowledged.
 
