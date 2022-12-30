@@ -358,13 +358,14 @@ def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
 
         # Write out the array
         drv_out = gdal.GetDriverByName('Gtiff')
+        nbands = 1
         raster_out = drv_out.Create(output_file,
-                                    width, length, num_bands,
+                                    width, length, nbands,
                                     datatype_mosaic)
 
         raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
 
         raster_out.SetProjection(wkt_projection)
 
-        for i_band in range(num_bands):
-            raster_out.GetRasterBand(i_band+1).WriteArray(arr_numerator[i_band])
+        # for i_band in range(num_bands):
+        raster_out.GetRasterBand(1).WriteArray(arr_numerator[i_band])
