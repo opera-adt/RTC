@@ -4,7 +4,6 @@
 RTC Workflow
 '''
 
-import datetime
 import os
 import time
 
@@ -56,15 +55,15 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     if 'dx' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['dx'] = geogrid.spacing_x
     else:
-        assert(mosaic_geogrid_dict['dx'] == geogrid.spacing_x)
+        assert mosaic_geogrid_dict['dx'] == geogrid.spacing_x
     if 'dy' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['dy'] = geogrid.spacing_y
     else:
-        assert(mosaic_geogrid_dict['dy'] == geogrid.spacing_y)
+        assert mosaic_geogrid_dict['dy'] == geogrid.spacing_y
     if 'epsg' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['epsg'] = geogrid.epsg
     else:
-        assert(mosaic_geogrid_dict['epsg'] == geogrid.epsg)
+        assert mosaic_geogrid_dict['epsg'] == geogrid.epsg
 
 
 def _separate_pol_channels(multi_band_file, output_file_list, logger,
@@ -179,7 +178,24 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
                           flag_thermal_correction: bool = True,
                           flag_apply_abs_rad_correction: bool = True):
     '''Apply thermal correction stored in burst_in. Save the corrected signal
-    back to ENVI format. Preserves the phase.'''
+    back to ENVI format. Preserves the phase.
+
+    Parameters:
+    -----------
+    burst_in: Sentinel1BurstSlc
+        Input burst
+    path_slc_vrt: str
+        Path to the SLC of `burst_in` as vrt
+    path_slc_out: str
+        Path to the output burst
+    flag_output_complex: bool
+        If `True`, the output will be in complex number i.e. amplitude and phase
+        If `False`, the output will be ampliture only.
+    flag_thermal_correction: bool
+        Turn on / off thermal correction
+    flag_apply_abs_rad_correction: bool
+        Turn on / off radiometric correction
+    '''
 
     # Load the SLC of the burst
     burst_in.slc_to_vrt_file(path_slc_vrt)
@@ -274,7 +290,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
 
     path_layover_shadow_mask = (f'layover_shadow_mask_{burst_in.burst_id}_'
                                 f'{burst_in.polarization}_{str_datetime}')
-    
+
     # Run topo to get layover shadow mask
     dem_raster = isce3.io.Raster(path_dem)
     ellipsoid = isce3.core.Ellipsoid()
@@ -286,7 +302,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     # when requested, apply mulitilooking on radar grid for the computation in coarse resolution
     if nlooks_az > 1 or nlooks_rg > 1:
         rdr_grid = rdr_grid.multilook(nlooks_az, nlooks_rg)
-    
+
     isce3_orbit = burst_in.orbit
     grid_doppler = isce3.core.LUT2d()
 
@@ -304,7 +320,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
 
     rdr2geo_obj.topo(dem_raster, None, None, None,
                      layover_shadow_raster=mask_raster)
-    
+
     # geocode the layover shadow mask
     geo = isce3.geocode.GeocodeFloat32()
     geo.orbit = isce3_orbit
@@ -456,14 +472,9 @@ def run(cfg: RunConfig):
     save_nlooks = geocode_namespace.save_nlooks
 
 
-
-
-
     # TODO remove the lines below:
     if save_mosaics:
         save_nlooks = True
-
-
 
 
     save_rtc_anf = geocode_namespace.save_rtc_anf
@@ -553,7 +564,7 @@ def run(cfg: RunConfig):
                                     f'{product_prefix}.{hdf5_file_extension}')
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
-        
+
         # ===========================================================
         # start burst processing
 
@@ -576,10 +587,10 @@ def run(cfg: RunConfig):
             # burst files are saved in scratch dir
             bursts_output_dir = burst_scratch_path
         else:
-            # burst files (individual or HDF5) are saved in burst_id dir 
+            # burst files (individual or HDF5) are saved in burst_id dir
             bursts_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(bursts_output_dir, exist_ok=True)
-        
+
         geogrid = cfg.geogrids[burst_id]
 
         # snap coordinates
@@ -644,7 +655,7 @@ def run(cfg: RunConfig):
             f'{burst_scratch_path}/{product_prefix}.{imagery_extension}'
         temp_files_list.append(geo_burst_filename)
 
-        # Generate output geocoded burst raster        
+        # Generate output geocoded burst raster
         geo_burst_raster = isce3.io.Raster(
             geo_burst_filename,
             geogrid.width, geogrid.length,
@@ -722,7 +733,7 @@ def run(cfg: RunConfig):
             valid_samples_sub_swath[i, :] = 0
         for i in range(burst.last_valid_line, radar_grid.length):
             valid_samples_sub_swath[i, :] = 0
-        
+
         sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
 
         # geocode
@@ -802,7 +813,7 @@ def run(cfg: RunConfig):
                                 numiter_rdr2geo=cfg.rdr2geo_params.numiter,
                                 threshold_geo2rdr=cfg.geo2rdr_params.threshold,
                                 numiter_geo2rdr=cfg.geo2rdr_params.numiter)
-            
+
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
             else:
@@ -841,7 +852,7 @@ def run(cfg: RunConfig):
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
-    
+
         if save_rtc_anf:
             del out_geo_rtc_obj
             if not flag_bursts_secondary_files_are_temporary:
@@ -1171,13 +1182,13 @@ def _load_parameters(cfg):
 
     if dem_interp_method == 'biquintic':
         dem_interp_method_enum = isce3.core.DataInterpMethod.BIQUINTIC
-    elif (dem_interp_method == 'sinc'):
+    elif dem_interp_method == 'sinc':
         dem_interp_method_enum = isce3.core.DataInterpMethod.SINC
-    elif (dem_interp_method == 'bilinear'):
+    elif dem_interp_method == 'bilinear':
         dem_interp_method_enum = isce3.core.DataInterpMethod.BILINEAR
-    elif (dem_interp_method == 'bicubic'):
+    elif dem_interp_method == 'bicubic':
         dem_interp_method_enum = isce3.core.DataInterpMethod.BICUBIC
-    elif (dem_interp_method == 'nearest'):
+    elif dem_interp_method == 'nearest':
         dem_interp_method_enum = isce3.core.DataInterpMethod.NEAREST
     else:
         err_msg = ('ERROR invalid DEM interpolation method:'
@@ -1218,7 +1229,7 @@ if __name__ == "__main__":
     '''Run geocode rtc workflow from command line'''
     # load arguments from command line
     parser  = get_rtc_s1_parser()
-    
+
     # parse arguments
     args = parser.parse_args()
 
