@@ -130,6 +130,12 @@ runconfig:
             # Geocoding options
             geocoding:
 
+                # OPTIONAL - Apply RSLC metadata valid-samples sub-swath masking
+                apply_valid_samples_sub_swath_masking: True
+
+                # OPTIONAL - Apply shadow masking
+                apply_shadow_masking: True
+
                 # OPTIONAL - Algorithm type, area projection or
                 # interpolation: sinc, bilinear, bicubic, nearest, and biquintic
                 algorithm_type: area_projection

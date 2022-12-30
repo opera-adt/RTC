@@ -145,6 +145,12 @@ rtc_options:
 
 geocoding_options:
 
+    # OPTIONAL - Apply RSLC metadata valid-samples sub-swath masking
+    apply_valid_samples_sub_swath_masking: bool(required=False)
+
+    # OPTIONAL - Apply shadow masking
+    apply_shadow_masking: bool(required=False)
+
     # Algorithm type, area projection or interpolation: sinc, bilinear, bicubic, nearest, and biquintic
     algorithm_type: enum('area_projection', 'sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic', required=False)
 
