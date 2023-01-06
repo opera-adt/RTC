@@ -147,7 +147,7 @@ def process_frame_parallel(arg_in):
 
     t1 = time.time()
 
-    print(f'Took {t1-t0:06f} seconds to process.')
+    print(f'elapsed time: {t1-t0:06f} seconds.')
 
 if __name__ == "__main__":
     # load arguments from command line
