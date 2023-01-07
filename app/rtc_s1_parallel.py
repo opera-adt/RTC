@@ -22,15 +22,20 @@ def get_rtc_s1_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('run_config_path',
                         type=str,
-                        nargs='1',
                         default=None,
                         help='Path to run config file')
+
+    # Determine the default # of concurrent workers    
+    ncpu_default = os.cpu_count()
+    if os.getenv('OMP_NUM_THREADS') is not None:
+        omp_num_threads = int(os.getenv('OMP_NUM_THREADS'))
+        ncpu_default = min(ncpu_default, omp_num_threads)
 
     parser.add_argument('-n',
                         dest='num_workers',
                         type=int,
-                        default=os.cpu_count(),
-                        help='Number of concurrent workers')
+                        default=ncpu_default,
+                        help='Number of concurrent workers.')
 
     parser.add_argument('--log',
                         '--log-file',
@@ -82,7 +87,21 @@ def split_runconfig(path_runconfig_in, path_log_in):
                                            f'burst_runconfig_{burst_id}.yaml')
 
         runconfig_dict_out = runconfig_dict_in.copy()
-        runconfig_dict_out['runconfig']['groups']['input_file_group']['burst_id'] = [burst_id]
+        set_dict_item_recursive(runconfig_dict_out,
+                                ['runconfig',
+                                 'groups',
+                                 'input_file_group',
+                                 'burst_id'],
+                                [burst_id])
+
+        set_dict_item_recursive(runconfig_dict_out,
+                                ['runconfig',
+                                 'groups',
+                                 'processing',
+                                 'geocoding',
+                                 'memory_mode'],
+                                'single_block')
+
         list_runconfig_burst.append(path_temp_runconfig)
 
         if path_log_in is None:
@@ -94,6 +113,32 @@ def split_runconfig(path_runconfig_in, path_log_in):
             yaml.dump(runconfig_dict_out, fout)
 
     return list_runconfig_burst, list_logfile_burst
+
+def set_dict_item_recursive(dict_in, list_path, val):
+    '''
+    Recursively locate the dict item in the multiple layer of dict,
+    whose path is provided in the list of keys.
+    Add or update the value of the item
+    Create the key with empty dict when the key does not exist
+
+    Parameters:
+    dict_in: dict
+        Dict to set the value
+    list_path:
+        Path to the item in the multiple layer of dict
+    val:
+        Value to add or set
+    '''
+
+    if len(list_path) == 1:
+        key_in = list_path[0]
+        dict_in[key_in] = val
+        #return dict_in
+    else:
+        key_next = list_path[0]
+        if key_next not in dict_in.keys():
+            dict_in[key_next] = {}
+        set_dict_item_recursive(dict_in[key_next], list_path[1:], val)
 
 
 def process_runconfig(path_runconfig_burst, path_logfile_burst, full_log_format):
@@ -121,9 +166,7 @@ def process_runconfig(path_runconfig_burst, path_logfile_burst, full_log_format)
     rtnval = subprocess.run(list_arg_subprocess)
     os.remove(path_runconfig_burst)
 
-    # TODO add log file into the argument for `subprocess.run()`
-
-
+    
 def process_frame_parallel(arg_in):
     '''
     Take in the parsed arguments from CLI,
