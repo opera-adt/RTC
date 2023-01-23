@@ -328,7 +328,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
     geo.doppler = grid_doppler
     geo.threshold_geo2rdr = threshold_geo2rdr
     geo.numiter_geo2rdr = numiter_geo2rdr
-    geo.lines_per_block = lines_per_block_rdr2geo
+    #geo.lines_per_block = lines_per_block_rdr2geo # Temporary suppression
     geo.data_interpolator = 'NEAREST'
     geo.geogrid(float(geogrid_in.start_x),
                 float(geogrid_in.start_y),
@@ -349,7 +349,7 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
 
 
-def run(cfg: RunConfig):
+def run(cfg: RunConfig, timestamp: str='', keep_scratch: bool=False):
     '''
     Run geocode burst workflow with user-defined
     args stored in dictionary runconfig `cfg`
@@ -362,7 +362,10 @@ def run(cfg: RunConfig):
 
     # Start tracking processing time
     t_start = time.time()
-    time_stamp = str(float(time.time()))
+    if timestamp:
+        time_stamp = timestamp
+    else:
+        time_stamp = str(float(time.time()))
     logger.info("Starting the RTC-S1 Science Application Software (SAS)")
 
     # primary executable
@@ -1031,6 +1034,8 @@ def run(cfg: RunConfig):
     for filename in temp_files_list:
         if not os.path.isfile(filename):
             continue
+        if keep_scratch:
+            continue
         os.remove(filename)
         logger.info(f'    {filename}')
 
@@ -1222,6 +1227,18 @@ def get_rtc_s1_parser():
                         default=False,
                         help='Enable full formatting of log messages')
 
+    parser.add_argument('--keep-scratch',
+                        dest='keep_scratch',
+                        action='store_true',
+                        default=False,
+                        help='keep the files in scratch directory')
+
+    parser.add_argument('--timestamp',
+                        dest='timestamp',
+                        type=str,
+                        default='',
+                        help='timestamp for temporary directory')
+
     return parser
 
 
@@ -1242,4 +1259,4 @@ if __name__ == "__main__":
     _load_parameters(cfg)
 
     # Run geocode burst workflow
-    run(cfg)
+    run(cfg, args.timestamp, args.keep_scratch)
