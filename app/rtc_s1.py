@@ -1406,6 +1406,9 @@ def run2(cfg: RunConfig, tempdir: str='', skip_burst_process=False):
         if save_nlooks:
             nlooks_file = (f'{bursts_output_dir}/{product_prefix}'
                            f'_nlooks.{imagery_extension}')
+            if skip_burst_process:
+                os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
+
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
             else:
@@ -1422,6 +1425,9 @@ def run2(cfg: RunConfig, tempdir: str='', skip_burst_process=False):
         if save_rtc_anf:
             rtc_anf_file = (f'{bursts_output_dir}/{product_prefix}'
                f'_rtc_anf.{imagery_extension}')
+            if skip_burst_process:
+                os.rename(rtc_anf_file.replace(output_dir, scratch_path), rtc_anf_file)
+
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
             else:
@@ -1522,7 +1528,10 @@ def run2(cfg: RunConfig, tempdir: str='', skip_burst_process=False):
         if save_layover_shadow_mask:
             layover_shadow_mask_file = (f'{bursts_output_dir}/{product_prefix}'
             f'_layover_shadow_mask.{imagery_extension}')
-            if not skip_burst_process:
+            if skip_burst_process:
+                os.rename(layover_shadow_mask_file.replace(output_dir, scratch_path), layover_shadow_mask_file)
+
+            else:
                 calculate_layover_shadow_mask(burst,
                                     geogrid,
                                     cfg.dem,
@@ -1671,27 +1680,15 @@ def run2(cfg: RunConfig, tempdir: str='', skip_burst_process=False):
             output_imagery_filename_list.append(geo_pol_filename)
 
         nlooks_list = output_metadata_dict['nlooks'][1]
-        if os.path.exists(output_imagery_list[0].replace('.vrt','')):
+        if os.path.exists(nlooks_list[0]):
             compute_weighted_mosaic_raster_single_band(
                 output_imagery_list, nlooks_list,
                 output_imagery_filename_list, cfg.geogrid, verbose=False)
         else:
-            # In case that the output files are alreadt separeted wrt polarization
-            num_bursts = len(cfg.bursts)
-            len_output_file_list = len(output_file_list)
-            if not save_imagery_as_hdf5:
-                len_output_file_list -= len(radar_grid_file_dict.values())
-            stride_list = len_output_file_list // num_bursts
-            list_weight = [filename.replace(output_dir, scratch_path) for filename in nlooks_list]
-            for i_pol, pol in enumerate(pol_list):
-                #list_output_to_mosaic = [filename.replace(output_dir, scratch_path) for filename in output_file_list[i_pol : num_bursts*stride_list : stride_list]]
-                list_output_to_mosaic = output_file_list[i_pol : num_bursts*stride_list : stride_list]
-                compute_weighted_mosaic_raster_single_band(
-                    list_output_to_mosaic,
-                    list_weight,
-                    [output_imagery_filename_list[i_pol]],
-                    cfg.geogrid, verbose=False)
-
+            nlooks_list_temp = [filename.replace(output_dir, scratch_path) for filename in nlooks_list]
+            compute_weighted_mosaic_raster_single_band(
+                output_imagery_list, nlooks_list_temp,
+                output_imagery_filename_list, cfg.geogrid, verbose=False)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
