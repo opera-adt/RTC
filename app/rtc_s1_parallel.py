@@ -21,11 +21,8 @@ import isce3
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
-from rtc.geogrid import snap_coord
 from rtc.runconfig import RunConfig
-from rtc.mosaic_geobursts import compute_weighted_mosaic_raster, compute_weighted_mosaic_raster_single_band
 from rtc.core import create_logger
-#from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
 import rtc_s1
 
 
@@ -271,12 +268,9 @@ def main():
     # parse arguments
     args = parser.parse_args()
 
-
     # Spawn multiple processes for parallelization
     dir_temporary = process_frame_parallel(args)
-    #dir_temporary = 'scratch_dir/temp_1674533437.342179'
     create_logger(args.log_file, args.full_log_formatting)
-
 
     # Get a runconfig dict from command line argumens
     cfg = RunConfig.load_from_yaml(args.run_config_path, 'rtc_s1')
@@ -284,7 +278,6 @@ def main():
     rtc_s1._load_parameters(cfg)
 
     # Run geocode burst workflow
-    #procedures_after_burst_processing(cfg, dir_temporary)
     rtc_s1.run2(cfg, tempdir=dir_temporary, skip_burst_process=True)
 
 
