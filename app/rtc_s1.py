@@ -239,33 +239,40 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
     del band_out
 
 
-def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
-                                  geogrid_in: isce3.product.GeoGridParameters,
-                                  path_dem: str,
-                                  filename_out: str,
-                                  output_raster_format: str,
-                                  threshold_rdr2geo: float=1.0e-7,
-                                  numiter_rdr2geo: int=25,
-                                  extraiter_rdr2geo: int=10,
-                                  lines_per_block_rdr2geo: int=1000,
-                                  threshold_geo2rdr: float=1.0e-8,
-                                  numiter_geo2rdr: int=25,
-                                  nlooks_az: int=1, nlooks_rg: int=1):
+def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
+                                orbit: isce3.core.Orbit,
+                                geogrid_in: isce3.product.GeoGridParameters,
+                                burst_in: Sentinel1BurstSlc,
+                                dem_raster: isce3.io.Raster,
+                                filename_out: str,
+                                output_raster_format: str,
+                                threshold_rdr2geo: float=1.0e-7,
+                                numiter_rdr2geo: int=25,
+                                extraiter_rdr2geo: int=10,
+                                lines_per_block_rdr2geo: int=1000,
+                                threshold_geo2rdr: float=1.0e-7,
+                                numiter_geo2rdr: int=25):
     '''
-    Generate the layover shadow mask and geocode the mask
+    Compute the layover/shadow mask and geocode it
 
     Parameters:
     -----------
+    radar_grid: isce3.product.RadarGridParameters
+        Radar grid
+    orbit: isce3.core.Orbit
+	    Orbit defining radar motion on input path
+    geogrid_in: isce3.product.GeoGridParameters
+        Geogrid to geocode the layover/shadow mask in radar grid
     burst_in: Sentinel1BurstSlc
         Input burst
     geogrid_in: isce3.product.GeoGridParameters
-        Geogrid to geocode the layover shadow mask in radar grid
-    path_dem: str
-        Path to the DEM
+        Geogrid to geocode the layover/shadow mask in radar grid
+    dem_raster: isce3.io.Raster
+        DEM raster
     filename_out: str
-        Path to the geocoded layover shadow mask
+        Path to the geocoded layover/shadow mask
     output_raster_format: str
-        File format of the layover shadow mask
+        File format of the layover/shadow mask
     threshold_rdr2geo: float
         Iteration threshold for rdr2geo
     numiter_rdr2geo: int
@@ -278,11 +285,11 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
         Iteration threshold for geo2rdr
     numiter_geo2rdr: int
         Number of max. iteration for geo2rdr object
-    nlooks_az: int
-        Number of looks in azimuth direction. For the calculation in coarse grid
-    nlooks_rg: int
-        Number of looks in range direction. For the calculation in coarse grid
 
+    Returns
+    -------
+    layover_shadow_mask_raster: isce3.io.Raster
+        Layover/shadow-mask ISCE3 raster object in radar coordinates
     '''
 
     # determine the output filename
@@ -290,24 +297,16 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
 
     path_layover_shadow_mask = (f'layover_shadow_mask_{burst_in.burst_id}_'
                                 f'{burst_in.polarization}_{str_datetime}')
-
-    # Run topo to get layover shadow mask
-    dem_raster = isce3.io.Raster(path_dem)
+    
+    # Run topo to get layover/shadow mask
     ellipsoid = isce3.core.Ellipsoid()
 
     Rdr2Geo = isce3.geometry.Rdr2Geo
-
-    rdr_grid = burst_in.as_isce3_radargrid()
-
-    # when requested, apply mulitilooking on radar grid for the computation in coarse resolution
-    if nlooks_az > 1 or nlooks_rg > 1:
-        rdr_grid = rdr_grid.multilook(nlooks_az, nlooks_rg)
-
-    isce3_orbit = burst_in.orbit
+    
     grid_doppler = isce3.core.LUT2d()
 
-    rdr2geo_obj = Rdr2Geo(rdr_grid,
-                          isce3_orbit,
+    rdr2geo_obj = Rdr2Geo(radar_grid,
+                          orbit,
                           ellipsoid,
                           grid_doppler,
                           threshold=threshold_rdr2geo,
@@ -315,17 +314,17 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                           extraiter=extraiter_rdr2geo,
                           lines_per_block=lines_per_block_rdr2geo)
 
-    mask_raster = isce3.io.Raster(path_layover_shadow_mask, rdr_grid.width,
-                                  rdr_grid.length, 1, gdal.GDT_Byte, 'MEM')
+    layover_shadow_mask_raster = isce3.io.Raster(path_layover_shadow_mask,
+        radar_grid.width, radar_grid.length, 1, gdal.GDT_Byte, 'MEM')
 
     rdr2geo_obj.topo(dem_raster, None, None, None,
-                     layover_shadow_raster=mask_raster)
+                     layover_shadow_raster=layover_shadow_mask_raster)
 
-    # geocode the layover shadow mask
+    # geocode the layover/shadow mask
     geo = isce3.geocode.GeocodeFloat32()
-    geo.orbit = isce3_orbit
+    geo.orbit = orbit
     geo.ellipsoid = ellipsoid
-    geo.doppler = grid_doppler
+    geo.doppler = isce3.core.LUT2d()
     geo.threshold_geo2rdr = threshold_geo2rdr
     geo.numiter_geo2rdr = numiter_geo2rdr
     #geo.lines_per_block = lines_per_block_rdr2geo # Temporary suppression
@@ -342,8 +341,8 @@ def calculate_layover_shadow_mask(burst_in: Sentinel1BurstSlc,
                                       geogrid_in.width, geogrid_in.length, 1,
                                       gdal.GDT_Byte, output_raster_format)
 
-    geo.geocode(radar_grid=rdr_grid,
-                input_raster=mask_raster,
+    geo.geocode(radar_grid=radar_grid,
+                input_raster=layover_shadow_mask_raster,
                 output_raster=geocoded_raster,
                 dem_raster=dem_raster,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
@@ -458,6 +457,11 @@ def run(cfg: RunConfig, tempdir: str='', skip_burst_process=False):
     # unpack geocode run parameters
     geocode_namespace = cfg.groups.processing.geocoding
 
+    apply_valid_samples_sub_swath_masking = \
+        cfg.groups.processing.geocoding.apply_valid_samples_sub_swath_masking
+    apply_shadow_masking = \
+        cfg.groups.processing.geocoding.apply_shadow_masking
+
     if cfg.groups.processing.geocoding.algorithm_type == "area_projection":
         geocode_algorithm = isce3.geocode.GeocodeOutputMode.AREA_PROJECTION
     else:
@@ -568,6 +572,7 @@ def run(cfg: RunConfig, tempdir: str='', skip_burst_process=False):
     hdf5_obj = None
     output_hdf5_file = os.path.join(output_dir,
                                     f'{product_prefix}.{hdf5_file_extension}')
+
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
 
@@ -1349,6 +1354,7 @@ def run_original(cfg: RunConfig):
 
         logger.info(f'    reading burst SLCs')
         radar_grid = burst.as_isce3_radargrid()
+
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
         if 'orbit' not in mosaic_geogrid_dict.keys():
@@ -1464,56 +1470,117 @@ def run_original(cfg: RunConfig):
             rtc_anf_file = None
             out_geo_rtc_obj = None
 
-        # Extract burst boundaries and create sub_swaths object to mask
-        # invalid radar samples
-        n_subswaths = 1
-        sub_swaths = isce3.product.SubSwaths(radar_grid.length,
-                                             radar_grid.width,
-                                             n_subswaths)
-        last_range_sample = min([burst.last_valid_sample, radar_grid.width])
-        valid_samples_sub_swath = np.repeat(
-            [[burst.first_valid_sample, last_range_sample + 1]],
-            radar_grid.length, axis=0)
-        for i in range(burst.first_valid_line):
-            valid_samples_sub_swath[i, :] = 0
-        for i in range(burst.last_valid_line, radar_grid.length):
-            valid_samples_sub_swath[i, :] = 0
+        # geocoding optional arguments
+        geocode_kwargs = {}
 
-        sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
+        # Calculate layover/shadow mask when requested
+        if save_layover_shadow_mask or apply_shadow_masking:
+            flag_layover_shadow_mask_is_temporary = \
+                (flag_bursts_secondary_files_are_temporary or
+                    (apply_shadow_masking and not save_layover_shadow_mask))
 
-        # geocode
-        flag_error_sub_swaths = False
-        try:
-            geo_obj.geocode(radar_grid=radar_grid,
-                            input_raster=rdr_burst_raster,
-                            output_raster=geo_burst_raster,
-                            dem_raster=dem_raster,
-                            output_mode=geocode_algorithm,
-                            geogrid_upsampling=geogrid_upsampling,
-                            flag_apply_rtc=flag_apply_rtc,
-                            input_terrain_radiometry=input_terrain_radiometry,
-                            output_terrain_radiometry=output_terrain_radiometry,
-                            exponent=exponent,
-                            rtc_min_value_db=rtc_min_value_db,
-                            rtc_upsampling=rtc_upsampling,
-                            rtc_algorithm=rtc_algorithm,
-                            abs_cal_factor=abs_cal_factor,
-                            flag_upsample_radar_grid=flag_upsample_radar_grid,
-                            clip_min = clip_min,
-                            clip_max = clip_max,
-                            # out_off_diag_terms=out_off_diag_terms_obj,
-                            out_geo_nlooks=out_geo_nlooks_obj,
-                            out_geo_rtc=out_geo_rtc_obj,
-                            input_rtc=None,
-                            output_rtc=None,
-                            dem_interp_method=dem_interp_method_enum,
-                            memory_mode=memory_mode,
-                            sub_swaths=sub_swaths)
-        except TypeError:
-            flag_error_sub_swaths = True
-            logger.warning('WARNING there was an error executing geocode().'
-                           ' Retrying it with less parameters')
+            if flag_layover_shadow_mask_is_temporary:
+                # layover/shadow mask is temporary
+                layover_shadow_mask_file = \
+                    (f'{burst_scratch_path}/{product_prefix}'
+                     f'_layover_shadow_mask.{imagery_extension}')
+            else:
+                # layover/shadow mask is saved in `bursts_output_dir`
+                layover_shadow_mask_file = \
+                    (f'{bursts_output_dir}/{product_prefix}'
+                     f'_layover_shadow_mask.{imagery_extension}')
+                                
+            layover_shadow_mask_raster = compute_layover_shadow_mask(
+                radar_grid,
+                orbit,
+                geogrid,
+                burst,
+                dem_raster,
+                layover_shadow_mask_file,
+                output_raster_format,
+                threshold_rdr2geo=cfg.rdr2geo_params.threshold,
+                numiter_rdr2geo=cfg.rdr2geo_params.numiter,
+                threshold_geo2rdr=cfg.geo2rdr_params.threshold,
+                numiter_geo2rdr=cfg.geo2rdr_params.numiter)
+            
+            if flag_layover_shadow_mask_is_temporary:
+                temp_files_list.append(layover_shadow_mask_file)
+            else:
+                output_file_list.append(layover_shadow_mask_file)
+                logger.info(f'file saved: {layover_shadow_mask_file}')
+            output_metadata_dict['layover_shadow_mask'][1].append(
+                layover_shadow_mask_file)
 
+            if apply_shadow_masking:
+                geocode_kwargs['input_layover_shadow_mask_raster'] = \
+                    layover_shadow_mask_raster
+        else:
+            layover_shadow_mask_file = None
+
+        # flag to run geocoding without sub-swath masking
+        flag_geocoding_without_sub_swaths = False
+        
+        # flag to inform the user that there was an error using
+        # sub-swath masking
+        flag_inform_user_about_sub_swaths_error = False
+
+        # get sub_swaths metadata
+        if apply_valid_samples_sub_swath_masking or apply_shadow_masking:
+            # Extract burst boundaries and create sub_swaths object to mask
+            # invalid radar samples
+            n_subswaths = 1
+            sub_swaths = isce3.product.SubSwaths(radar_grid.length,
+                                                 radar_grid.width,
+                                                 n_subswaths)
+            last_range_sample = min([burst.last_valid_sample, radar_grid.width])
+            valid_samples_sub_swath = np.repeat(
+                [[burst.first_valid_sample, last_range_sample + 1]],
+                radar_grid.length, axis=0)
+            for i in range(burst.first_valid_line):
+                valid_samples_sub_swath[i, :] = 0
+            for i in range(burst.last_valid_line, radar_grid.length):
+                valid_samples_sub_swath[i, :] = 0
+
+            sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
+
+            # geocode
+            try:
+                geo_obj.geocode(radar_grid=radar_grid,
+                                input_raster=rdr_burst_raster,
+                                output_raster=geo_burst_raster,
+                                dem_raster=dem_raster,
+                                output_mode=geocode_algorithm,
+                                geogrid_upsampling=geogrid_upsampling,
+                                flag_apply_rtc=flag_apply_rtc,
+                                input_terrain_radiometry=input_terrain_radiometry,
+                                output_terrain_radiometry=output_terrain_radiometry,
+                                exponent=exponent,
+                                rtc_min_value_db=rtc_min_value_db,
+                                rtc_upsampling=rtc_upsampling,
+                                rtc_algorithm=rtc_algorithm,
+                                abs_cal_factor=abs_cal_factor,
+                                flag_upsample_radar_grid=flag_upsample_radar_grid,
+                                clip_min = clip_min,
+                                clip_max = clip_max,
+                                # out_off_diag_terms=out_off_diag_terms_obj,
+                                out_geo_nlooks=out_geo_nlooks_obj,
+                                out_geo_rtc=out_geo_rtc_obj,
+                                input_rtc=None,
+                                output_rtc=None,
+                                dem_interp_method=dem_interp_method_enum,
+                                memory_mode=memory_mode,
+                                sub_swaths=sub_swaths,
+                                **geocode_kwargs)
+            except TypeError:
+                flag_geocoding_without_sub_swaths = True
+                flag_inform_user_about_sub_swaths_error = True
+                logger.warning('WARNING there was an error executing geocode().'
+                               ' Retrying it with less parameters')
+
+        else:
+            sub_swaths = None
+
+        if flag_geocoding_without_sub_swaths:
             # geocode (without sub_swaths)
             geo_obj.geocode(radar_grid=radar_grid,
                             input_raster=rdr_burst_raster,
@@ -1540,35 +1607,10 @@ def run_original(cfg: RunConfig):
                             dem_interp_method=dem_interp_method_enum,
                             memory_mode=memory_mode)
 
-        if flag_error_sub_swaths:
-            logger.warning('WARNING the sub-swath masking is not available'
-                           ' from this ISCE3 version. The sub-swath masking'
-                           ' was disabled.')
-
-        # Calculate layover shadow mask when requested
-        if save_layover_shadow_mask:
-            layover_shadow_mask_file = (f'{bursts_output_dir}/{product_prefix}'
-               f'_layover_shadow_mask.{imagery_extension}')
-            calculate_layover_shadow_mask(burst,
-                                geogrid,
-                                cfg.dem,
-                                layover_shadow_mask_file,
-                                output_raster_format,
-                                threshold_rdr2geo=cfg.rdr2geo_params.threshold,
-                                numiter_rdr2geo=cfg.rdr2geo_params.numiter,
-                                threshold_geo2rdr=cfg.geo2rdr_params.threshold,
-                                numiter_geo2rdr=cfg.geo2rdr_params.numiter)
-
-            if flag_bursts_secondary_files_are_temporary:
-                temp_files_list.append(layover_shadow_mask_file)
-            else:
-                output_file_list.append(layover_shadow_mask_file)
-                logger.info(f'file saved: {layover_shadow_mask_file}')
-            output_metadata_dict['layover_shadow_mask'][1].append(
-                layover_shadow_mask_file)
-
-        else:
-            layover_shadow_mask_file = None
+            if flag_inform_user_about_sub_swaths_error:
+                logger.warning('WARNING the sub-swath masking is not available'
+                               ' from this ISCE3 version. The sub-swath masking'
+                               ' was disabled.')
 
         del geo_burst_raster
 
@@ -1841,7 +1883,7 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_prefix,
     # Computation of range slope is not merged to ISCE yet
     kwargs_get_radar_grid = {}
     if range_slope_raster:
-        kwargs_get_radar_grid['directional_slope_angle_raster'] = \
+        kwargs_get_radar_grid['range_slope_angle_raster'] = \
             range_slope_raster
 
     # call get_radar_grid()
