@@ -366,8 +366,8 @@ def run(cfg: RunConfig, tempdir: str='', skip_burst_process=False):
         product_id = 'rtc_product'
     product_prefix = f'{product_id}_v{product_version}'
 
-    if tempdir:
-        scratch_path = tempdir
+    if len(cfg.bursts) == 1:
+        scratch_path = cfg.groups.product_group.scratch_path
     else:
         scratch_path = os.path.join(
             cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
