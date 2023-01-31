@@ -263,6 +263,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         Iteration threshold for geo2rdr
     numiter_geo2rdr: int
         Number of max. iteration for geo2rdr object
+
     Returns
     -------
     layover_shadow_mask_raster: isce3.io.Raster
@@ -323,6 +324,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                 output_raster=geocoded_raster,
                 dem_raster=dem_raster,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
+
+    return layover_shadow_mask_raster
 
 
 def run(cfg: RunConfig, tempdir: str='', skip_burst_process=False):
