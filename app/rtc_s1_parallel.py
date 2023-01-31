@@ -168,10 +168,10 @@ def split_runconfig(path_runconfig_in, path_log_in):
 
 def set_dict_item_recursive(dict_in, list_path, val):
     '''
-    Recursively locate the dict item in the multiple layer of dict,
-    whose path is provided in the list of keys.
-    Add or update the value of the item
-    Create the key with empty dict when the key does not exist
+    - Recursively locate the dict item in the multiple layer of dict,
+      whose path is provided in the list of keys.
+    - Add or update the value of the located item
+    - Create the key with empty dict when the key does not exist
 
     Parameters:
     dict_in: dict
@@ -185,12 +185,12 @@ def set_dict_item_recursive(dict_in, list_path, val):
     if len(list_path) == 1:
         key_in = list_path[0]
         dict_in[key_in] = val
-        #return dict_in
-    else:
-        key_next = list_path[0]
-        if key_next not in dict_in.keys():
-            dict_in[key_next] = {}
-        set_dict_item_recursive(dict_in[key_next], list_path[1:], val)
+        return
+
+    key_next = list_path[0]
+    if not key_next in dict_in.keys():
+        dict_in[key_next] = {}
+    set_dict_item_recursive(dict_in[key_next], list_path[1:], val)
 
 
 def process_runconfig(path_runconfig_burst, path_logfile_burst, full_log_format):
