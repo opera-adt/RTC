@@ -126,6 +126,9 @@ processing_options:
    # Geocoding options
    geocoding: include('geocoding_options', required=False)
 
+   # Numper of parallel processes for burst processing
+   num_process: int(required=False)
+
 
 rtc_options:
     # RTC output type: empty value to turn off the RTC
