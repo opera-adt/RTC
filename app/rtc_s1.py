@@ -650,33 +650,33 @@ def run(cfg: RunConfig):
             rdr_burst_raster.num_bands, gdal.GDT_Float32,
             output_raster_format)
 
-            # init Geocode object depending on raster type
-            if rdr_burst_raster.datatype() == gdal.GDT_Float32:
-                geo_obj = isce3.geocode.GeocodeFloat32()
-            elif rdr_burst_raster.datatype() == gdal.GDT_Float64:
-                geo_obj = isce3.geocode.GeocodeFloat64()
-            elif rdr_burst_raster.datatype() == gdal.GDT_CFloat32:
-                geo_obj = isce3.geocode.GeocodeCFloat32()
-            elif rdr_burst_raster.datatype() == gdal.GDT_CFloat64:
-                geo_obj = isce3.geocode.GeocodeCFloat64()
-            else:
-                err_str = 'Unsupported raster type for geocoding'
-                raise NotImplementedError(err_str)
+        # init Geocode object depending on raster type
+        if rdr_burst_raster.datatype() == gdal.GDT_Float32:
+            geo_obj = isce3.geocode.GeocodeFloat32()
+        elif rdr_burst_raster.datatype() == gdal.GDT_Float64:
+            geo_obj = isce3.geocode.GeocodeFloat64()
+        elif rdr_burst_raster.datatype() == gdal.GDT_CFloat32:
+            geo_obj = isce3.geocode.GeocodeCFloat32()
+        elif rdr_burst_raster.datatype() == gdal.GDT_CFloat64:
+            geo_obj = isce3.geocode.GeocodeCFloat64()
+        else:
+            err_str = 'Unsupported raster type for geocoding'
+            raise NotImplementedError(err_str)
 
-            # init geocode members
-            geo_obj.orbit = orbit
-            geo_obj.ellipsoid = ellipsoid
-            geo_obj.doppler = zero_doppler
-            geo_obj.threshold_geo2rdr = threshold
-            geo_obj.numiter_geo2rdr = maxiter
+        # init geocode members
+        geo_obj.orbit = orbit
+        geo_obj.ellipsoid = ellipsoid
+        geo_obj.doppler = zero_doppler
+        geo_obj.threshold_geo2rdr = threshold
+        geo_obj.numiter_geo2rdr = maxiter
 
-            # set data interpolator based on the geocode algorithm
-            if geocode_algorithm == isce3.geocode.GeocodeOutputMode.INTERP:
-                geo_obj.data_interpolator = geocode_algorithm
+        # set data interpolator based on the geocode algorithm
+        if geocode_algorithm == isce3.geocode.GeocodeOutputMode.INTERP:
+            geo_obj.data_interpolator = geocode_algorithm
 
-            geo_obj.geogrid(geogrid.start_x, geogrid.start_y,
-                            geogrid.spacing_x, geogrid.spacing_y,
-                            geogrid.width, geogrid.length, geogrid.epsg)
+        geo_obj.geogrid(geogrid.start_x, geogrid.start_y,
+                        geogrid.spacing_x, geogrid.spacing_y,
+                        geogrid.width, geogrid.length, geogrid.epsg)
 
         if save_nlooks:
             nlooks_file = (f'{bursts_output_dir}/{product_prefix}'
