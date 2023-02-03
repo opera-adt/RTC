@@ -8,31 +8,22 @@ Parallel execution of RTC Workflow
 # TODO: Let the system decide the number of processes when cfg....num_process is 0
 
 import argparse
+import logging
 import multiprocessing
 import os
 import subprocess
 import time
 import yaml
 
-from rtc.runconfig import RunConfig
-
-import logging
+import isce3
+import numpy as np
+from osgeo import gdal
 
 from rtc.runconfig import RunConfig
 from rtc.core import create_logger
 import rtc_s1
 
-import isce3
-import numpy as np
-
-from osgeo import gdal
-
 logger = logging.getLogger('rtc_s1')
-
-# TODO sort the import
-
-
-
 
 def get_rtc_s1_parser():
     '''Initialize YamlArgparse class and parse CLI arguments for OPERA RTC.
