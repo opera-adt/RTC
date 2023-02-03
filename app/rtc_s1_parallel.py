@@ -84,15 +84,11 @@ def split_runconfig(cfg_in, output_dir_child):
         runconfig_dict_in = yaml.safe_load(fin.read())
 
     list_runconfig_burst = []
-    list_logfile_burst = []
 
     # determine the bursts to process
     list_burst_id = cfg_in.bursts.keys()
-    #runconfig_dict_in['runconfig']['groups']['product_group']['output_dir']
 
     # determine the output directory for child process
-    time_stamp = str(float(time.time()))
-    dir_output = os.path.join(cfg_in.groups.product_group.scratch_path, f'temp_{time_stamp}')
     for burst_id in list_burst_id:
         path_temp_runconfig = os.path.join(cfg_in.scratch_path,
                                            f'burst_runconfig_{burst_id}.yaml')
@@ -149,13 +145,16 @@ def split_runconfig(cfg_in, output_dir_child):
                                  'product_group',
                                  'save_mosaics'],
                                 False)
-        # TODO maybe it would be necessary to always turn on `save_bursts` for the child runconfigs?
 
-        if runconfig_dict_out['runconfig']['groups']['product_group']['save_mosaics']:
-            # TODO: Remove the line below one the mosaic algorithm does not take nlooks as the weight input
+        # TODO Think if it would be necessary to always turn on `save_bursts` for the child runconfigs?
+        if cfg_in.groups.product_group.save_mosaics:
             set_dict_item_recursive(runconfig_dict_out,
-                                ['runconfig', 'groups', 'processing', 'geocoding', 'save_nlooks'],
-                                True)
+                                    ['runconfig',
+                                     'groups',
+                                     'processing',
+                                     'geocoding',
+                                     'save_nlooks'],
+                                    True)
 
         list_runconfig_burst.append(path_temp_runconfig)
 
