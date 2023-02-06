@@ -600,46 +600,6 @@ def run_parallel(cfg: RunConfig):
         else:
             layover_shadow_mask_file = None
 
-        # flag to run geocoding without sub-swath masking
-        flag_geocoding_without_sub_swaths = False
-        
-        # flag to inform the user that there was an error using
-        # sub-swath masking
-        flag_inform_user_about_sub_swaths_error = False
-
-        # get sub_swaths metadata
-        if apply_valid_samples_sub_swath_masking or apply_shadow_masking:
-            # Extract burst boundaries and create sub_swaths object to mask
-            # invalid radar samples
-            n_subswaths = 1
-            sub_swaths = isce3.product.SubSwaths(radar_grid.length,
-                                                 radar_grid.width,
-                                                 n_subswaths)
-            last_range_sample = min([burst.last_valid_sample, radar_grid.width])
-            valid_samples_sub_swath = np.repeat(
-                [[burst.first_valid_sample, last_range_sample + 1]],
-                radar_grid.length, axis=0)
-            for i in range(burst.first_valid_line):
-                valid_samples_sub_swath[i, :] = 0
-            for i in range(burst.last_valid_line, radar_grid.length):
-                valid_samples_sub_swath[i, :] = 0
-
-            sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
-
-            # geocode
-
-        else:
-            sub_swaths = None
-
-        if flag_geocoding_without_sub_swaths:
-            # geocode (without sub_swaths)
-            
-            if flag_inform_user_about_sub_swaths_error:
-                logger.warning('WARNING the sub-swath masking is not available'
-                               ' from this ISCE3 version. The sub-swath masking'
-                               ' was disabled.')
-
-    
         # Output imagery list contains multi-band files that
         # will be used for mosaicking
         output_imagery_list.append(geo_burst_filename)
