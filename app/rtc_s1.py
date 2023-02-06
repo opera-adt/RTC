@@ -682,9 +682,6 @@ def run(cfg: RunConfig):
             nlooks_file = (f'{bursts_output_dir}/{product_prefix}'
                            f'_nlooks.{imagery_extension}')
 
-            #if skip_burst_process:
-            #    os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
-
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
             else:
@@ -700,9 +697,6 @@ def run(cfg: RunConfig):
         if save_rtc_anf:
             rtc_anf_file = (f'{bursts_output_dir}/{product_prefix}'
                f'_rtc_anf.{imagery_extension}')
-            # TODO: The if statement below needs to be revised to if- else statement
-            #if skip_burst_process:
-            #    os.rename(rtc_anf_file.replace(output_dir, scratch_path), rtc_anf_file)
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -876,19 +870,9 @@ def run(cfg: RunConfig):
                         f'{imagery_extension}')
                 output_burst_imagery_list.append(geo_burst_pol_filename)
 
-            if os.path.exists(geo_burst_filename):
-                _separate_pol_channels(geo_burst_filename,
-                                       output_burst_imagery_list,
-                                       logger, output_raster_format)
-            else:
-                for filename in output_burst_imagery_list:
-                    os.rename(filename.replace(output_dir, scratch_path), filename)
-
-                # create a vrt from the separated pol tiffs
-                geo_burst_filename +='.vrt'
-                output_imagery_list[-1] = geo_burst_filename
-                gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
-                              options=vrt_options_mosaic)
+            _separate_pol_channels(geo_burst_filename,
+                                    output_burst_imagery_list,
+                                    logger, output_raster_format)
 
             output_file_list += output_burst_imagery_list
 
