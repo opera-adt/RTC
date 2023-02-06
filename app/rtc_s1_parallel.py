@@ -60,13 +60,15 @@ def split_runconfig(cfg_in, output_dir_child):
     Writes out the runconfigs.
     Return the list of the burst runconfigs.
 
-    Parameters:
+    Parameters
+    ----------
     path_runconfig_in: str
         Path to the original runconfig
     path_log_in: str
         Path to the original logfile
 
-    Returns:
+    Returns
+    -------
     list_runconfig_burst: list(str)
         List of the burst runconfigs
     list_logfile_burst: list(str)
@@ -87,6 +89,11 @@ def split_runconfig(cfg_in, output_dir_child):
 
     # determine the bursts to process
     list_burst_id = cfg_in.bursts.keys()
+
+    # determine the scratch path for the child process
+    scratch_path_child = \
+        os.path.join(cfg_in.groups.product_group.scratch_path,
+                     f'{os.path.basename(output_dir_child)}_child_scratch')
 
     # determine the output directory for child process
     for burst_id in list_burst_id:
@@ -114,30 +121,28 @@ def split_runconfig(cfg_in, output_dir_child):
                                  'groups',
                                  'product_group',
                                  'output_dir'],
-                                 output_dir_child)
+                                output_dir_child)
 
         set_dict_item_recursive(runconfig_dict_out,
-                                    ['runconfig',
-                                    'groups',
-                                    'product_group',
-                                    'scratch_path'],
-                                    os.path.join(cfg_in.groups.product_group.scratch_path,
-                                                 f'{os.path.basename(output_dir_child)}_child_scratch')
-                                    )
+                                ['runconfig',
+                                 'groups',
+                                 'product_group',
+                                 'scratch_path'],
+                                scratch_path_child)
 
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
                                  'groups',
                                  'product_group',
                                  'save_secondary_layers_as_hdf5'],
-                                 False)
+                                False)
 
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
                                  'groups',
                                  'product_group',
                                  'output_imagery_format'],
-                                 'GTiff')
+                                'GTiff')
 
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
@@ -146,7 +151,14 @@ def split_runconfig(cfg_in, output_dir_child):
                                  'save_mosaics'],
                                 False)
 
-        # TODO Think if it would be necessary to always turn on `save_bursts` for the child runconfigs?
+        set_dict_item_recursive(runconfig_dict_out,
+                                ['runconfig',
+                                 'groups',
+                                 'product_group',
+                                 'save_bursts'],
+                                True)
+
+        # TODO: Remove the code below once the mosaicking algorithm does not take nlooks as the weight input
         if cfg_in.groups.product_group.save_mosaics:
             set_dict_item_recursive(runconfig_dict_out,
                                     ['runconfig',
@@ -171,7 +183,8 @@ def set_dict_item_recursive(dict_in, list_path, val):
     - Add or update the value of the located item
     - Create the key with empty dict when the key does not exist
 
-    Parameters:
+    Parameters
+    ----------
     dict_in: dict
         Dict to set the value
     list_path:
@@ -195,7 +208,8 @@ def process_runconfig(path_runconfig_burst, path_logfile = None, full_logfile_fo
     '''
     single worker to process runconfig from terminal using `subprocess`
 
-    Parameters:
+    Parameters
+    ----------
     path_runconfig_burst: str
         Path to the burst runconfig
     path_logfile_burst: str
@@ -213,7 +227,7 @@ def process_runconfig(path_runconfig_burst, path_logfile = None, full_logfile_fo
     if full_logfile_format:
         list_arg_subprocess.append('--full-log-format')
 
-    rtnval = subprocess.run(list_arg_subprocess)
+    return_val = subprocess.run(list_arg_subprocess)
 
     # TODO Add some routine to take a look into `rtnval` to see if everything is okay.
 
@@ -225,6 +239,7 @@ def run_parallel(cfg: RunConfig):
     Parallel version of `rtc_s1.run()`
     Run geocode burst workflow with user-defined
     args stored in dictionary runconfig `cfg`
+
     Parameters
     ---------
     cfg: RunConfig
@@ -528,7 +543,6 @@ def run_parallel(cfg: RunConfig):
             nlooks_file = (f'{bursts_output_dir}/{product_prefix}'
                            f'_nlooks.{imagery_extension}')
 
-            #if skip_burst_process:
             os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
 
             if flag_bursts_secondary_files_are_temporary:
