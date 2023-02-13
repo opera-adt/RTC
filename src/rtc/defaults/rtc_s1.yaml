@@ -29,7 +29,7 @@ runconfig:
 
             processing_type: UNDEFINED
 
-            product_version: 0.2
+            product_version: 0.3
 
             # Directory where PGE will place results
             product_path:

@@ -22,6 +22,7 @@ from rtc.runconfig import RunConfig
 from rtc.mosaic_geobursts import compute_weighted_mosaic_raster, compute_weighted_mosaic_raster_single_band
 from rtc.core import create_logger, save_as_cog
 from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
+from rtc.version import VERSION as SOFTWARE_VERSION
 
 logger = logging.getLogger('rtc_s1')
 
@@ -359,7 +360,8 @@ def run(cfg: RunConfig):
     # Start tracking processing time
     t_start = time.time()
     time_stamp = str(float(time.time()))
-    logger.info("Starting the RTC-S1 Science Application Software (SAS)")
+    logger.info('Starting the RTC-S1 Science Application Software (SAS)'
+                f' v{SOFTWARE_VERSION}')
 
     # primary executable
     processing_type = cfg.groups.product_group.processing_type

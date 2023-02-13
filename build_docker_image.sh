@@ -2,7 +2,7 @@
 
 REPO=opera
 IMAGE=rtc
-TAG=bet_0.2
+TAG=bet_0.3
 
 echo "IMAGE is $REPO/$IMAGE:$TAG"
 
@@ -19,7 +19,7 @@ docker build --rm --force-rm --network host -t $REPO/$IMAGE:$TAG -f Docker/Docke
 #docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/mnt" -w /mnt -it --network host "${IMAGE}:$t" pytest /mnt/tests/
 
 # create image tar
-docker save $REPO/$IMAGE:$TAG > Docker/dockerimg_rtc_beta_0.2.tar
+docker save $REPO/$IMAGE:$TAG > Docker/dockerimg_rtc_gamma_0.3.tar
 
 # remove image
 docker image rm $REPO/$IMAGE:$TAG
