@@ -32,7 +32,7 @@ runconfig:
 
             processing_type: enum('NOMINAL', 'URGENT', 'CUSTOM', 'UNDEFINED', required=False)
 
-            product_version: num(required=False)
+            product_version: str(required=False)
 
             # Directory where PGE will place results
             product_path: str()
