@@ -186,7 +186,7 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
     slc_gdal_ds = gdal.Open(path_slc_vrt)
     arr_slc_from = slc_gdal_ds.ReadAsArray()
 
-    # Apply the correction
+    # Apply thermal noise correction
     if flag_thermal_correction:
         logger.info(f'    applying thermal noise correction to burst SLC')
         corrected_image = np.abs(arr_slc_from) ** 2 - burst_in.thermal_noise_lut
@@ -197,21 +197,20 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
     else:
         corrected_image=np.abs(arr_slc_from) ** 2
 
+    # Apply absolute radiometric correction
     if flag_apply_abs_rad_correction:
         logger.info(f'    applying absolute radiometric correction to burst SLC')
+        corrected_image = \
+            corrected_image / burst_in.burst_calibration.beta_naught ** 2
+
+    # Output as complex
     if flag_output_complex:
         factor_mag = np.sqrt(corrected_image) / np.abs(arr_slc_from)
         factor_mag[np.isnan(factor_mag)] = 0.0
         corrected_image = arr_slc_from * factor_mag
         dtype = gdal.GDT_CFloat32
-        if flag_apply_abs_rad_correction:
-            corrected_image = \
-                corrected_image / burst_in.burst_calibration.beta_naught
     else:
         dtype = gdal.GDT_Float32
-        if flag_apply_abs_rad_correction:
-            corrected_image = \
-                corrected_image / burst_in.burst_calibration.beta_naught ** 2
 
     # Save the corrected image
     drvout = gdal.GetDriverByName('GTiff')
@@ -714,6 +713,9 @@ def run(cfg: RunConfig):
             rtc_anf_file = None
             out_geo_rtc_obj = None
 
+        # geocoding optional arguments (new ISCE3 with unmerged code)
+        geocode_new_isce3_kwargs = {}
+
         # geocoding optional arguments
         geocode_kwargs = {}
 
@@ -756,20 +758,22 @@ def run(cfg: RunConfig):
                 layover_shadow_mask_file)
 
             if apply_shadow_masking:
+                geocode_new_isce3_kwargs['input_layover_shadow_mask_raster'] = \
+                    layover_shadow_mask_raster
                 geocode_kwargs['input_layover_shadow_mask_raster'] = \
                     layover_shadow_mask_raster
         else:
             layover_shadow_mask_file = None
 
-        # flag to run geocoding without sub-swath masking
-        flag_geocoding_without_sub_swaths = False
+        # flag to run geocoding without shadow masking
+        flag_geocoding_without_shadow_masking = False
         
         # flag to inform the user that there was an error using
         # sub-swath masking
-        flag_inform_user_about_sub_swaths_error = False
+        flag_inform_user_about_isce3_version_error = False
 
         # get sub_swaths metadata
-        if apply_valid_samples_sub_swath_masking or apply_shadow_masking:
+        if apply_valid_samples_sub_swath_masking:
             # Extract burst boundaries and create sub_swaths object to mask
             # invalid radar samples
             n_subswaths = 1
@@ -786,8 +790,11 @@ def run(cfg: RunConfig):
                 valid_samples_sub_swath[i, :] = 0
 
             sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
+            geocode_new_isce3_kwargs['sub_swaths'] = sub_swaths
+            geocode_kwargs['sub_swaths'] = sub_swaths
 
-            # geocode
+        if apply_shadow_masking:
+            # run ISCE3 geocoding
             try:
                 geo_obj.geocode(radar_grid=radar_grid,
                                 input_raster=rdr_burst_raster,
@@ -806,26 +813,24 @@ def run(cfg: RunConfig):
                                 flag_upsample_radar_grid=flag_upsample_radar_grid,
                                 clip_min = clip_min,
                                 clip_max = clip_max,
-                                # out_off_diag_terms=out_off_diag_terms_obj,
                                 out_geo_nlooks=out_geo_nlooks_obj,
                                 out_geo_rtc=out_geo_rtc_obj,
                                 input_rtc=None,
                                 output_rtc=None,
                                 dem_interp_method=dem_interp_method_enum,
                                 memory_mode=memory_mode,
-                                sub_swaths=sub_swaths,
-                                **geocode_kwargs)
+                                **geocode_new_isce3_kwargs)
             except TypeError:
-                flag_geocoding_without_sub_swaths = True
-                flag_inform_user_about_sub_swaths_error = True
+                flag_geocoding_without_shadow_masking = True
+                flag_inform_user_about_isce3_version_error = True
                 logger.warning('WARNING there was an error executing geocode().'
                                ' Retrying it with less parameters')
 
         else:
-            sub_swaths = None
+            flag_geocoding_without_shadow_masking = True
 
-        if flag_geocoding_without_sub_swaths:
-            # geocode (without sub_swaths)
+        if flag_geocoding_without_shadow_masking:
+            # run ISCE3 geocoding (without shadow masking)
             geo_obj.geocode(radar_grid=radar_grid,
                             input_raster=rdr_burst_raster,
                             output_raster=geo_burst_raster,
@@ -843,18 +848,17 @@ def run(cfg: RunConfig):
                             flag_upsample_radar_grid=flag_upsample_radar_grid,
                             clip_min = clip_min,
                             clip_max = clip_max,
-                            # out_off_diag_terms=out_off_diag_terms_obj,
                             out_geo_nlooks=out_geo_nlooks_obj,
                             out_geo_rtc=out_geo_rtc_obj,
                             input_rtc=None,
                             output_rtc=None,
                             dem_interp_method=dem_interp_method_enum,
-                            memory_mode=memory_mode)
+                            memory_mode=memory_mode,
+                            **geocode_kwargs)
 
-            if flag_inform_user_about_sub_swaths_error:
-                logger.warning('WARNING the sub-swath masking is not available'
-                               ' from this ISCE3 version. The sub-swath masking'
-                               ' was disabled.')
+            if flag_inform_user_about_isce3_version_error:
+                logger.warning('WARNING shadow masking is not available'
+                               ' from installed version of ISCE3.')
 
         del geo_burst_raster
 
