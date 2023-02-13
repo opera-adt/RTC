@@ -366,7 +366,10 @@ def run(cfg: RunConfig):
     # primary executable
     processing_type = cfg.groups.product_group.processing_type
     product_version_float = cfg.groups.product_group.product_version
-    product_version = f'{product_version_float:.1f}'
+    if product_version_float is None:
+        product_version = SOFTWARE_VERSION
+    else:
+        product_version = f'{product_version_float:.1f}'
 
     # unpack processing parameters
     processing_namespace = cfg.groups.processing
