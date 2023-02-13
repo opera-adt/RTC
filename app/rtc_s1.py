@@ -360,7 +360,7 @@ def run(cfg: RunConfig):
     # Start tracking processing time
     t_start = time.time()
     time_stamp = str(float(time.time()))
-    logger.info('Starting the RTC-S1 Science Application Software (SAS)'
+    logger.info('OPERA RTC-S1 Science Application Software (SAS)'
                 f' v{SOFTWARE_VERSION}')
 
     # primary executable
@@ -775,8 +775,6 @@ def run(cfg: RunConfig):
 
             if apply_shadow_masking:
                 geocode_new_isce3_kwargs['input_layover_shadow_mask_raster'] = \
-                    layover_shadow_mask_raster
-                geocode_kwargs['input_layover_shadow_mask_raster'] = \
                     layover_shadow_mask_raster
         else:
             layover_shadow_mask_file = None
