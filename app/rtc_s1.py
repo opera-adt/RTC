@@ -325,7 +325,6 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     geo.doppler = isce3.core.LUT2d()
     geo.threshold_geo2rdr = threshold_geo2rdr
     geo.numiter_geo2rdr = numiter_geo2rdr
-    geo.lines_per_block = lines_per_block_rdr2geo
     geo.data_interpolator = 'NEAREST'
     geo.geogrid(float(geogrid_in.start_x),
                 float(geogrid_in.start_y),
