@@ -187,7 +187,10 @@ def populate_metadata_group(h5py_obj: h5py.File,
 
     # product version
     product_version_float = cfg_in.groups.product_group.product_version
-    product_version = f'{product_version_float:.1f}'
+    if product_version_float is None:
+        product_version = SOFTWARE_VERSION
+    else:
+        product_version = f'{product_version_float:.1f}'
 
     # DEM description
     dem_description = cfg_in.dem_description
