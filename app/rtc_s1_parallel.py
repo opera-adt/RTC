@@ -4,7 +4,6 @@
 Parallel execution of RTC Workflow
 '''
 
-import argparse
 from itertools import repeat
 import logging
 import multiprocessing
@@ -16,9 +15,10 @@ import yaml
 import isce3
 import numpy as np
 from osgeo import gdal
+import rtc_s1
 
 from rtc.runconfig import RunConfig
-import rtc_s1
+
 
 logger = logging.getLogger('rtc_s1')
 
@@ -99,20 +99,6 @@ def split_runconfig(cfg_in, output_dir_child):
                                  'scratch_path'],
                                 scratch_path_child)
 
-        #set_dict_item_recursive(runconfig_dict_out,
-        #                        ['runconfig',
-        #                         'groups',
-        #                         'product_group',
-        #                         'save_secondary_layers_as_hdf5'],
-        #                        False)
-
-        #set_dict_item_recursive(runconfig_dict_out,
-        #                        ['runconfig',
-        #                         'groups',
-        #                         'product_group',
-        #                         'output_imagery_format'],
-        #                        'GTiff')
-
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
                                  'groups',
@@ -173,7 +159,10 @@ def set_dict_item_recursive(dict_in, list_path, val):
     set_dict_item_recursive(dict_in[key_next], list_path[1:], val)
 
 
-def process_runconfig(path_runconfig_burst, path_logfile = None, full_logfile_format = None, keep_burst_runconfig=False):
+def process_runconfig(path_runconfig_burst,
+                      path_logfile = None,
+                      full_logfile_format = None,
+                      keep_burst_runconfig=False):
     '''
     single worker to process runconfig from terminal using `subprocess`
 
@@ -360,7 +349,7 @@ def run_parallel(cfg: RunConfig):
 
     # Common initializations
     dem_raster = isce3.io.Raster(cfg.dem)
-    
+
     # output mosaics variables
     geo_filename = f'{output_dir}/'f'{product_prefix}.{imagery_extension}'
     output_imagery_list = []
@@ -529,7 +518,9 @@ def run_parallel(cfg: RunConfig):
             else:
                 # Extract the nlooks file from the HDF5 file in the scratch directory
                 # Inspirated from : https://gis.stackexchange.com/questions/42584/how-to-call-gdal-translate-from-python-code
-                data_out = gdal.Open(f'NETCDF:"{burst_hdf5_in_scratch}":/science/SENTINEL1/RTC/grids/frequencyA/numberOfLooks')
+                data_out = gdal.Open(f'NETCDF:"{burst_hdf5_in_scratch}":'
+                                     '/science/SENTINEL1/RTC/grids/frequencyA/'
+                                     'numberOfLooks')
                 data_out = gdal.Translate(nlooks_file, data_out)
                 data_out = None
 
@@ -555,7 +546,6 @@ def run_parallel(cfg: RunConfig):
         else:
             rtc_anf_file = None
         # geocoding optional arguments
-
 
         # Calculate layover/shadow mask when requested
         if save_layover_shadow_mask or apply_shadow_masking:
@@ -683,9 +673,6 @@ def run_parallel(cfg: RunConfig):
                       output_hdf5_file_burst)
 
         # Create mosaic HDF5
-        #if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
-        #        and burst_index == 0):
-        #    hdf5_obj = rtc_s1.create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
         if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
                 and burst_index == len(cfg.bursts)-1):
             hdf5_obj = rtc_s1.create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
@@ -719,7 +706,6 @@ def run_parallel(cfg: RunConfig):
             output_file_list += list(radar_grid_file_dict.values())
 
     if save_mosaics:
-
         # Mosaic sub-bursts imagery
         logger.info(f'mosaicking files:')
         output_imagery_filename_list = []
@@ -749,14 +735,12 @@ def run_parallel(cfg: RunConfig):
 
 
 
-
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
                     (key == 'nlooks' and not save_nlooks)):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
-
 
 
 
@@ -836,7 +820,7 @@ def run_parallel(cfg: RunConfig):
 
 def get_parent_logger_setting(logger_in):
     path_logger = ''
-    
+
     flag_full_format = logger_in.handlers[0].formatter._fmt != '%(message)s'
 
     for handler_logger in logger_in.handlers:
@@ -866,7 +850,7 @@ def main():
 
     # Run geocode burst workflow
     run_parallel(cfg)
-    
+
 
 if __name__ == "__main__":
     # load arguments from command line
