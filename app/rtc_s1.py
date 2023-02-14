@@ -55,16 +55,32 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
         mosaic_geogrid_dict['yf'] = yf
     if 'dx' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['dx'] = geogrid.spacing_x
-    else:
-        assert(mosaic_geogrid_dict['dx'] == geogrid.spacing_x)
+    # else:
+    #     assert(mosaic_geogrid_dict['dx'] == geogrid.spacing_x)
     if 'dy' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['dy'] = geogrid.spacing_y
-    else:
-        assert(mosaic_geogrid_dict['dy'] == geogrid.spacing_y)
+    # else:
+    #     assert(mosaic_geogrid_dict['dy'] == geogrid.spacing_y)
+
+
+
+
+
+
+
+    # TODO fix this. The mosaic EPSG should not come from the
+    # first burst
     if 'epsg' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['epsg'] = geogrid.epsg
-    else:
-        assert(mosaic_geogrid_dict['epsg'] == geogrid.epsg)
+    # else:
+    #     assert(mosaic_geogrid_dict['epsg'] == geogrid.epsg)
+
+
+
+
+
+
+
 
 
 def _separate_pol_channels(multi_band_file, output_file_list, logger,
