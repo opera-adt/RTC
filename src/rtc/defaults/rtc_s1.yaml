@@ -129,7 +129,7 @@ runconfig:
 
             # OPTIONAL - to provide the number of processes when processing the bursts in parallel
             # 0 will decide the number automatically
-            num_process: 0
+            num_workers: 0 # TODO change the other defaults and ref. acoordingly
 
             # Geocoding options
             geocoding:
