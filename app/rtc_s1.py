@@ -550,7 +550,7 @@ def run(cfg: RunConfig):
 
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
-        
+
         # ===========================================================
         # start burst processing
 
@@ -576,7 +576,7 @@ def run(cfg: RunConfig):
             # burst files (individual or HDF5) are saved in burst_id dir 
             bursts_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(bursts_output_dir, exist_ok=True)
-        
+
         geogrid = cfg.geogrids[burst_id]
 
         # snap coordinates
@@ -607,7 +607,7 @@ def run(cfg: RunConfig):
                 f'{burst_scratch_path}/rslc_{pol}.vrt'
             temp_slc_corrected_path = (
                 f'{burst_scratch_path}/rslc_{pol}_corrected.{imagery_extension}')
-            
+
             burst_pol.slc_to_vrt_file(temp_slc_path)
 
             if (flag_apply_thermal_noise_correction or
@@ -882,7 +882,7 @@ def run(cfg: RunConfig):
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
-    
+
         if save_rtc_anf:
             del out_geo_rtc_obj
 
@@ -913,21 +913,27 @@ def run(cfg: RunConfig):
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
             output_hdf5_file_burst =  os.path.join(
                 hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
-            hdf5_obj = create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg)
-            save_hdf5_file(
-                hdf5_obj, output_hdf5_file_burst, flag_apply_rtc,
-                clip_max, clip_min, output_radiometry_str,
-                geogrid, pol_list, geo_burst_filename, nlooks_file,
-                rtc_anf_file, layover_shadow_mask_file,
-                radar_grid_file_dict,
-                save_imagery = save_imagery_as_hdf5,
-                save_secondary_layers = save_secondary_layers_as_hdf5)
+
+            #hdf5_obj = create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg)
+            with create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg) as hdf5_obj:
+                save_hdf5_file(
+                    hdf5_obj, output_hdf5_file_burst, flag_apply_rtc,
+                    clip_max, clip_min, output_radiometry_str,
+                    geogrid, pol_list, geo_burst_filename, nlooks_file,
+                    rtc_anf_file, layover_shadow_mask_file,
+                    radar_grid_file_dict,
+                    save_imagery = save_imagery_as_hdf5,
+                    save_secondary_layers = save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
 
-        # Create mosaic HDF5 
+        # Create mosaic HDF5
+        #if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
+        #        and burst_index == 0):
+        #    hdf5_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
         if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
-                and burst_index == 0):
+                and burst_index == len(cfg.bursts)-1):
             hdf5_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
+
 
         t_burst_end = time.time()
         logger.info(
@@ -1063,6 +1069,7 @@ def run(cfg: RunConfig):
         if not os.path.isfile(filename):
             continue
         os.remove(filename)
+
         logger.info(f'    {filename}')
 
     logger.info('output files:')
