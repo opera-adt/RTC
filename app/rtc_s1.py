@@ -345,6 +345,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                 dem_raster=dem_raster,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
 
+    return layover_shadow_mask_raster
+
 
 def run(cfg: RunConfig):
     '''
