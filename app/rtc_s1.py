@@ -546,6 +546,7 @@ def run(cfg: RunConfig):
     else:
         output_dir_sec_mosaic_raster = output_dir
 
+    # configure mosaic secondary layers
     _add_output_to_output_metadata_dict(
         save_layover_shadow_mask, 'layover_shadow_mask',
         output_dir_sec_mosaic_raster,
@@ -592,13 +593,15 @@ def run(cfg: RunConfig):
         burst_scratch_path = f'{scratch_path}/{burst_id}/'
         os.makedirs(burst_scratch_path, exist_ok=True)
 
-        if not save_bursts:
+        output_dir_bursts = os.path.join(output_dir, burst_id)
+        os.makedirs(output_dir_bursts, exist_ok=True)
+
+        if not save_bursts or save_secondary_layers_as_hdf5:
             # burst files are saved in scratch dir
-            bursts_output_dir = burst_scratch_path
+            output_dir_sec_bursts = burst_scratch_path
         else:
             # burst files (individual or HDF5) are saved in burst_id dir 
-            bursts_output_dir = os.path.join(output_dir, burst_id)
-            os.makedirs(bursts_output_dir, exist_ok=True)
+            output_dir_sec_bursts = output_dir_bursts
         
         geogrid = cfg.geogrids[burst_id]
 
@@ -701,7 +704,7 @@ def run(cfg: RunConfig):
                         geogrid.width, geogrid.length, geogrid.epsg)
 
         if save_nlooks:
-            nlooks_file = (f'{bursts_output_dir}/{product_prefix}'
+            nlooks_file = (f'{output_dir_sec_bursts}/{product_prefix}'
                            f'_nlooks.{imagery_extension}')
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
@@ -715,7 +718,7 @@ def run(cfg: RunConfig):
             out_geo_nlooks_obj = None
 
         if save_rtc_anf:
-            rtc_anf_file = (f'{bursts_output_dir}/{product_prefix}'
+            rtc_anf_file = (f'{output_dir_sec_bursts}/{product_prefix}'
                f'_rtc_anf.{imagery_extension}')
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -747,11 +750,11 @@ def run(cfg: RunConfig):
                     (f'{burst_scratch_path}/{product_prefix}'
                      f'_layover_shadow_mask.{imagery_extension}')
             else:
-                # layover/shadow mask is saved in `bursts_output_dir`
+                # layover/shadow mask is saved in `output_dir_sec_bursts`
                 layover_shadow_mask_file = \
-                    (f'{bursts_output_dir}/{product_prefix}'
+                    (f'{output_dir_sec_bursts}/{product_prefix}'
                      f'_layover_shadow_mask.{imagery_extension}')
-                                
+
             layover_shadow_mask_raster = compute_layover_shadow_mask(
                 radar_grid,
                 orbit,
@@ -912,7 +915,7 @@ def run(cfg: RunConfig):
         if flag_call_radar_grid and save_bursts:
             get_radar_grid(
                 geogrid, dem_interp_method_enum, product_prefix,
-                bursts_output_dir, imagery_extension, save_incidence_angle,
+                output_dir_sec_bursts, imagery_extension, save_incidence_angle,
                 save_local_inc_angle, save_projection_angle,
                 save_rtc_anf_psi,
                 save_range_slope, save_dem,
