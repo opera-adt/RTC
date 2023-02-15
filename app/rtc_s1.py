@@ -56,12 +56,8 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
         mosaic_geogrid_dict['yf'] = yf
     if 'dx' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['dx'] = geogrid.spacing_x
-    # else:
-    #     assert(mosaic_geogrid_dict['dx'] == geogrid.spacing_x)
     if 'dy' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['dy'] = geogrid.spacing_y
-    # else:
-    #     assert(mosaic_geogrid_dict['dy'] == geogrid.spacing_y)
 
 
 
@@ -73,8 +69,7 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     # first burst
     if 'epsg' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['epsg'] = geogrid.epsg
-    # else:
-    #     assert(mosaic_geogrid_dict['epsg'] == geogrid.epsg)
+
 
 
 
@@ -572,7 +567,7 @@ def run(cfg: RunConfig):
     n_bursts = len(cfg.bursts.items())
     print('Number of bursts to process:', n_bursts)
 
-    hdf5_obj = None
+    hdf5_mosaic_obj = None
     output_hdf5_file = os.path.join(output_dir,
                                     f'{product_prefix}.{hdf5_file_extension}')
 
@@ -936,21 +931,21 @@ def run(cfg: RunConfig):
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
             output_hdf5_file_burst =  os.path.join(
                 hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
-            hdf5_obj = create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg)
-            save_hdf5_file(
-                hdf5_obj, output_hdf5_file_burst, flag_apply_rtc,
-                clip_max, clip_min, output_radiometry_str,
-                geogrid, pol_list, geo_burst_filename, nlooks_file,
-                rtc_anf_file, layover_shadow_mask_file,
-                radar_grid_file_dict,
-                save_imagery = save_imagery_as_hdf5,
-                save_secondary_layers = save_secondary_layers_as_hdf5)
+            with create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg) as hdf5_burst_obj:
+                save_hdf5_file(
+                    hdf5_burst_obj, output_hdf5_file_burst, flag_apply_rtc,
+                    clip_max, clip_min, output_radiometry_str,
+                    geogrid, pol_list, geo_burst_filename, nlooks_file,
+                    rtc_anf_file, layover_shadow_mask_file,
+                    radar_grid_file_dict,
+                    save_imagery = save_imagery_as_hdf5,
+                    save_secondary_layers = save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
 
         # Create mosaic HDF5 
         if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
                 and burst_index == 0):
-            hdf5_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
+            hdf5_mosaic_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
 
         t_burst_end = time.time()
         logger.info(
@@ -1055,15 +1050,15 @@ def run(cfg: RunConfig):
 
             sensing_start_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
             sensing_end_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
-            del hdf5_obj[sensing_start_ds]
-            del hdf5_obj[sensing_end_ds]
-            hdf5_obj[sensing_start_ds] = \
+            del hdf5_mosaic_obj[sensing_start_ds]
+            del hdf5_mosaic_obj[sensing_end_ds]
+            hdf5_mosaic_obj[sensing_start_ds] = \
                 sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f')
-            hdf5_obj[sensing_end_ds] = \
+            hdf5_mosaic_obj[sensing_end_ds] = \
                 sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f')
 
             save_hdf5_file(
-                hdf5_obj, output_hdf5_file, flag_apply_rtc,
+                hdf5_mosaic_obj, output_hdf5_file, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str,
                 cfg.geogrid, pol_list, geo_filename, nlooks_mosaic_file,
                 rtc_anf_mosaic_file, layover_shadow_mask_file,
