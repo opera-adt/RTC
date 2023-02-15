@@ -1064,6 +1064,7 @@ def run(cfg: RunConfig):
                 rtc_anf_mosaic_file, layover_shadow_mask_file,
                 radar_grid_file_dict, save_imagery = save_imagery_as_hdf5,
                 save_secondary_layers = save_secondary_layers_as_hdf5)
+            hdf5_mosaic_obj.close()
             output_file_list.append(output_hdf5_file)
 
     if output_imagery_format == 'COG':
