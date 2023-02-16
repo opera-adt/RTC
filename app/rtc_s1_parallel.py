@@ -506,6 +506,8 @@ def run_parallel(cfg: RunConfig):
                                              burst_id,
                                              f'{product_prefix}.{hdf5_file_extension}')
 
+        burst_hdf5_in_output = burst_hdf5_in_scratch.replace(scratch_path,
+                                                             output_dir)
 
         # Generate output geocoded burst raster
         if save_nlooks:
@@ -516,13 +518,9 @@ def run_parallel(cfg: RunConfig):
                 # Move the nlooks file if it exists in the scratch of the parent process
                 os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
             else:
-                # Extract the nlooks file from the HDF5 file in the scratch directory
-                # Inspirated from : https://gis.stackexchange.com/questions/42584/how-to-call-gdal-translate-from-python-code
-                data_out = gdal.Open(f'NETCDF:"{burst_hdf5_in_scratch}":'
-                                     '/science/SENTINEL1/RTC/grids/frequencyA/'
-                                     'numberOfLooks')
-                data_out = gdal.Translate(nlooks_file, data_out)
-                data_out = None
+                nlooks_file = (f'NETCDF:"{burst_hdf5_in_output}":'
+                                '/science/SENTINEL1/RTC/grids/frequencyA/'
+                                'numberOfLooks')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
@@ -564,7 +562,14 @@ def run_parallel(cfg: RunConfig):
                     (f'{bursts_output_dir}/{product_prefix}'
                      f'_layover_shadow_mask.{imagery_extension}')
 
-            # TODO Check if `compute_layover_shadow_mask` returns something.
+                # Move the layover shadow mask file generated from child process
+                # Necessary when `save_secondary_layers_as_hdf5` is False
+                layover_shadow_mask_file_in_scratch =\
+                    layover_shadow_mask_file.replace(bursts_output_dir,
+                                                     burst_scratch_path)
+                if os.path.exists(layover_shadow_mask_file_in_scratch):
+                    os.rename(layover_shadow_mask_file_in_scratch,
+                              layover_shadow_mask_file)
 
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
@@ -575,8 +580,6 @@ def run_parallel(cfg: RunConfig):
             # Take the layover shadow mask from HDF5 file if not exists
             if (not os.path.exists(layover_shadow_mask_file)) and \
                 os.path.exists(burst_hdf5_in_scratch):
-                burst_hdf5_in_output = burst_hdf5_in_scratch.replace(scratch_path,
-                                                                     output_dir)
                 layover_shadow_mask_file = (f'NETCDF:{burst_hdf5_in_output}:'
                                             '/science/SENTINEL1/RTC/grids/'
                                             'frequencyA/layoverShadowMask')
