@@ -1068,7 +1068,7 @@ def run(cfg: RunConfig):
     for filename in temp_files_list:
         if not os.path.isfile(filename):
             continue
-        os.remove(filename)
+        # os.remove(filename) # TODO: Temporary suppression. remove before commit
 
         logger.info(f'    {filename}')
 
