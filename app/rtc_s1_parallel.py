@@ -22,7 +22,7 @@ from rtc.runconfig import RunConfig
 logger = logging.getLogger('rtc_s1')
 
 
-def split_runconfig(cfg_in, output_dir_child):
+def split_runconfig(cfg_in, output_dir_child, scratch_path_child=None):
     '''
     Split the input runconfig into single burst runconfigs.
     Writes out the runconfigs.
@@ -59,9 +59,11 @@ def split_runconfig(cfg_in, output_dir_child):
     list_burst_id = cfg_in.bursts.keys()
 
     # determine the scratch path for the child process
-    scratch_path_child = \
-        os.path.join(cfg_in.groups.product_group.scratch_path,
-                     f'{os.path.basename(output_dir_child)}_child_scratch')
+    
+    if not scratch_path_child:
+        scratch_path_child = \
+            os.path.join(cfg_in.groups.product_group.scratch_path,
+                        f'{os.path.basename(output_dir_child)}_child_scratch')
 
     # determine the output directory for child process
     for burst_id in list_burst_id:
@@ -329,7 +331,8 @@ def run_parallel(cfg: RunConfig):
         geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
-    # TODO remove the lines below:
+    # TODO remove the lines below when the mosaic
+    #       does not take in nlooks anymore
     if save_mosaics:
         save_nlooks = True
 
@@ -410,8 +413,38 @@ def run_parallel(cfg: RunConfig):
     # ------ Start parallelized burst processing ------
 
     # Split the original runconfig into bursts
-    list_burst_runconfig = split_runconfig(cfg, scratch_path)
-    
+
+
+
+
+
+
+
+
+
+
+
+
+    #list_burst_runconfig = split_runconfig(cfg, scratch_path)
+    if not save_bursts:
+        # burst files are saved in scratch dir
+        #bursts_output_dir = scratch_path
+        #bursts_output_dir = burst_scratch_path
+        list_burst_runconfig = split_runconfig(cfg, scratch_path, None)
+    else:
+        # burst files (individual or HDF5) are saved in burst_id dir
+        #bursts_output_dir = os.path.join(output_dir, burst_id)
+        #os.makedirs(bursts_output_dir, exist_ok=True)
+        
+        list_burst_runconfig = split_runconfig(cfg, output_dir, scratch_path)
+
+    #list_burst_runconfig = split_runconfig(cfg, bursts_output_dir, scratch_path)
+
+
+
+
+
+
 
     # extract the logger setting from the logger
     path_logger_parent, flag_logger_full_format = get_parent_logger_setting(logger)
@@ -445,7 +478,9 @@ def run_parallel(cfg: RunConfig):
 
 
 
-    # TODO add some sort of layer to proceed to the parent process
+    # TODO some sort of layer would be neessary to proceed to the parent process
+
+
 
     # NOTE: The following routines assume that the parallelized burst processing was successful.
     
@@ -471,15 +506,6 @@ def run_parallel(cfg: RunConfig):
         burst_scratch_path = f'{scratch_path}/{burst_id}/'
 
 
-        if not save_bursts:
-            # burst files are saved in scratch dir
-            bursts_output_dir = burst_scratch_path
-        else:
-            # burst files (individual or HDF5) are saved in burst_id dir
-            bursts_output_dir = os.path.join(output_dir, burst_id)
-            os.makedirs(bursts_output_dir, exist_ok=True)
-
-        # suggested change
         #if not save_bursts:
         #    # burst files are saved in scratch dir
         #    bursts_output_dir = scratch_path
@@ -487,7 +513,16 @@ def run_parallel(cfg: RunConfig):
         #    # burst files (individual or HDF5) are saved in burst_id dir
         #    bursts_output_dir = output_dir
         #    os.makedirs(bursts_output_dir, exist_ok=True)
-        ## TODO try to understand what this line is going to do
+
+        if not save_bursts:
+            # burst files are saved in scratch dir
+            bursts_output_dir = burst_scratch_path
+        else:
+            # burst files (individual or HDF5) are saved in burst_id dir 
+            bursts_output_dir = os.path.join(output_dir, burst_id)
+            os.makedirs(bursts_output_dir, exist_ok=True)
+
+        
         #list_burst_runconfig = split_runconfig(cfg, bursts_output_dir)
         
         geogrid = cfg.geogrids[burst_id]
@@ -550,10 +585,7 @@ def run_parallel(cfg: RunConfig):
                            f'_nlooks.{imagery_extension}')
 
             # TODO Revise this not to use `os.path.exists`
-            if os.path.exists(nlooks_file.replace(output_dir, scratch_path)):
-                # Move the nlooks file if it exists in the scratch of the parent process
-                os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
-            else:
+            if save_secondary_layers_as_hdf5:
                 nlooks_file = (f'NETCDF:"{burst_hdf5_in_output}":'
                                 '/science/SENTINEL1/RTC/grids/frequencyA/'
                                 'numberOfLooks')
@@ -569,7 +601,8 @@ def run_parallel(cfg: RunConfig):
         if save_rtc_anf:
             rtc_anf_file = (f'{bursts_output_dir}/{product_prefix}'
                f'_rtc_anf.{imagery_extension}')
-
+            
+            # TODO try to remove that
             os.rename(rtc_anf_file.replace(output_dir, scratch_path), rtc_anf_file)
 
             if flag_bursts_secondary_files_are_temporary:
@@ -598,12 +631,12 @@ def run_parallel(cfg: RunConfig):
                     (f'{bursts_output_dir}/{product_prefix}'
                      f'_layover_shadow_mask.{imagery_extension}')
 
-                layover_shadow_mask_file_in_scratch =\
-                    layover_shadow_mask_file.replace(bursts_output_dir,
-                                                     burst_scratch_path)
-                if os.path.exists(layover_shadow_mask_file_in_scratch):
-                    os.rename(layover_shadow_mask_file_in_scratch,
-                              layover_shadow_mask_file)
+                #layover_shadow_mask_file_in_scratch =\
+                #    layover_shadow_mask_file.replace(bursts_output_dir,
+                #                                     burst_scratch_path)
+                #if os.path.exists(layover_shadow_mask_file_in_scratch):
+                #    os.rename(layover_shadow_mask_file_in_scratch,
+                #              layover_shadow_mask_file)
 
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
@@ -612,8 +645,7 @@ def run_parallel(cfg: RunConfig):
                 logger.info(f'file saved: {layover_shadow_mask_file}')
 
             # Take the layover shadow mask from HDF5 file if not exists
-            if (not os.path.exists(layover_shadow_mask_file)) and \
-                os.path.exists(burst_hdf5_in_scratch):
+            if save_secondary_layers_as_hdf5:
                 layover_shadow_mask_file = (f'NETCDF:{burst_hdf5_in_output}:'
                                             '/science/SENTINEL1/RTC/grids/'
                                             'frequencyA/layoverShadowMask')
@@ -638,19 +670,20 @@ def run_parallel(cfg: RunConfig):
                         f'{imagery_extension}')
                 output_burst_imagery_list.append(geo_burst_pol_filename)
 
-            if os.path.exists(geo_burst_filename):
-                rtc_s1._separate_pol_channels(geo_burst_filename,
-                                       output_burst_imagery_list,
-                                       logger, output_raster_format)
-            else:
-                for filename in output_burst_imagery_list:
-                    os.rename(filename.replace(output_dir, scratch_path), filename)
+            #if os.path.exists(geo_burst_filename):
+            #    rtc_s1._separate_pol_channels(geo_burst_filename,
+            #                           output_burst_imagery_list,
+            #                           logger, output_raster_format)
+            #else:
+            #    for filename in output_burst_imagery_list:
+            #        os.rename(filename.replace(output_dir, scratch_path), filename)
 
-                # create a vrt from the separated pol tiffs
-                geo_burst_filename +='.vrt'
-                output_imagery_list[-1] = geo_burst_filename
-                gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
-                              options=vrt_options_mosaic)
+            # create a vrt from the separated pol tiffs
+            geo_burst_filename +='.vrt'
+            os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
+            gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
+                            options=vrt_options_mosaic)
+            output_imagery_list[-1] = geo_burst_filename
 
             output_file_list += output_burst_imagery_list
 
@@ -706,8 +739,8 @@ def run_parallel(cfg: RunConfig):
                 hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
 
             # Move the HDF5 in `scratch_path` into `output_dir`
-            os.rename(output_hdf5_file_burst.replace(output_dir,scratch_path),
-                      output_hdf5_file_burst)
+            #os.rename(output_hdf5_file_burst.replace(output_dir,scratch_path),
+            #          output_hdf5_file_burst)
 
         # Create mosaic HDF5
         if ((save_imagery_as_hdf5 or create_hdf5_file) and save_mosaics
@@ -846,7 +879,7 @@ def run_parallel(cfg: RunConfig):
     for filename in temp_files_list:
         if not os.path.isfile(filename):
             continue
-        #os.remove(filename)  # TODO: Temporary suppression. remove before commit
+        os.remove(filename)
 
         logger.info(f'    {filename}')
 
