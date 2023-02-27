@@ -1,7 +1,43 @@
 import os
+import re
 from setuptools import setup
 
-__version__ = version = VERSION = '0.1'
+def _get_version():
+    """Returns the RTC-S1 science application software version from the
+    file `src/rtc/version.py`
+
+       Returns
+       -------
+       version : str
+            RTC-S1 science application software version
+    """
+
+    version_file = os.path.join('src','rtc','version.py')
+
+    with open(version_file, 'r') as f:
+        text = f.read()
+
+    # Get first match of the version number contained in the version file
+    # This regex should match a pattern like: VERSION = '3.2.5', but it
+    # allows for varying spaces, number of major/minor versions,
+    # and quotation mark styles.
+    p = re.search("VERSION[ ]*=[ ]*['\"]\d+([.]\d+)*['\"]", text)
+
+    # Check that the version file contains properly formatted text string
+    if p is None:
+        raise ValueError(
+            f'Version file {version_file} not properly formatted.'
+            " It should contain text matching e.g. VERSION = '2.3.4'")
+
+    # Extract just the numeric version number from the string
+    p = re.search("\d+([.]\d+)*", p.group(0))
+
+    return p.group(0)
+
+
+__version__ = version = VERSION = _get_version()
+
+print(f'RTC-S1 SAS version {version}')
 
 long_description = ''
 

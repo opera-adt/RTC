@@ -48,9 +48,9 @@ class Logger(object):
             self.logger.log(self.level, self.prefix + line)
 
     def flush(self):
-        self.logger.log(self.level, self.buffer)
+        if self.buffer != '':
+            self.logger.log(self.level, self.buffer)
         self.buffer = ''
-
 
 
 def save_as_cog(filename, scratch_dir = '.', logger = None,
