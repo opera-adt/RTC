@@ -330,14 +330,11 @@ def run_parallel(cfg: RunConfig, arg_in):
     # unpack geocode run parameters
     geocode_namespace = cfg.groups.processing.geocoding
 
-    apply_valid_samples_sub_swath_masking = \
-        cfg.groups.processing.geocoding.apply_valid_samples_sub_swath_masking
     apply_shadow_masking = \
         cfg.groups.processing.geocoding.apply_shadow_masking
 
     clip_max = geocode_namespace.clip_max
     clip_min = geocode_namespace.clip_min
-    flag_upsample_radar_grid = geocode_namespace.upsample_radargrid
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
@@ -368,8 +365,6 @@ def run_parallel(cfg: RunConfig, arg_in):
 
     output_terrain_radiometry = rtc_namespace.output_type
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
-    rtc_min_value_db = rtc_namespace.rtc_min_value_db
-    rtc_upsampling = rtc_namespace.dem_upsampling
     if (flag_apply_rtc and output_terrain_radiometry ==
             isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
         output_radiometry_str = "radar backscatter sigma0"
@@ -435,24 +430,21 @@ def run_parallel(cfg: RunConfig, arg_in):
     logger.info(f'Starting child processes for burst processing')
     
     # extract the logger setting from the logger
-    #path_logger_parent, flag_logger_full_format = get_parent_logger_setting(logger)
     path_logger_parent = arg_in.log_file 
     flag_logger_full_format = arg_in.full_log_formatting
 
-    #burst_runconfig_list = split_runconfig(cfg, scratch_path)
-    if not save_bursts:
-        # burst files are saved in scratch dir
-        burst_runconfig_list, burst_log_list = split_runconfig(cfg,
-                                                               scratch_path,
-                                                               None, # TODO clarify what is going to happen when it is `None`
-                                                               path_logger_parent)
-
+    if save_bursts:
+        output_path_child = output_dir
+        scratch_path_child = scratch_path
     else:
-        # burst files (individual or HDF5) are saved in burst_id dir
-        burst_runconfig_list, burst_log_list = split_runconfig(cfg,
-                                                               output_dir,
-                                                               scratch_path,
-                                                               path_logger_parent)
+        output_path_child = scratch_path
+        scratch_path_child = None # TODO clarify what is going to happen when it is `None`
+
+    # burst files are saved in scratch dir
+    burst_runconfig_list, burst_log_list = split_runconfig(cfg,
+                                                           output_path_child,
+                                                           scratch_path_child, 
+                                                           path_logger_parent)
 
     # determine the number of the processors here
     num_workers = cfg.groups.processing.num_workers
@@ -482,6 +474,7 @@ def run_parallel(cfg: RunConfig, arg_in):
     logger.info('Child processes has completed. '
                 f'Elapsed time: {t_end_parellel - t_start_parellel} seconds.')
     # ------  End of parallelized burst processing ------
+
 
     # Check if there are any failed child processes
     if processing_result_list.count(0) != len(burst_runconfig_list):
@@ -571,12 +564,11 @@ def run_parallel(cfg: RunConfig, arg_in):
         temp_files_list.append(geo_burst_filename)
 
         # Generate output geocoded burst raster        
-        burst_hdf5_in_scratch = os.path.join(scratch_path,
-                                             burst_id,
-                                             f'{product_prefix}.{hdf5_file_extension}')
-
-        burst_hdf5_in_output = burst_hdf5_in_scratch.replace(scratch_path,
-                                                             output_dir)
+        burst_hdf5_in_output = os.path.join(output_path_child,
+                                            burst_id,
+                                            f'{product_prefix}.{hdf5_file_extension}')
+        if not save_bursts:
+            temp_files_list.append(burst_hdf5_in_output)
 
         if save_nlooks:
             nlooks_file = (f'{output_dir_sec_bursts}/{product_prefix}'
@@ -648,35 +640,33 @@ def run_parallel(cfg: RunConfig, arg_in):
         else:
             layover_shadow_mask_file = None
 
-        # flag to run geocoding without shadow masking
-        flag_geocoding_without_shadow_masking = False
-        
-        # flag to inform the user that there was an error using
-        # sub-swath masking
-        flag_inform_user_about_isce3_version_error = False
-
         # Output imagery list contains multi-band files that
         # will be used for mosaicking
         output_imagery_list.append(geo_burst_filename)
+        
+        output_burst_imagery_list = []
+        for pol in pol_list:
+            geo_burst_pol_filename = \
+                os.path.join(output_path_child, burst_id,
+                             f'{product_prefix}_{pol}.' +
+                             f'{imagery_extension}')
+            output_burst_imagery_list.append(geo_burst_pol_filename)
 
-        # If burst imagery is not temporary, separate polarization channels
+        geo_burst_filename += '.vrt'
+        os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
+        gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
+                      options=vrt_options_mosaic)
+        output_imagery_list[-1] = geo_burst_filename
+        
+        # .vrt files will be removed after the process
+        temp_files_list += output_imagery_list
+
+
         if not flag_bursts_files_are_temporary:
-            output_burst_imagery_list = []
-            for pol in pol_list:
-                geo_burst_pol_filename = \
-                    os.path.join(output_dir, burst_id,
-                        f'{product_prefix}_{pol}.' +
-                        f'{imagery_extension}')
-                output_burst_imagery_list.append(geo_burst_pol_filename)
-
-            # create a vrt from the separated pol tiffs
-            geo_burst_filename +='.vrt'
-            os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
-            gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
-                            options=vrt_options_mosaic)
-            output_imagery_list[-1] = geo_burst_filename
-
             output_file_list += output_burst_imagery_list
+        else:
+            temp_files_list += output_burst_imagery_list
+
 
         if save_nlooks:
             #del out_geo_nlooks_obj
@@ -761,7 +751,7 @@ def run_parallel(cfg: RunConfig, arg_in):
                        dem_raster, radar_grid_file_dict,
                        mosaic_geogrid_dict,
                        orbit, verbose = not save_imagery_as_hdf5)
-        if save_imagery_as_hdf5:
+        if save_secondary_layers_as_hdf5:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
         else:
@@ -883,23 +873,6 @@ def run_parallel(cfg: RunConfig, arg_in):
 
     t_end = time.time()
     logger.info(f'elapsed time: {t_end - t_start}')
-
-
-def get_parent_logger_setting(logger_in):
-    '''
-    TO BE REMOVED
-    '''
-    path_logger = ''
-
-    flag_full_format = logger_in.handlers[0].formatter._fmt != '%(message)s'
-
-    for handler_logger in logger_in.handlers:
-        if isinstance(handler_logger, logging.FileHandler):
-            path_logger = handler_logger.baseFilename
-            continue
-
-    return path_logger, flag_full_format
-
 
 
 def main():
