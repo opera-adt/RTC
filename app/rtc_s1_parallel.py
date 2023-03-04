@@ -438,7 +438,7 @@ def run_parallel(cfg: RunConfig, arg_in):
         scratch_path_child = scratch_path
     else:
         output_path_child = scratch_path
-        scratch_path_child = None # TODO clarify what is going to happen when it is `None`
+        scratch_path_child = f'{scratch_path}_child_scratch'
 
     # burst files are saved in scratch dir
     burst_runconfig_list, burst_log_list = split_runconfig(cfg,
