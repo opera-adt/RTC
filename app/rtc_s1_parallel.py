@@ -28,7 +28,7 @@ def split_runconfig(cfg_in,
                     path_parent_logfile=None):
     '''
     Split the input runconfig into single burst runconfigs.
-    Writes out the runconfigs.
+    Writes out the burst runconfigs.
     Return the list of the burst runconfigs.
 
     Parameters
@@ -39,7 +39,8 @@ def split_runconfig(cfg_in,
         Output directory of the child process
     scratch_path_child: str
         Scratch path to of the child process.
-        If `None`, it will be "[parent processes' scratch path]_child_scratch"
+        If `None`, the scratch path of the child processes it will be:
+         "[scratch path of parent process]_child_scratch"
 
     Returns
     -------
@@ -119,17 +120,11 @@ def split_runconfig(cfg_in,
                                 ['runconfig',
                                  'groups',
                                  'product_group',
-                                 'output_imagery_format'],
-                                'GTiff')
-
-        set_dict_item_recursive(runconfig_dict_out,
-                                ['runconfig',
-                                 'groups',
-                                 'product_group',
                                  'save_bursts'],
                                 True)
 
-        # TODO: Remove the code below once the mosaicking algorithm does not take nlooks as the weight input
+        # TODO: Remove the code below once the
+        # mosaicking algorithm does not take nlooks as the weight input
         if cfg_in.groups.product_group.save_mosaics:
             set_dict_item_recursive(runconfig_dict_out,
                                     ['runconfig',
@@ -177,7 +172,7 @@ def set_dict_item_recursive(dict_in, list_path, val):
 
 
 def process_child_runconfig(path_runconfig_burst,
-                            path_logfile=None,
+                            path_burst_logfile=None,
                             flag_full_logfile_format=None,
                             keep_burst_runconfig=False):
     '''
@@ -187,7 +182,7 @@ def process_child_runconfig(path_runconfig_burst,
     ----------
     path_runconfig_burst: str
         Path to the burst runconfig
-    path_logfile_burst: str
+    path_burst_logfile: str
         Path to the burst logfile
     full_log_format: bool
         Enable full formatting of log messages.
@@ -203,11 +198,12 @@ def process_child_runconfig(path_runconfig_burst,
 
     '''
     # Get a runconfig dict from command line argumens
-    cfg = RunConfig.load_from_yaml(path_runconfig_burst, 'rtc_s1')
-
+    workflow_name = 'rtc_s1'
+    cfg = RunConfig.load_from_yaml(path_runconfig_burst, workflow_name)
+    
     rtc_s1._load_parameters(cfg)
 
-    rtc_s1.create_logger(path_logfile, flag_full_logfile_format)
+    rtc_s1.create_logger(path_burst_logfile, flag_full_logfile_format)
 
     # Run geocode burst workflow
     result_child_process = rtc_s1.run(cfg)
@@ -343,10 +339,16 @@ def run_parallel(cfg: RunConfig, arg_in):
         geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
+
+
+
+
     # TODO remove the lines below when the mosaic
     #       does not take in nlooks anymore
     if save_mosaics:
         save_nlooks = True
+
+
 
     save_rtc_anf = geocode_namespace.save_rtc_anf
     save_dem = geocode_namespace.save_dem
@@ -671,15 +673,11 @@ def run_parallel(cfg: RunConfig, arg_in):
         if save_nlooks:
             #del out_geo_nlooks_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
-                logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
 
         if save_rtc_anf:
             #del out_geo_rtc_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
-                logger.info(f'file saved: {rtc_anf_file}')
             output_metadata_dict['rtc'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}

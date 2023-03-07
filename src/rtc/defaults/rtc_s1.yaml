@@ -128,8 +128,10 @@ runconfig:
                 dem_upsampling: 2
 
             # OPTIONAL - to provide the number of processes when processing the bursts in parallel
-            # 0 will decide the number automatically
-            num_workers: 0 # TODO change the other defaults and ref. acoordingly
+            # "0" means that the number will be automatically decided based on
+            # the number of cores, `OMP_NUM_THREADS` in environment setting,
+            # and the number of burst to process in runconfig
+            num_workers: 0
 
             # Geocoding options
             geocoding:

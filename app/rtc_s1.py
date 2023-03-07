@@ -338,7 +338,6 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
 
 
 def run(cfg: RunConfig):
-    # Processes after the burst processing
     '''
     Run geocode burst workflow with user-defined
     args stored in dictionary runconfig `cfg`
@@ -470,9 +469,15 @@ def run(cfg: RunConfig):
         geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
+
+
+
+
     # TODO remove the lines below:
     if save_mosaics:
         save_nlooks = True
+
+
 
 
     save_rtc_anf = geocode_namespace.save_rtc_anf
@@ -942,10 +947,6 @@ def run(cfg: RunConfig):
                     save_secondary_layers = save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
 
-        # Create mosaic HDF5
-        #if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
-        #        and burst_index == 0):
-        #    hdf5_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
         if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
                 and burst_index == 0):
             hdf5_mosaic_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
