@@ -400,6 +400,7 @@ def run_parallel(cfg: RunConfig, arg_in):
         output_dir_sec_mosaic_raster = output_dir
 
     # configure mosaic secondary layers
+    # e.g. layover shadow mask, nlooks, area normalization factor
     rtc_s1._add_output_to_output_metadata_dict(
         save_layover_shadow_mask, 'layover_shadow_mask',
         output_dir_sec_mosaic_raster,
@@ -479,7 +480,14 @@ def run_parallel(cfg: RunConfig, arg_in):
 
 
     # Check if there are any failed child processes
-    if processing_result_list.count(0) != len(burst_runconfig_list):
+    all_child_processes_successful =\
+          processing_result_list.count(0) == len(burst_runconfig_list)
+    
+    if all_child_processes_successful:
+        # delete the log files for child processes
+        if not save_bursts:
+            temp_files_list += burst_log_list
+    else:
         msg_failed_child_proc = (f'Some of the child process(es) (listed below) '
                                   'did not complete succesfully:\n')
         for index_child, processing_result in enumerate(burst_runconfig_list):

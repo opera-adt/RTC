@@ -738,7 +738,8 @@ def _print_first_value_diff(image_1, image_2, prefix):
                   f' "{image_1[i, j]}" in position'
                   f' (x: {j}, y: {i})'
                   f' whereas input 2 has value "{image_2[i, j]}"'
-                  ' in the same position.')
+                  ' in the same position. '
+                  f' Difference: {image_2[i, j] - image_1[i, j]}')
             flag_error_found = True
             break
         if flag_error_found:
