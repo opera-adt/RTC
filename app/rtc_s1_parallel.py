@@ -668,7 +668,7 @@ def run_parallel(cfg: RunConfig, arg_in):
                       options=vrt_options_mosaic)
         output_imagery_list[-1] = geo_burst_filename
         
-        # .vrt files will be removed after the process
+        # .vrt files (for RTC product in geogrid) will be removed after the process
         temp_files_list += output_imagery_list
 
 
