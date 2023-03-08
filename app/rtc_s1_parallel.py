@@ -43,7 +43,8 @@ def split_runconfig(cfg_in,
         Scratch path to of the child process.
         If `None`, the scratch path of the child processes it will be:
          "[scratch path of parent process]_child_scratch"
-    path_parent_logfile #TODO: add description
+    path_parent_logfile: str
+        Path to the parent processes' logfile
 
     Returns
     -------
@@ -217,17 +218,19 @@ def process_child_runconfig(path_runconfig_burst,
     return result_child_process
 
 
-def run_parallel(cfg: RunConfig, arg_in):
+def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     '''
     Run RTC workflow with user-defined args
-    stored in dictionary runconfig `cfg`, and CLI arguments `arg_in`
+    stored in dictionary runconfig `cfg`
 
     Parameters
     ---------
     cfg: RunConfig
         RunConfig object with user runconfig options
-    arg_in: argparse.Namespace
-        User input from CLI
+    logfile_path: str
+        Path to the parent processes' logfile
+    full_log_formatting: bool
+        Flag to enable full log formatting
     '''
 
     # Start tracking processing time
@@ -432,10 +435,6 @@ def run_parallel(cfg: RunConfig, arg_in):
     t_start_parallel = time.time()
     logger.info(f'Starting child processes for burst processing')
 
-    # extract the logger setting from the logger
-    path_logger_parent = arg_in.log_file 
-    flag_logger_full_format = arg_in.full_log_formatting
-
     if save_bursts:
         output_path_child = output_dir
         scratch_path_child = scratch_path
@@ -447,7 +446,7 @@ def run_parallel(cfg: RunConfig, arg_in):
     burst_runconfig_list, burst_log_list = split_runconfig(cfg,
                                                            output_path_child,
                                                            scratch_path_child,
-                                                           path_logger_parent)
+                                                           logfile_path)
 
     # determine the number of the processors here
     num_workers = cfg.groups.processing.num_workers
