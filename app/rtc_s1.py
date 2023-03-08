@@ -99,7 +99,7 @@ def _separate_pol_channels(multi_band_file, output_file_list, logger,
     num_bands = gdal_ds.RasterCount
     if num_bands != len(output_file_list):
         error_str = (f'ERROR number of output files ({len(output_file_list)})'
-                    f' does not match with the number'
+                     f' does not match with the number'
                      f' of input bursts` bands ({num_bands})')
         raise ValueError(error_str)
 
@@ -264,6 +264,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 numiter_geo2rdr: int=25):
     '''
     Compute the layover/shadow mask and geocode it
+
     Parameters:
     -----------
     radar_grid: isce3.product.RadarGridParameters
@@ -306,12 +307,12 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
 
     path_layover_shadow_mask = (f'layover_shadow_mask_{burst_in.burst_id}_'
                                 f'{burst_in.polarization}_{str_datetime}')
-    
+
     # Run topo to get layover/shadow mask
     ellipsoid = isce3.core.Ellipsoid()
 
     Rdr2Geo = isce3.geometry.Rdr2Geo
-    
+
     grid_doppler = isce3.core.LUT2d()
 
     rdr2geo_obj = Rdr2Geo(radar_grid,
@@ -367,7 +368,6 @@ def run(cfg: RunConfig):
     ---------
     cfg: RunConfig
         RunConfig object with user runconfig options
-    
     '''
 
     # Start tracking processing time
@@ -410,7 +410,7 @@ def run(cfg: RunConfig):
     save_mosaics = cfg.groups.product_group.save_mosaics
 
     if not save_bursts and not save_mosaics:
-        err_msg = (f"ERROR either `save_bursts` or `save_mosaics` needs to be"
+        err_msg = ("ERROR either `save_bursts` or `save_mosaics` needs to be"
                    " set")
         raise ValueError(err_msg)
 
@@ -487,8 +487,7 @@ def run(cfg: RunConfig):
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
     save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
-    save_range_slope = \
-        geocode_namespace.save_range_slope
+    save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
 
@@ -660,8 +659,7 @@ def run(cfg: RunConfig):
                     temp_slc_path,
                     temp_slc_corrected_path,
                     flag_output_complex=False,
-                    flag_thermal_correction =
-                        flag_apply_thermal_noise_correction,
+                    flag_thermal_correction=flag_apply_thermal_noise_correction,
                     flag_apply_abs_rad_correction=True)
                 input_burst_filename = temp_slc_corrected_path
                 temp_files_list.append(temp_slc_corrected_path)
@@ -677,7 +675,7 @@ def run(cfg: RunConfig):
         else:
             temp_vrt_path = f'{burst_scratch_path}/rslc.vrt'
             gdal.BuildVRT(temp_vrt_path, input_file_list,
-                        options=vrt_options_mosaic)
+                          options=vrt_options_mosaic)
             rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
             temp_files_list.append(temp_vrt_path)
 
@@ -739,7 +737,7 @@ def run(cfg: RunConfig):
 
         if save_rtc_anf:
             rtc_anf_file = (f'{output_dir_sec_bursts}/{product_prefix}'
-               f'_rtc_anf.{imagery_extension}')
+                            f'_rtc_anf.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -789,7 +787,7 @@ def run(cfg: RunConfig):
                 numiter_rdr2geo=cfg.rdr2geo_params.numiter,
                 threshold_geo2rdr=cfg.geo2rdr_params.threshold,
                 numiter_geo2rdr=cfg.geo2rdr_params.numiter)
-            
+
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
             else:
@@ -863,7 +861,7 @@ def run(cfg: RunConfig):
                 flag_geocoding_without_shadow_masking = True
                 flag_inform_user_about_isce3_version_error = True
                 logger.warning('WARNING there was an error executing geocode().'
-                            ' Retrying it with less parameters')
+                               ' Retrying it with less parameters')
 
         else:
             flag_geocoding_without_shadow_masking = True
@@ -916,8 +914,8 @@ def run(cfg: RunConfig):
                 output_burst_imagery_list.append(geo_burst_pol_filename)
 
             _separate_pol_channels(geo_burst_filename,
-                                    output_burst_imagery_list,
-                                    logger, output_raster_format)
+                                   output_burst_imagery_list,
+                                   logger, output_raster_format)
 
             output_file_list += output_burst_imagery_list
 
@@ -1029,7 +1027,7 @@ def run(cfg: RunConfig):
             output_file, input_files = output_metadata_dict[key]
             logger.info(f'mosaicking file: {output_file}')
             compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
-                            cfg.geogrid, verbose=False)
+                                           cfg.geogrid, verbose=False)
 
 
 
