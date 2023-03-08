@@ -490,9 +490,16 @@ def run(cfg: RunConfig):
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
+
+
+
+
     # TODO remove the lines below:
     if save_mosaics:
         save_nlooks = True
+
+
+
 
     save_rtc_anf = geocode_namespace.save_rtc_anf
     save_dem = geocode_namespace.save_dem
