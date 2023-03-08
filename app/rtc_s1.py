@@ -58,10 +58,23 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     if 'dy' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['dy'] = geogrid.spacing_y
 
+
+
+
+
+
+
     # TODO fix this. The mosaic EPSG should not come from the
     # first burst
     if 'epsg' not in mosaic_geogrid_dict.keys():
         mosaic_geogrid_dict['epsg'] = geogrid.epsg
+
+
+
+
+
+
+
 
 
 def _separate_pol_channels(multi_band_file, output_file_list, logger,
