@@ -21,6 +21,8 @@ from rtc.runconfig import RunConfig
 
 logger = logging.getLogger('rtc_s1')
 
+#TODO: take a look at the docscting, make sure to separete the section s
+
 
 def split_runconfig(cfg_in,
                     output_dir_child,
@@ -41,6 +43,7 @@ def split_runconfig(cfg_in,
         Scratch path to of the child process.
         If `None`, the scratch path of the child processes it will be:
          "[scratch path of parent process]_child_scratch"
+    path_parent_logfile #TODO: add description
 
     Returns
     -------
@@ -49,7 +52,6 @@ def split_runconfig(cfg_in,
     
     logfile_burst_list: list(str)
         List of the burst logfiles
-
     '''
 
     with open(cfg_in.run_config_path, 'r+', encoding='utf8') as fin:
@@ -195,12 +197,11 @@ def process_child_runconfig(path_runconfig_burst,
     -------
     result_child_process: int
         0 when the child process has completed succesfully
-
     '''
     # Get a runconfig dict from command line argumens
     workflow_name = 'rtc_s1'
     cfg = RunConfig.load_from_yaml(path_runconfig_burst, workflow_name)
-    
+
     rtc_s1._load_parameters(cfg)
 
     rtc_s1.create_logger(path_burst_logfile, flag_full_logfile_format)
@@ -335,8 +336,7 @@ def run_parallel(cfg: RunConfig, arg_in):
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
     save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
-    save_range_slope = \
-        geocode_namespace.save_range_slope
+    save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
 
@@ -429,9 +429,9 @@ def run_parallel(cfg: RunConfig, arg_in):
 
 
     # ------ Start parallelized burst processing ------
-    t_start_parellel = time.time()
+    t_start_parallel = time.time()
     logger.info(f'Starting child processes for burst processing')
-    
+
     # extract the logger setting from the logger
     path_logger_parent = arg_in.log_file 
     flag_logger_full_format = arg_in.full_log_formatting
@@ -446,7 +446,7 @@ def run_parallel(cfg: RunConfig, arg_in):
     # burst files are saved in scratch dir
     burst_runconfig_list, burst_log_list = split_runconfig(cfg,
                                                            output_path_child,
-                                                           scratch_path_child, 
+                                                           scratch_path_child,
                                                            path_logger_parent)
 
     # determine the number of the processors here
@@ -473,9 +473,9 @@ def run_parallel(cfg: RunConfig, arg_in):
                           repeat(flag_logger_full_format)
                       )
                   )
-    t_end_parellel = time.time()
+    t_end_parallel = time.time()
     logger.info('Child processes has completed. '
-                f'Elapsed time: {t_end_parellel - t_start_parellel} seconds.')
+                f'Elapsed time: {t_end_parallel - t_start_parallel} seconds.')
     # ------  End of parallelized burst processing ------
 
 
@@ -488,6 +488,8 @@ def run_parallel(cfg: RunConfig, arg_in):
         if not save_bursts:
             temp_files_list += burst_log_list
     else:
+
+        #TODO: Let's test if the lines below actually works
         msg_failed_child_proc = (f'Some of the child process(es) (listed below) '
                                   'did not complete succesfully:\n')
         for index_child, processing_result in enumerate(burst_runconfig_list):
@@ -495,7 +497,7 @@ def run_parallel(cfg: RunConfig, arg_in):
                 msg_failed_child_proc += f'{burst_runconfig_list[index_child]}\n'
         raise RuntimeError(msg_failed_child_proc)
 
-    
+
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
 
@@ -526,7 +528,7 @@ def run_parallel(cfg: RunConfig, arg_in):
         else:
             # burst files (individual or HDF5) are saved in burst_id dir 
             output_dir_sec_bursts = output_dir_bursts
-        
+
         geogrid = cfg.geogrids[burst_id]
 
         # snap coordinates
@@ -652,8 +654,8 @@ def run_parallel(cfg: RunConfig, arg_in):
 
         # Output imagery list contains multi-band files that
         # will be used for mosaicking
-        output_imagery_list.append(geo_burst_filename)
-        
+        output_imagery_list.append(geo_burst_filename) # TODO append `geo_burst_filename` later after done with playing with it.
+
         output_burst_imagery_list = []
         for pol in pol_list:
             geo_burst_pol_filename = \
@@ -667,9 +669,9 @@ def run_parallel(cfg: RunConfig, arg_in):
         gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
                       options=vrt_options_mosaic)
         output_imagery_list[-1] = geo_burst_filename
-        
+
         # .vrt files (for RTC product in geogrid) will be removed after the process
-        temp_files_list += output_imagery_list
+        temp_files_list.append(geo_burst_filename)
 
 
         if not flag_bursts_files_are_temporary:
@@ -689,6 +691,7 @@ def run_parallel(cfg: RunConfig, arg_in):
             output_metadata_dict['rtc'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
+        # TODO consider writing Gustavo's suggeston into helper function
         if flag_call_radar_grid and save_bursts:
             if save_incidence_angle:
                 radar_grid_file_dict['incidenceAngle'] =\
