@@ -452,16 +452,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     num_workers = cfg.groups.processing.num_workers
 
     if num_workers == 0:
-        # Decide the number of workers automatically
-        ncpu_system = os.cpu_count()
-        omp_num_threads = os.getenv('OMP_NUM_THREADS')
-        if omp_num_threads:
-            num_workers = min(ncpu_system,
-                              omp_num_threads,
-                              len(burst_runconfig_list))
-        else:
-            num_workers = min(ncpu_system,
-                              len(burst_runconfig_list))
+        # Read system variable OMP_NUM_THREADS
+        num_workers = os.getenv('OMP_NUM_THREADS')
+        if not num_workers:
+            # Otherwise, read it from os.cpu_count()
+            num_workers = os.cpu_count()
+    num_works = min(num_works, len(burst_runconfig_list))
 
     # Execute the single burst processes using multiprocessing
     with multiprocessing.Pool(num_workers) as p:
