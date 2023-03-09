@@ -29,6 +29,25 @@ def _populate_radar_grid_file_dict(radar_grid_file_dict: dict,
                                    burst_hdf5_in_output: str):
     '''
     Helper function to populate `radar_grid_file_dict` in the parent process
+
+    Parameters
+    ----------
+    radar_grid_file_dict: dict
+        Radar grid dict to populate
+    key_layer: str
+        Key of the layer in `radar_grid_file_dict`
+    save_as_hdf5: bool
+        Flag whether to save the radargrid layers as HDF5
+    output_dir: str
+        Output directory
+    product_prefix: str
+        Prefix string for the radar grid file
+    layer_postfix: str
+        Postfix for the radar grid file to specify the layer
+    imagery_extension: str
+        Image extension
+    burst_hdf5_in_output: str
+        Path to the output burst HDF5
     '''
     if save_as_hdf5:
         radar_grid_file_dict[key_layer] = (f'NETCDF:{burst_hdf5_in_output}:'
