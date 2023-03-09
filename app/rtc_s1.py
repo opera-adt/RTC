@@ -1083,10 +1083,16 @@ def run(cfg: RunConfig):
             hdf5_mosaic_obj[sensing_end_ds] = \
                 sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f')
 
+            # Bundle the mosaicked single-pol rasters
+            geo_filename_vrt = f'{geo_filename}.vrt'
+            gdal.BuildVRT(geo_filename_vrt, output_imagery_filename_list,
+                          options=vrt_options_mosaic)
+            temp_files_list.append(geo_filename_vrt)
+
             save_hdf5_file(
                 hdf5_mosaic_obj, output_hdf5_file, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str,
-                cfg.geogrid, pol_list, geo_filename, nlooks_mosaic_file,
+                cfg.geogrid, pol_list, geo_filename_vrt, nlooks_mosaic_file,
                 rtc_anf_mosaic_file, layover_shadow_mask_file,
                 radar_grid_file_dict, save_imagery=save_imagery_as_hdf5,
                 save_secondary_layers=save_secondary_layers_as_hdf5)
