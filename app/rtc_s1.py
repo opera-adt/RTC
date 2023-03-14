@@ -273,6 +273,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         Iteration threshold for geo2rdr
     numiter_geo2rdr: int
         Number of max. iteration for geo2rdr object
+
     Returns
     -------
     slantrange_layover_shadow_mask_raster: isce3.io.Raster
