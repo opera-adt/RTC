@@ -272,7 +272,7 @@ def main():
     rtc_s1._load_parameters(cfg)
 
     # Run geocode burst workflow
-    rtc_s1.run2(cfg, tempdir=dir_temporary, skip_burst_process=True)
+    rtc_s1.run(cfg, tempdir=dir_temporary, skip_burst_process=True)
 
 
 if __name__ == "__main__":
