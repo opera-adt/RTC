@@ -4,9 +4,6 @@
 Parallel execution of RTC Workflow
 '''
 
-
-# TODO: Let the system decide the number of processes when cfg....num_process is 0
-
 import argparse
 from itertools import repeat
 import logging
@@ -21,7 +18,6 @@ import numpy as np
 from osgeo import gdal
 
 from rtc.runconfig import RunConfig
-#from rtc.core import create_logger
 import rtc_s1
 
 logger = logging.getLogger('rtc_s1')
@@ -58,7 +54,7 @@ def get_rtc_s1_parser():
     return parser
 
 
-def split_runconfig(cfg_in, output_dir_child, path_log_in=None):
+def split_runconfig(cfg_in, output_dir_child):
     '''
     Split the input runconfig into single burst runconfigs.
     Writes out the runconfigs.
@@ -153,18 +149,7 @@ def split_runconfig(cfg_in, output_dir_child, path_log_in=None):
                                  'product_group',
                                  'save_mosaics'],
                                 False)
-        
-        # NOTE: The if statement below will be removed
-        #       once the mosaicking algorithm does not need nooks for the weight input
-        if cfg_in.groups.product_group.save_mosaics:
-            set_dict_item_recursive(runconfig_dict_out,
-                                    ['runconfig',
-                                     'groups',
-                                     'processing',
-                                     'geocoding',
-                                     'save_nlooks'],
-                                    True)
-        
+        # TODO maybe it would be necessary to always turn on `save_bursts` for the child runconfigs?
 
         if runconfig_dict_out['runconfig']['groups']['product_group']['save_mosaics']:
             # TODO: Remove the line below one the mosaic algorithm does not take nlooks as the weight input
@@ -174,15 +159,10 @@ def split_runconfig(cfg_in, output_dir_child, path_log_in=None):
 
         list_runconfig_burst.append(path_temp_runconfig)
 
-        if path_log_in is None:
-            list_logfile_burst.append(None)
-        else:
-            list_logfile_burst.append(f'{path_log_in}.{burst_id}')
-
         with open(path_temp_runconfig, 'w+', encoding='utf8') as fout:
             yaml.dump(runconfig_dict_out, fout)
 
-    return list_runconfig_burst#, list_logfile_burst
+    return list_runconfig_burst
 
 
 def set_dict_item_recursive(dict_in, list_path, val):
@@ -460,7 +440,7 @@ def run_parallel(cfg: RunConfig):
     output_hdf5_file = os.path.join(output_dir,
                                     f'{product_prefix}.{hdf5_file_extension}')
 
-    # Start parallelized burst processing
+    # ------ Start parallelized burst processing ------
 
     # Split the original runconfig into bursts
     list_burst_runconfig = split_runconfig(cfg, scratch_path)
@@ -489,7 +469,7 @@ def run_parallel(cfg: RunConfig):
                       )
                   )
     
-    # End of parallelized burst processing
+    # ------  End of parallelized burst processing ------
 
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
