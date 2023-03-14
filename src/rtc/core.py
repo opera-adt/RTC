@@ -175,7 +175,7 @@ def create_logger(log_file, full_log_formatting=None):
     # create formatter
     # configure full log format, if enabled
     if full_log_formatting:
-        msgfmt = ('%(asctime)s.%(msecs)03d, %(levelname)s, DSWx-HLS, '
+        msgfmt = ('%(asctime)s.%(msecs)03d, %(levelname)s, RTC-S1, '
                   '%(module)s, 999999, %(pathname)s:%(lineno)d, "%(message)s"')
 
         formatter = logging.Formatter(msgfmt, "%Y-%m-%d %H:%M:%S")
