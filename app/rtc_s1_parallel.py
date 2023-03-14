@@ -164,9 +164,12 @@ def process_runconfig(path_runconfig_burst, path_logfile_burst, full_log_format)
         list_arg_subprocess.append('--full-log-format')
 
     rtnval = subprocess.run(list_arg_subprocess)
+
+    # TODO Add some routine to take a look into `rtnval` to see if everything is okay.
+
     os.remove(path_runconfig_burst)
 
-    
+
 def process_frame_parallel(arg_in):
     '''
     Take in the parsed arguments from CLI,
