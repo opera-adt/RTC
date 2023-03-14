@@ -22,14 +22,14 @@ def get_rtc_s1_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('run_config_path',
                         type=str,
-                        nargs='?',
+                        nargs='1',
                         default=None,
                         help='Path to run config file')
 
     parser.add_argument('-n',
                         dest='num_workers',
                         type=int,
-                        default=4, # TODO: Discuss if the default # worker makes sense.
+                        default=os.cpu_count(),
                         help='Number of concurrent workers')
 
     parser.add_argument('--log',
@@ -135,7 +135,9 @@ def process_frame_parallel(arg_in):
         Parsed argument. See `get_rtc_s1_parser()`
     '''
     t0 = time.time()
-    list_burst_runconfig, list_burst_log = split_runconfig(arg_in.run_config_path, arg_in.log_file)
+    list_burst_runconfig, list_burst_log = split_runconfig(
+                                                arg_in.run_config_path,
+                                                arg_in.log_file)
 
     with multiprocessing.Pool(arg_in.num_workers) as p:
         p.starmap(process_runconfig,
