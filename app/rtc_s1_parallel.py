@@ -330,10 +330,10 @@ def run_parallel(cfg: RunConfig):
     apply_shadow_masking = \
         cfg.groups.processing.geocoding.apply_shadow_masking
 
-    if cfg.groups.processing.geocoding.algorithm_type == "area_projection":
-        geocode_algorithm = isce3.geocode.GeocodeOutputMode.AREA_PROJECTION
-    else:
-        geocode_algorithm = isce3.geocode.GeocodeOutputMode.INTERP
+    #if cfg.groups.processing.geocoding.algorithm_type == "area_projection":
+    #    geocode_algorithm = isce3.geocode.GeocodeOutputMode.AREA_PROJECTION
+    #else:
+    #    geocode_algorithm = isce3.geocode.GeocodeOutputMode.INTERP
 
     memory_mode = geocode_namespace.memory_mode
     geogrid_upsampling = geocode_namespace.geogrid_upsampling
@@ -367,15 +367,15 @@ def run_parallel(cfg: RunConfig):
 
     # only 2 RTC algorithms supported: area_projection (default) &
     # bilinear_distribution
-    if rtc_namespace.algorithm_type == "bilinear_distribution":
-        rtc_algorithm = isce3.geometry.RtcAlgorithm.RTC_BILINEAR_DISTRIBUTION
-    else:
-        rtc_algorithm = isce3.geometry.RtcAlgorithm.RTC_AREA_PROJECTION
+    #if rtc_namespace.algorithm_type == "bilinear_distribution":
+    #    rtc_algorithm = isce3.geometry.RtcAlgorithm.RTC_BILINEAR_DISTRIBUTION
+    #else:
+    #    rtc_algorithm = isce3.geometry.RtcAlgorithm.RTC_AREA_PROJECTION
 
     output_terrain_radiometry = rtc_namespace.output_type
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
-    rtc_min_value_db = rtc_namespace.rtc_min_value_db
-    rtc_upsampling = rtc_namespace.dem_upsampling
+    #rtc_min_value_db = rtc_namespace.rtc_min_value_db
+    #rtc_upsampling = rtc_namespace.dem_upsampling
     if (flag_apply_rtc and output_terrain_radiometry ==
             isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
         output_radiometry_str = "radar backscatter sigma0"
@@ -389,12 +389,12 @@ def run_parallel(cfg: RunConfig):
 
     # Common initializations
     dem_raster = isce3.io.Raster(cfg.dem)
-    ellipsoid = isce3.core.Ellipsoid()
-    zero_doppler = isce3.core.LUT2d()
-    threshold = cfg.geo2rdr_params.threshold
-    maxiter = cfg.geo2rdr_params.numiter
-    exponent = 1 if (flag_apply_thermal_noise_correction or
-                     flag_apply_abs_rad_correction) else 2
+    #ellipsoid = isce3.core.Ellipsoid()
+    #zero_doppler = isce3.core.LUT2d()
+    #threshold = cfg.geo2rdr_params.threshold
+    #maxiter = cfg.geo2rdr_params.numiter
+    #exponent = 1 if (flag_apply_thermal_noise_correction or
+    #                 flag_apply_abs_rad_correction) else 2
 
     # output mosaics variables
     geo_filename = f'{output_dir}/'f'{product_prefix}.{imagery_extension}'
@@ -623,7 +623,7 @@ def run_parallel(cfg: RunConfig):
             #        gdal.GDT_Float32, output_raster_format)
         else:
             nlooks_file = None
-            out_geo_nlooks_obj = None
+            #out_geo_nlooks_obj = None
 
         if save_rtc_anf:
             rtc_anf_file = (f'{bursts_output_dir}/{product_prefix}'
@@ -643,7 +643,7 @@ def run_parallel(cfg: RunConfig):
             #        gdal.GDT_Float32, output_raster_format)
         else:
             rtc_anf_file = None
-            out_geo_rtc_obj = None
+            #out_geo_rtc_obj = None
 
         # geocoding optional arguments
         geocode_kwargs = {}
