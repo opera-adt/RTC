@@ -655,10 +655,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
         output_burst_imagery_list = []
         for pol in pol_list:
-            geo_burst_pol_filename = \
-                os.path.join(output_path_child, burst_id,
-                             f'{product_prefix}_{pol}.' +
-                             f'{imagery_extension}')
+            if save_imagery_as_hdf5:
+                geo_burst_pol_filename = (f'NETCDF:{burst_hdf5_in_output}:'
+                                            '/science/SENTINEL1/RTC/grids/'
+                                            f'frequencyA/{pol}')
+            else:
+                geo_burst_pol_filename = \
+                    os.path.join(output_path_child, burst_id,
+                                 f'{product_prefix}_{pol}.' +
+                                 f'{imagery_extension}')
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
         geo_burst_filename += '.vrt'
