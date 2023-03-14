@@ -282,7 +282,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
 
     Returns
     -------
-    layover_shadow_mask_raster: isce3.io.Raster
+    slantrange_layover_shadow_mask_raster: isce3.io.Raster
         Layover/shadow-mask ISCE3 raster object in radar coordinates
     '''
 
@@ -308,11 +308,11 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                           extraiter=extraiter_rdr2geo,
                           lines_per_block=lines_per_block_rdr2geo)
 
-    layover_shadow_mask_raster = isce3.io.Raster(path_layover_shadow_mask,
+    slantrange_layover_shadow_mask_raster = isce3.io.Raster(path_layover_shadow_mask,
         radar_grid.width, radar_grid.length, 1, gdal.GDT_Byte, 'MEM')
 
     rdr2geo_obj.topo(dem_raster, None, None, None,
-                     layover_shadow_raster=layover_shadow_mask_raster)
+                     layover_shadow_raster=slantrange_layover_shadow_mask_raster)
 
     # geocode the layover/shadow mask
     geo = isce3.geocode.GeocodeFloat32()
@@ -330,17 +330,17 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                 int(geogrid_in.length),
                 int(geogrid_in.epsg))
 
-    geocoded_raster = isce3.io.Raster(filename_out, 
+    geocoded_layover_shadow_mask_raster = isce3.io.Raster(filename_out, 
                                       geogrid_in.width, geogrid_in.length, 1,
                                       gdal.GDT_Byte, output_raster_format)
 
     geo.geocode(radar_grid=radar_grid,
-                input_raster=layover_shadow_mask_raster,
-                output_raster=geocoded_raster,
+                input_raster=slantrange_layover_shadow_mask_raster,
+                output_raster=geocoded_layover_shadow_mask_raster,
                 dem_raster=dem_raster,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
 
-    return layover_shadow_mask_raster
+    return slantrange_layover_shadow_mask_raster
 
 
 def run(cfg: RunConfig):
@@ -755,7 +755,7 @@ def run(cfg: RunConfig):
                     (f'{output_dir_sec_bursts}/{product_prefix}'
                      f'_layover_shadow_mask.{imagery_extension}')
 
-            layover_shadow_mask_raster = compute_layover_shadow_mask(
+            slantrange_layover_shadow_mask_raster = compute_layover_shadow_mask(
                 radar_grid,
                 orbit,
                 geogrid,
@@ -777,8 +777,8 @@ def run(cfg: RunConfig):
                 layover_shadow_mask_file)
 
             if apply_shadow_masking:
-                geocode_new_isce3_kwargs['input_layover_shadow_mask_raster'] = \
-                    layover_shadow_mask_raster
+                geocode_new_isce3_kwargs['input_slantrange_layover_shadow_mask_raster'] = \
+                    slantrange_layover_shadow_mask_raster
         else:
             layover_shadow_mask_file = None
 
