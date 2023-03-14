@@ -148,7 +148,7 @@ def split_runconfig(path_runconfig_in, path_log_in):
                                 False)
 
         if runconfig_dict_out['runconfig']['groups']['product_group']['save_mosaics']:
-            
+            # TODO: Remove the line below one the mosaic algorithm does not take nlooks as the weight input
             set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig', 'groups', 'processing', 'geocoding', 'save_nlooks'],
                                 True)
