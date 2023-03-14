@@ -917,6 +917,7 @@ def run(cfg: RunConfig):
                     save_secondary_layers = save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
 
+        # Create mosaic HDF5 
         if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
                 and burst_index == len(cfg.bursts)-1):
             hdf5_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
