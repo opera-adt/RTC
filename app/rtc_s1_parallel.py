@@ -21,7 +21,23 @@ from rtc.runconfig import RunConfig
 
 logger = logging.getLogger('rtc_s1')
 
-#TODO: take a look at the docscting, make sure to separete the section s
+
+def _populate_radar_grid_file_dict(radar_grid_file_dict: dict,
+                                   key_layer: str, save_as_hdf5: bool,
+                                   output_dir: str, product_prefix: str,
+                                   layer_postfix: str, imagery_extension: str,
+                                   burst_hdf5_in_output: str):
+    '''
+    Helper function to populate `radar_grid_file_dict` in the parent process
+    '''
+    if save_as_hdf5:
+        radar_grid_file_dict[key_layer] = (f'NETCDF:{burst_hdf5_in_output}:'
+                                           '/science/SENTINEL1/RTC/grids/'
+                                           f'frequencyA/{key_layer}')
+    else:
+        radar_grid_file_dict[key_layer] =\
+            os.path.join(output_dir,
+                         f'{product_prefix}_{layer_postfix}.', imagery_extension)
 
 
 def split_runconfig(cfg_in,
@@ -50,7 +66,6 @@ def split_runconfig(cfg_in,
     -------
     runconfig_burst_list: list(str)
         List of the burst runconfigs
-    
     logfile_burst_list: list(str)
         List of the burst logfiles
     '''
@@ -65,11 +80,11 @@ def split_runconfig(cfg_in,
     list_burst_id = cfg_in.bursts.keys()
 
     # determine the scratch path for the child process
-    
+
     if not scratch_path_child:
         scratch_path_child = \
             os.path.join(cfg_in.groups.product_group.scratch_path,
-                        f'{os.path.basename(output_dir_child)}_child_scratch')
+                         f'{os.path.basename(output_dir_child)}_child_scratch')
 
     # determine the output directory for child process
     for burst_id in list_burst_id:
@@ -80,7 +95,6 @@ def split_runconfig(cfg_in,
                                               f'{burst_id}.{path_parent_logfile}')
         else:
             path_logfile_child = None
-
 
         runconfig_dict_out = runconfig_dict_in.copy()
         set_dict_item_recursive(runconfig_dict_out,
@@ -118,7 +132,7 @@ def split_runconfig(cfg_in,
                                  'product_group',
                                  'save_mosaics'],
                                 False)
-        
+
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
                                  'groups',
@@ -214,7 +228,6 @@ def process_child_runconfig(path_runconfig_burst,
     if keep_burst_runconfig:
         os.remove(path_runconfig_burst)
 
-
     return result_child_process
 
 
@@ -289,7 +302,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     logger.info(f'    processing type: {processing_type}')
     logger.info(f'    product version: {product_version}')
     logger.info(f'    product prefix: {product_prefix}')
-    logger.info(f'Processing parameters:')    
+    logger.info(f'Processing parameters:')
     logger.info(f'    apply RTC: {flag_apply_rtc}')
     logger.info(f'    apply thermal noise correction:'
                 f' {flag_apply_thermal_noise_correction}')
@@ -358,9 +371,9 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
 
     flag_call_radar_grid = (save_incidence_angle or
-        save_local_inc_angle or save_projection_angle or
-        save_rtc_anf_psi or save_dem or
-        save_range_slope)
+                            save_local_inc_angle or save_projection_angle or
+                            save_rtc_anf_psi or save_dem or
+                            save_range_slope)
 
     # unpack RTC run parameters
     rtc_namespace = cfg.groups.processing.rtc
@@ -429,8 +442,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     output_hdf5_file = os.path.join(output_dir,
                                     f'{product_prefix}.{hdf5_file_extension}')
 
-
-
     # ------ Start parallelized burst processing ------
     t_start_parallel = time.time()
     logger.info(f'Starting child processes for burst processing')
@@ -466,18 +477,17 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                       zip(burst_runconfig_list,
                           burst_log_list,
                           repeat(flag_logger_full_format)
+                          )
                       )
-                  )
     t_end_parallel = time.time()
     logger.info('Child processes has completed. '
                 f'Elapsed time: {t_end_parallel - t_start_parallel} seconds.')
     # ------  End of parallelized burst processing ------
 
-
     # Check if there are any failed child processes
     all_child_processes_successful =\
-          processing_result_list.count(0) == len(burst_runconfig_list)
-    
+        processing_result_list.count(0) == len(burst_runconfig_list)
+
     if all_child_processes_successful:
         # delete the log files for child processes
         if not save_bursts:
@@ -485,16 +495,16 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     else:
 
         # TODO: Let's test if the lines below actually works
-        msg_failed_child_proc = (f'Some of the child process(es) (listed below) '
-                                  'did not complete succesfully:\n')
-        list_burst_id = cfg.bursts.keys()
+        msg_failed_child_proc = (f'Some of the child process(es) from '
+                                 'burst runconfig (listed below) '
+                                 'did not complete succesfully:\n')
+        list_burst_id = list(cfg.bursts.keys())
         for index_child, processing_result in enumerate(processing_result_list):
             if processing_result != 0:
-                msg_failed_child_proc += (f'{burst_runconfig_list[index_child]}'
+                msg_failed_child_proc += (f'"{burst_runconfig_list[index_child]}"'
                                           ' for burst ID '
                                           f'"{list_burst_id[index_child]}"\n')
         raise RuntimeError(msg_failed_child_proc)
-
 
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
@@ -524,7 +534,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             # burst files are saved in scratch dir
             output_dir_sec_bursts = burst_scratch_path
         else:
-            # burst files (individual or HDF5) are saved in burst_id dir 
+            # burst files (individual or HDF5) are saved in burst_id dir
             output_dir_sec_bursts = output_dir_bursts
 
         geogrid = cfg.geogrids[burst_id]
@@ -573,7 +583,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             f'{burst_scratch_path}/{product_prefix}.{imagery_extension}'
         temp_files_list.append(geo_burst_filename)
 
-        # Generate output geocoded burst raster        
+        # Generate output geocoded burst raster
         burst_hdf5_in_output = os.path.join(output_path_child,
                                             burst_id,
                                             f'{product_prefix}.{hdf5_file_extension}')
@@ -583,11 +593,11 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if save_nlooks:
             if save_secondary_layers_as_hdf5:
                 nlooks_file = (f'NETCDF:"{burst_hdf5_in_output}":'
-                                '/science/SENTINEL1/RTC/grids/frequencyA/'
-                                'numberOfLooks')
+                               '/science/SENTINEL1/RTC/grids/frequencyA/'
+                               'numberOfLooks')
             else:
                 nlooks_file = (f'{output_dir_sec_bursts}/{product_prefix}'
-                           f'_nlooks.{imagery_extension}')
+                               f'_nlooks.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
@@ -603,7 +613,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                 'areaNormalizationFactor')
             else:
                 rtc_anf_file = (f'{output_dir_sec_bursts}/{product_prefix}'
-               f'_rtc_anf.{imagery_extension}')
+                                f'_rtc_anf.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -612,7 +622,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
         else:
             rtc_anf_file = None
-            
+
         # Calculate layover/shadow mask when requested
         if save_layover_shadow_mask or apply_shadow_masking:
             flag_layover_shadow_mask_is_temporary = \
@@ -642,7 +652,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                             '/science/SENTINEL1/RTC/grids/'
                                             'frequencyA/layoverShadowMask')
 
-
             output_metadata_dict['layover_shadow_mask'][1].append(
                 layover_shadow_mask_file)
 
@@ -651,14 +660,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
         # Output imagery list contains multi-band files that
         # will be used for mosaicking
-        output_imagery_list.append(geo_burst_filename) # TODO append `geo_burst_filename` later after done with playing with it.
-
         output_burst_imagery_list = []
         for pol in pol_list:
             if save_imagery_as_hdf5:
                 geo_burst_pol_filename = (f'NETCDF:{burst_hdf5_in_output}:'
-                                            '/science/SENTINEL1/RTC/grids/'
-                                            f'frequencyA/{pol}')
+                                          '/science/SENTINEL1/RTC/grids/'
+                                          f'frequencyA/{pol}')
             else:
                 geo_burst_pol_filename = \
                     os.path.join(output_path_child, burst_id,
@@ -666,59 +673,79 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                  f'{imagery_extension}')
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
+        # Bundle the single-pol geo burst files into .vrt
         geo_burst_filename += '.vrt'
         os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
         gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
                       options=vrt_options_mosaic)
-        output_imagery_list[-1] = geo_burst_filename
+        output_imagery_list.append(geo_burst_filename)
 
         # .vrt files (for RTC product in geogrid) will be removed after the process
         temp_files_list.append(geo_burst_filename)
-
 
         if not flag_bursts_files_are_temporary:
             output_file_list += output_burst_imagery_list
         else:
             temp_files_list += output_burst_imagery_list
 
-
         if save_nlooks:
-            #del out_geo_nlooks_obj
-
             output_metadata_dict['nlooks'][1].append(nlooks_file)
 
         if save_rtc_anf:
-            #del out_geo_rtc_obj
-
             output_metadata_dict['rtc'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
         # TODO consider writing Gustavo's suggeston into helper function
         if flag_call_radar_grid and save_bursts:
             if save_incidence_angle:
-                radar_grid_file_dict['incidenceAngle'] =\
-                    os.path.join(output_dir,
-                                f'{product_prefix}_incidence_angle.', imagery_extension)
+                _populate_radar_grid_file_dict(
+                    radar_grid_file_dict, 'incidenceAngle',
+                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
+                    'incidence_angle', imagery_extension, burst_hdf5_in_output)
+                #
+                # radar_grid_file_dict['incidenceAngle'] =\
+                #    os.path.join(output_dir,
+                #                f'{product_prefix}_incidence_angle.', imagery_extension)
             if save_local_inc_angle:
-                radar_grid_file_dict['localIncidenceAngle'] =\
-                    os.path.join(output_dir,
-                                f'{product_prefix}_local_incidence_angle.', imagery_extension)
+                _populate_radar_grid_file_dict(
+                    radar_grid_file_dict, 'localIncidenceAngle',
+                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
+                    'local_incidence_angle', imagery_extension, burst_hdf5_in_output)
+                # radar_grid_file_dict['localIncidenceAngle'] =\
+                #    os.path.join(output_dir,
+                #                f'{product_prefix}_local_incidence_angle.', imagery_extension)
             if save_projection_angle:
-                radar_grid_file_dict['projectionAngle'] =\
-                    os.path.join(output_dir,
-                                f'{product_prefix}_projection_angle.', imagery_extension)
+                # radar_grid_file_dict['projectionAngle'] =\
+                #    os.path.join(output_dir,
+                #                f'{product_prefix}_projection_angle.', imagery_extension)
+                _populate_radar_grid_file_dict(
+                    radar_grid_file_dict, 'projectionAngle',
+                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
+                    'projection_angle', imagery_extension, burst_hdf5_in_output)
             if save_rtc_anf_psi:
-                radar_grid_file_dict['areaNormalizationFactorPsi'] =\
-                    os.path.join(output_dir,
-                                f'{product_prefix}_rtc_anf_psi.', imagery_extension)
+                _populate_radar_grid_file_dict(
+                    radar_grid_file_dict, 'areaNormalizationFactorPsi',
+                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
+                    'rtc_anf_psi', imagery_extension, burst_hdf5_in_output)
+                # radar_grid_file_dict['areaNormalizationFactorPsi'] =\
+                #    os.path.join(output_dir,
+                #                f'{product_prefix}_rtc_anf_psi.', imagery_extension)
             if save_range_slope:
-                radar_grid_file_dict['rangeSlope'] =\
-                    os.path.join(output_dir,
-                                f'{product_prefix}_range_slope.', imagery_extension)
+                _populate_radar_grid_file_dict(
+                    radar_grid_file_dict, 'rangeSlope',
+                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
+                    'range_slope', imagery_extension, burst_hdf5_in_output)
+                # radar_grid_file_dict['rangeSlope'] =\
+                #    os.path.join(output_dir,
+                #                 f'{product_prefix}_range_slope.', imagery_extension)
             if save_dem:
-                radar_grid_file_dict['interpolatedDem'] =\
-                    os.path.join(output_dir,
-                                f'{product_prefix}_interpolated_dem.', imagery_extension)
+                _populate_radar_grid_file_dict(
+                    radar_grid_file_dict, 'interpolatedDem',
+                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
+                    'interpolated_dem', imagery_extension, burst_hdf5_in_output)
+                # radar_grid_file_dict['interpolatedDem'] =\
+                #    os.path.join(output_dir,
+                #                 f'{product_prefix}_interpolated_dem.', imagery_extension)
 
             if flag_bursts_secondary_files_are_temporary:
                 # files are temporary
@@ -730,15 +757,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if ((save_imagery_as_hdf5 or save_metadata) and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
-            output_hdf5_file_burst =  os.path.join(
+            output_hdf5_file_burst = os.path.join(
                 hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
             output_file_list.append(output_hdf5_file_burst)
 
         # Create mosaic HDF5
         if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
                 and burst_index == 0):
-            hdf5_mosaic_obj = rtc_s1.create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
-
+            hdf5_mosaic_obj = rtc_s1.create_hdf5_file(
+                output_hdf5_file, orbit, burst, cfg)
 
         t_burst_end = time.time()
         logger.info(
@@ -755,13 +782,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         else:
             radar_grid_output_dir = output_dir
         rtc_s1.get_radar_grid(cfg.geogrid, dem_interp_method_enum, product_prefix,
-                       radar_grid_output_dir, imagery_extension, save_incidence_angle,
-                       save_local_inc_angle, save_projection_angle,
-                       save_rtc_anf_psi,
-                       save_range_slope, save_dem,
-                       dem_raster, radar_grid_file_dict,
-                       mosaic_geogrid_dict,
-                       orbit, verbose = not save_imagery_as_hdf5)
+                              radar_grid_output_dir, imagery_extension, save_incidence_angle,
+                              save_local_inc_angle, save_projection_angle,
+                              save_rtc_anf_psi,
+                              save_range_slope, save_dem,
+                              dem_raster, radar_grid_file_dict,
+                              mosaic_geogrid_dict,
+                              orbit, verbose=not save_imagery_as_hdf5)
         if save_secondary_layers_as_hdf5:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
@@ -795,10 +822,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_file, input_files = output_metadata_dict[key]
             logger.info(f'mosaicking file: {output_file}')
             rtc_s1.compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
-                            cfg.geogrid, verbose=False)
-
-
-
+                                                  cfg.geogrid, verbose=False)
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
@@ -806,10 +830,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
-
-
-
-
 
         # Save HDF5
         if save_imagery_as_hdf5 or save_metadata:
@@ -855,8 +875,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 clip_max, clip_min, output_radiometry_str,
                 cfg.geogrid, pol_list, geo_filename, nlooks_mosaic_file,
                 rtc_anf_mosaic_file, layover_shadow_mask_file,
-                radar_grid_file_dict, save_imagery = save_imagery_as_hdf5,
-                save_secondary_layers = save_secondary_layers_as_hdf5)
+                radar_grid_file_dict, save_imagery=save_imagery_as_hdf5,
+                save_secondary_layers=save_secondary_layers_as_hdf5)
             hdf5_mosaic_obj.close()
             output_file_list.append(output_hdf5_file)
 
@@ -867,8 +887,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 continue
             logger.info(f'    processing file: {filename}')
             rtc_s1.save_as_cog(filename, scratch_path, logger,
-                        compression=output_imagery_compression,
-                        nbits=output_imagery_nbits)
+                               compression=output_imagery_compression,
+                               nbits=output_imagery_nbits)
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:
@@ -890,7 +910,7 @@ def main():
     '''
     Main entrypoint of the script
     '''
-    parser  = rtc_s1.get_rtc_s1_parser()
+    parser = rtc_s1.get_rtc_s1_parser()
     # parse arguments
     args = parser.parse_args()
 
