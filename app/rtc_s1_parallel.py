@@ -211,7 +211,6 @@ def set_dict_item_recursive(dict_in, list_path, val):
     set_dict_item_recursive(dict_in[key_next], list_path[1:], val)
 
 
-#def process_runconfig(path_runconfig_burst, path_logfile_burst, full_log_formatting):
 def process_runconfig(path_runconfig_burst):
     '''
     single worker to process runconfig from terminal using `subprocess`
@@ -245,39 +244,6 @@ def process_runconfig(path_runconfig_burst):
     os.remove(path_runconfig_burst)
 
 
-def process_burst_parallel(list_burst_runconfig: list, num_workers: int):
-    '''
-    Take in the parsed arguments from CLI,
-    split the original runconfign into bursts,
-    and process them concurrently
-
-    Parameter:
-    list_burst_runconfig:
-        list of the (burst) runconfig files to process in parallel
-    list_burst_log:
-        list of the log files for each burst process
-    '''
-
-    t0 = time.time()
-    #list_burst_runconfig, list_burst_log = split_runconfig(arg_in.run_config_path,
-    #                                            arg_in.log_file)
-
-    #list_full_log_formatting = [full_log_formatting] * len(path_runconfig_burst)
-    
-    #list_timestamp = [timestamp] * len(list_burst_log)
-    with multiprocessing.Pool(num_workers) as p:
-        p.starmap(process_runconfig,
-                  zip(list_burst_runconfig))
-                  #zip(list_burst_runconfig,
-                      #list_burst_log,
-                      #list_full_log_formatting))
-                      #list_timestamp))
-
-    t1 = time.time()
-
-    print(f'elapsed time for burst processing: {t1-t0:06f} seconds.')
-
-
 def run_parallel(cfg: RunConfig):
     '''
     Parallel version of `rtc_s1.run()`
@@ -287,7 +253,6 @@ def run_parallel(cfg: RunConfig):
     ---------
     cfg: RunConfig
         RunConfig object with user runconfig options
-    # TODO Add descriptions for the other two parameters
 
     '''
 
@@ -498,20 +463,27 @@ def run_parallel(cfg: RunConfig):
     output_hdf5_file = os.path.join(output_dir,
                                     f'{product_prefix}.{hdf5_file_extension}')
 
-
-
     # Start parallelized burst processing
 
     # Split the original runconfig into bursts
-    list_burst_runconfig, list_log_burst_processing = split_runconfig(cfg, scratch_path)
+    list_burst_runconfig = split_runconfig(cfg, scratch_path)
 
+    # determine the number of the processors here
+    num_workers = cfg.groups.processing.num_process
+
+    if num_workers == 0:
+        # Decide the number of workers automatically
+        ncpu_system = os.cpu_count()
+        omp_num_threads = os.getenv('OMP_NUM_THREADS')
+        if omp_num_threads:
+            num_workers = min(ncpu_system,
+                              omp_num_threads,
+                              len(list_burst_runconfig))
     
     # Execute the single burst processes using multiprocessing
-    # TODO: Take a look how run() takes are of log files.
-    #       Make use of that understanding to 
-    #       take care of log files for child processes
-    process_burst_parallel(list_burst_runconfig, cfg.groups.processing.num_process)
-
+    with multiprocessing.Pool(num_workers) as p:
+        p.starmap(process_runconfig,
+                  zip(list_burst_runconfig))
     
     # End of parallelized burst processing
 
