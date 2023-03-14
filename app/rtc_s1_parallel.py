@@ -22,37 +22,6 @@ import rtc_s1
 
 logger = logging.getLogger('rtc_s1')
 
-def get_rtc_s1_parser():
-    '''Initialize YamlArgparse class and parse CLI arguments for OPERA RTC.
-    Modified after copied from `rtc_s1.py`
-    '''
-    parser = argparse.ArgumentParser(description='',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('run_config_path',
-                        type=str,
-                        default=None,
-                        help='Path to run config file')
-
-    # Determine the default # of concurrent workers
-    ncpu_default = os.cpu_count()
-    if os.getenv('OMP_NUM_THREADS') is not None:
-        omp_num_threads = int(os.getenv('OMP_NUM_THREADS'))
-        ncpu_default = min(ncpu_default, omp_num_threads)
-
-    parser.add_argument('--log',
-                        '--log-file',
-                        dest='log_file',
-                        type=str,
-                        help='Log file')
-
-    parser.add_argument('--full-log-format',
-                        dest='full_log_formatting',
-                        action='store_true',
-                        default=False,
-                        help='Enable full formatting of log messages')
-
-    return parser
-
 
 def split_runconfig(cfg_in, output_dir_child):
     '''
@@ -130,19 +99,19 @@ def split_runconfig(cfg_in, output_dir_child):
                                  'scratch_path'],
                                 scratch_path_child)
 
-        set_dict_item_recursive(runconfig_dict_out,
-                                ['runconfig',
-                                 'groups',
-                                 'product_group',
-                                 'save_secondary_layers_as_hdf5'],
-                                False)
+        #set_dict_item_recursive(runconfig_dict_out,
+        #                        ['runconfig',
+        #                         'groups',
+        #                         'product_group',
+        #                         'save_secondary_layers_as_hdf5'],
+        #                        False)
 
-        set_dict_item_recursive(runconfig_dict_out,
-                                ['runconfig',
-                                 'groups',
-                                 'product_group',
-                                 'output_imagery_format'],
-                                'GTiff')
+        #set_dict_item_recursive(runconfig_dict_out,
+        #                        ['runconfig',
+        #                         'groups',
+        #                         'product_group',
+        #                         'output_imagery_format'],
+        #                        'GTiff')
 
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
@@ -204,7 +173,7 @@ def set_dict_item_recursive(dict_in, list_path, val):
     set_dict_item_recursive(dict_in[key_next], list_path[1:], val)
 
 
-def process_runconfig(path_runconfig_burst, path_logfile = None, full_logfile_format = None):
+def process_runconfig(path_runconfig_burst, path_logfile = None, full_logfile_format = None, keep_burst_runconfig=False):
     '''
     single worker to process runconfig from terminal using `subprocess`
 
@@ -229,9 +198,11 @@ def process_runconfig(path_runconfig_burst, path_logfile = None, full_logfile_fo
 
     return_val = subprocess.run(list_arg_subprocess)
 
-    # TODO Add some routine to take a look into `rtnval` to see if everything is okay.
+    # TODO Add some routine to take a look into `return_val` to see if everything is okay.
 
-    os.remove(path_runconfig_burst)
+    # Remove or keep (for debugging purpose) the processed runconfig
+    if keep_burst_runconfig:
+        os.remove(path_runconfig_burst)
 
 
 def run_parallel(cfg: RunConfig):
@@ -373,7 +344,7 @@ def run_parallel(cfg: RunConfig):
 
     # only 2 RTC algorithms supported: area_projection (default) &
     # bilinear_distribution
-    
+
     output_terrain_radiometry = rtc_namespace.output_type
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
     if (flag_apply_rtc and output_terrain_radiometry ==
@@ -440,9 +411,9 @@ def run_parallel(cfg: RunConfig):
 
     # extract the logger setting from the logger
     path_logger_parent, flag_logger_full_format = get_parent_logger_setting(logger)
-    
+
     # determine the number of the processors here
-    num_workers = cfg.groups.processing.num_process
+    num_workers = cfg.groups.processing.num_workers
 
     if num_workers == 0:
         # Decide the number of workers automatically
@@ -452,7 +423,10 @@ def run_parallel(cfg: RunConfig):
             num_workers = min(ncpu_system,
                               omp_num_threads,
                               len(list_burst_runconfig))
-    
+        else:
+            num_workers = min(ncpu_system,
+                              len(list_burst_runconfig))
+
     # Execute the single burst processes using multiprocessing
     with multiprocessing.Pool(num_workers) as p:
         p.starmap(process_runconfig,
@@ -461,12 +435,12 @@ def run_parallel(cfg: RunConfig):
                       repeat(flag_logger_full_format)
                       )
                   )
-    
+
     # ------  End of parallelized burst processing ------
 
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
-        
+
         # ===========================================================
         # start burst processing
 
@@ -483,15 +457,15 @@ def run_parallel(cfg: RunConfig):
             not save_bursts or save_secondary_layers_as_hdf5)
 
         burst_scratch_path = f'{scratch_path}/{burst_id}/'
-        
+
         if not save_bursts:
             # burst files are saved in scratch dir
             bursts_output_dir = burst_scratch_path
         else:
-            # burst files (individual or HDF5) are saved in burst_id dir 
+            # burst files (individual or HDF5) are saved in burst_id dir
             bursts_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(bursts_output_dir, exist_ok=True)
-        
+
         geogrid = cfg.geogrids[burst_id]
 
         # snap coordinates
@@ -522,7 +496,7 @@ def run_parallel(cfg: RunConfig):
                 f'{burst_scratch_path}/rslc_{pol}.vrt'
             temp_slc_corrected_path = (
                 f'{burst_scratch_path}/rslc_{pol}_corrected.{imagery_extension}')
-            
+
             if (flag_apply_thermal_noise_correction or
                     flag_apply_abs_rad_correction):
                 input_burst_filename = temp_slc_corrected_path
@@ -538,12 +512,26 @@ def run_parallel(cfg: RunConfig):
             f'{burst_scratch_path}/{product_prefix}.{imagery_extension}'
         temp_files_list.append(geo_burst_filename)
 
-        # Generate output geocoded burst raster        
+
+        burst_hdf5_in_scratch = os.path.join(scratch_path,
+                                             burst_id,
+                                             f'{product_prefix}.{hdf5_file_extension}')
+
+
+        # Generate output geocoded burst raster
         if save_nlooks:
             nlooks_file = (f'{bursts_output_dir}/{product_prefix}'
                            f'_nlooks.{imagery_extension}')
 
-            os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
+            if os.path.exists(nlooks_file.replace(output_dir, scratch_path)):
+                # Move the nlooks file if it exists in the scratch of the parent process
+                os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
+            else:
+                # Extract the nlooks file from the HDF5 file in the scratch directory
+                # Inspirated from : https://gis.stackexchange.com/questions/42584/how-to-call-gdal-translate-from-python-code
+                data_out = gdal.Open(f'NETCDF:"{burst_hdf5_in_scratch}":/science/SENTINEL1/RTC/grids/frequencyA/numberOfLooks')
+                data_out = gdal.Translate(nlooks_file, data_out)
+                data_out = None
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
@@ -556,7 +544,7 @@ def run_parallel(cfg: RunConfig):
         if save_rtc_anf:
             rtc_anf_file = (f'{bursts_output_dir}/{product_prefix}'
                f'_rtc_anf.{imagery_extension}')
-            
+
             os.rename(rtc_anf_file.replace(output_dir, scratch_path), rtc_anf_file)
 
             if flag_bursts_secondary_files_are_temporary:
@@ -566,9 +554,8 @@ def run_parallel(cfg: RunConfig):
 
         else:
             rtc_anf_file = None
-            
         # geocoding optional arguments
-        
+
 
         # Calculate layover/shadow mask when requested
         if save_layover_shadow_mask or apply_shadow_masking:
@@ -587,16 +574,26 @@ def run_parallel(cfg: RunConfig):
                     (f'{bursts_output_dir}/{product_prefix}'
                      f'_layover_shadow_mask.{imagery_extension}')
 
-            # TODO Checkif `compute_layover_shadow_mask` returns something.
-            
+            # TODO Check if `compute_layover_shadow_mask` returns something.
+
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
             else:
                 output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
+
+            # Take the layover shadow mask from HDF5 file if not exists
+            if (not os.path.exists(layover_shadow_mask_file)) and \
+                os.path.exists(burst_hdf5_in_scratch):
+                burst_hdf5_in_output = burst_hdf5_in_scratch.replace(scratch_path,
+                                                                     output_dir)
+                layover_shadow_mask_file = (f'NETCDF:{burst_hdf5_in_output}:'
+                                            '/science/SENTINEL1/RTC/grids/'
+                                            'frequencyA/layoverShadowMask')
+
             output_metadata_dict['layover_shadow_mask'][1].append(
                 layover_shadow_mask_file)
-    
+
         else:
             layover_shadow_mask_file = None
 
@@ -634,7 +631,7 @@ def run_parallel(cfg: RunConfig):
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
-    
+
         if save_rtc_anf:
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
@@ -642,15 +639,32 @@ def run_parallel(cfg: RunConfig):
 
         radar_grid_file_dict = {}
         if flag_call_radar_grid and save_bursts:
-            rtc_s1.get_radar_grid(
-                geogrid, dem_interp_method_enum, product_prefix,
-                bursts_output_dir, imagery_extension, save_incidence_angle,
-                save_local_inc_angle, save_projection_angle,
-                save_rtc_anf_psi,
-                save_range_slope, save_dem,
-                dem_raster, radar_grid_file_dict,
-                mosaic_geogrid_dict, orbit,
-                verbose = not flag_bursts_secondary_files_are_temporary)
+
+            if save_incidence_angle:
+                radar_grid_file_dict['incidenceAngle'] =\
+                    os.path.join(output_dir,
+                                f'{product_prefix}_incidence_angle.', imagery_extension)
+            if save_local_inc_angle:
+                radar_grid_file_dict['localIncidenceAngle'] =\
+                    os.path.join(output_dir,
+                                f'{product_prefix}_local_incidence_angle.', imagery_extension)
+            if save_projection_angle:
+                radar_grid_file_dict['projectionAngle'] =\
+                    os.path.join(output_dir,
+                                f'{product_prefix}_projection_angle.', imagery_extension)
+            if save_rtc_anf_psi:
+                radar_grid_file_dict['areaNormalizationFactorPsi'] =\
+                    os.path.join(output_dir,
+                                f'{product_prefix}_rtc_anf_psi.', imagery_extension)
+            if save_range_slope:
+                radar_grid_file_dict['rangeSlope'] =\
+                    os.path.join(output_dir,
+                                f'{product_prefix}_range_slope.', imagery_extension)
+            if save_dem:
+                radar_grid_file_dict['interpolatedDem'] =\
+                    os.path.join(output_dir,
+                                f'{product_prefix}_interpolated_dem.', imagery_extension)
+
             if flag_bursts_secondary_files_are_temporary:
                 # files are temporary
                 temp_files_list += list(radar_grid_file_dict.values())
@@ -663,20 +677,17 @@ def run_parallel(cfg: RunConfig):
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
             output_hdf5_file_burst =  os.path.join(
                 hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
-            hdf5_obj = rtc_s1.create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg)
-            rtc_s1.save_hdf5_file(
-                hdf5_obj, output_hdf5_file_burst, flag_apply_rtc,
-                clip_max, clip_min, output_radiometry_str,
-                geogrid, pol_list, geo_burst_filename, nlooks_file,
-                rtc_anf_file, layover_shadow_mask_file,
-                radar_grid_file_dict,
-                save_imagery = save_imagery_as_hdf5,
-                save_secondary_layers = save_secondary_layers_as_hdf5)
-            output_file_list.append(output_hdf5_file_burst)
 
-        # Create mosaic HDF5 
+            # Move the HDF5 in `scratch_path` into `output_dir`
+            os.rename(output_hdf5_file_burst.replace(output_dir,scratch_path),
+                      output_hdf5_file_burst)
+
+        # Create mosaic HDF5
+        #if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
+        #        and burst_index == 0):
+        #    hdf5_obj = rtc_s1.create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
         if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
-                and burst_index == 0):
+                and burst_index == len(cfg.bursts)-1):
             hdf5_obj = rtc_s1.create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
 
         t_burst_end = time.time()
@@ -685,7 +696,7 @@ def run_parallel(cfg: RunConfig):
 
         # end burst processing
         # ===========================================================
-    
+
     if flag_call_radar_grid and save_mosaics:
         radar_grid_file_dict = {}
 
@@ -813,6 +824,7 @@ def run_parallel(cfg: RunConfig):
         if not os.path.isfile(filename):
             continue
         os.remove(filename)
+
         logger.info(f'    {filename}')
 
     logger.info('output files:')
