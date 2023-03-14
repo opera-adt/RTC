@@ -8,7 +8,6 @@ from itertools import repeat
 import logging
 import multiprocessing
 import os
-import subprocess
 import time
 import yaml
 
@@ -111,14 +110,23 @@ def split_runconfig(cfg_in, output_dir_child):
                                  'groups',
                                  'product_group',
                                  'output_imagery_format'],
-                                 'GTiff')
+                                'GTiff')
+
+        # NOTE: This should not be forced in order to make the burst HDF5 writeout to happen in child process level.
+        #set_dict_item_recursive(runconfig_dict_out,
+        #                        ['runconfig',
+        #                         'groups',
+        #                         'product_group',
+        #                         'save_secondary_layers_as_hdf5'],
+        #                        False)
+
 
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
                                  'groups',
                                  'product_group',
                                  'save_bursts'],
-                                 True)
+                                True)
 
         # TODO: Remove the code below once the mosaicking algorithm does not take nlooks as the weight input
         if cfg_in.groups.product_group.save_mosaics:
@@ -166,10 +174,10 @@ def set_dict_item_recursive(dict_in, list_path, val):
     set_dict_item_recursive(dict_in[key_next], list_path[1:], val)
 
 
-def process_runconfig(path_runconfig_burst,
-                      path_logfile = None,
-                      full_logfile_format = None,
-                      keep_burst_runconfig=False):
+def process_child_runconfig(path_runconfig_burst,
+                            path_logfile = None,
+                            full_logfile_format = None,
+                            keep_burst_runconfig=False):
     '''
     single worker to process runconfig from terminal using `subprocess`
 
@@ -184,17 +192,15 @@ def process_runconfig(path_runconfig_burst,
         See `get_rtc_s1_parser()`
 
     '''
+    # Get a runconfig dict from command line argumens
+    cfg = RunConfig.load_from_yaml(path_runconfig_burst, 'rtc_s1')
 
-    list_arg_subprocess = ['rtc_s1.py', path_runconfig_burst]
-    if path_logfile is not None:
-        list_arg_subprocess += ['--log-file', path_logfile]
+    rtc_s1._load_parameters(cfg)
 
-    if full_logfile_format:
-        list_arg_subprocess.append('--full-log-format')
+    rtc_s1.create_logger(path_logfile, full_logfile_format)
 
-    return_val = subprocess.run(list_arg_subprocess)
-
-    # TODO Add some routine to take a look into `return_val` to see if everything is okay.
+    # Run geocode burst workflow
+    rtc_s1.run(cfg)
 
     # Remove or keep (for debugging purpose) the processed runconfig
     if keep_burst_runconfig:
@@ -261,6 +267,7 @@ def run_parallel(cfg: RunConfig):
     output_imagery_nbits = \
         cfg.groups.product_group.output_imagery_nbits
 
+    # Display the key processing information to logger
     logger.info(f'Identification:')
     logger.info(f'    product ID: {product_id}')
     logger.info(f'    processing type: {processing_type}')
@@ -285,7 +292,7 @@ def run_parallel(cfg: RunConfig):
     save_secondary_layers_as_hdf5 = \
         cfg.groups.product_group.save_secondary_layers_as_hdf5
 
-    save_metadata = (cfg.groups.product_group.save_metadata or
+    create_hdf5_file = (cfg.groups.product_group.save_metadata or
                      save_imagery_as_hdf5 or
                      save_secondary_layers_as_hdf5)
 
@@ -426,7 +433,7 @@ def run_parallel(cfg: RunConfig):
 
     # Execute the single burst processes using multiprocessing
     with multiprocessing.Pool(num_workers) as p:
-        p.starmap(process_runconfig,
+        p.starmap(process_child_runconfig,
                   zip(list_burst_runconfig,
                       repeat(f'{path_logger_parent}.child'),
                       repeat(flag_logger_full_format)
@@ -434,6 +441,14 @@ def run_parallel(cfg: RunConfig):
                   )
 
     # ------  End of parallelized burst processing ------
+
+
+
+
+    # TODO add some sort of layer to proceed to the parent process
+
+    # NOTE: The following routines assume that the parallelized burst processing was successful.
+    
 
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
@@ -534,6 +549,7 @@ def run_parallel(cfg: RunConfig):
             nlooks_file = (f'{bursts_output_dir}/{product_prefix}'
                            f'_nlooks.{imagery_extension}')
 
+            # TODO Revise this not to use `os.path.exists`
             if os.path.exists(nlooks_file.replace(output_dir, scratch_path)):
                 # Move the nlooks file if it exists in the scratch of the parent process
                 os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
@@ -578,12 +594,10 @@ def run_parallel(cfg: RunConfig):
                      f'_layover_shadow_mask.{imagery_extension}')
             else:
                 # layover/shadow mask is saved in `bursts_output_dir`
-                layover_shadow_mask_file = \
+                layover_shadow_mask_file =\
                     (f'{bursts_output_dir}/{product_prefix}'
                      f'_layover_shadow_mask.{imagery_extension}')
 
-                # Move the layover shadow mask file generated from child process
-                # Necessary when `save_secondary_layers_as_hdf5` is False
                 layover_shadow_mask_file_in_scratch =\
                     layover_shadow_mask_file.replace(bursts_output_dir,
                                                      burst_scratch_path)
@@ -685,7 +699,7 @@ def run_parallel(cfg: RunConfig):
                 output_file_list += list(radar_grid_file_dict.values())
 
         # Create burst HDF5
-        if ((save_imagery_as_hdf5 or save_metadata) and save_bursts):
+        if ((save_imagery_as_hdf5 or create_hdf5_file) and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
             output_hdf5_file_burst =  os.path.join(
@@ -696,7 +710,7 @@ def run_parallel(cfg: RunConfig):
                       output_hdf5_file_burst)
 
         # Create mosaic HDF5
-        if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
+        if ((save_imagery_as_hdf5 or create_hdf5_file) and save_mosaics
                 and burst_index == len(cfg.bursts)-1):
             hdf5_obj = rtc_s1.create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
 
@@ -731,29 +745,31 @@ def run_parallel(cfg: RunConfig):
     if save_mosaics:
         # Mosaic sub-bursts imagery
         logger.info(f'mosaicking files:')
-        output_imagery_filename_list = []
+        output_mosaic_filename_list = []
         for pol in pol_list:
             geo_pol_filename = \
                 (f'{output_dir_mosaic_raster}/{product_prefix}_{pol}.'
                  f'{imagery_extension}')
             logger.info(f'    {geo_pol_filename}')
-            output_imagery_filename_list.append(geo_pol_filename)
+            output_mosaic_filename_list.append(geo_pol_filename)
 
         nlooks_list = output_metadata_dict['nlooks'][1]
+
+        # NOTE: The function below takes multi-band rasters, and save the mosaic for each bands.
         rtc_s1.compute_weighted_mosaic_raster_single_band(
             output_imagery_list, nlooks_list,
-            output_imagery_filename_list, cfg.geogrid, verbose=False)
+            output_mosaic_filename_list, cfg.geogrid, verbose=False)
 
         if save_imagery_as_hdf5:
-            temp_files_list += output_imagery_filename_list
+            temp_files_list += output_mosaic_filename_list
         else:
-            output_file_list += output_imagery_filename_list
+            output_file_list += output_mosaic_filename_list
 
-        # Mosaic other bands
+        # Mosaic other layers
         for key in output_metadata_dict.keys():
-            output_file, input_files = output_metadata_dict[key]
-            logger.info(f'mosaicking file: {output_file}')
-            rtc_s1.compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
+            output_file_metadata, input_files_metadata = output_metadata_dict[key]
+            logger.info(f'mosaicking file: {output_file_metadata}')
+            rtc_s1.compute_weighted_mosaic_raster(input_files_metadata, nlooks_list, output_file_metadata,
                             cfg.geogrid, verbose=False)
 
 
@@ -761,15 +777,15 @@ def run_parallel(cfg: RunConfig):
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
                     (key == 'nlooks' and not save_nlooks)):
-                temp_files_list.append(output_file)
+                temp_files_list.append(output_file_metadata)
             else:
-                output_file_list.append(output_file)
+                output_file_list.append(output_file_metadata)
 
 
 
 
         # Save HDF5
-        if save_imagery_as_hdf5 or save_metadata:
+        if save_imagery_as_hdf5 or create_hdf5_file:
             if save_nlooks:
                 nlooks_mosaic_file = output_metadata_dict['nlooks'][0]
             else:
