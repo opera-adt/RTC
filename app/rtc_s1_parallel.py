@@ -257,6 +257,7 @@ def main():
     '''
     Main entrypoint of the script
     '''
+    t0 = time.time()
     parser  = get_rtc_s1_parser()
 
     # parse arguments
@@ -273,7 +274,9 @@ def main():
 
     # Run geocode burst workflow
     rtc_s1.run(cfg, tempdir=dir_temporary, skip_burst_process=True)
+    t1 = time.time()
 
+    print(f'Elapsed time: {t1-t0} seconds')
 
 if __name__ == "__main__":
     # load arguments from command line
