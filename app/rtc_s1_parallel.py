@@ -443,9 +443,6 @@ def run_parallel(cfg: RunConfig):
 
 
 
-
-
-
     # extract the logger setting from the logger
     path_logger_parent, flag_logger_full_format = get_parent_logger_setting(logger)
 
@@ -476,13 +473,8 @@ def run_parallel(cfg: RunConfig):
     # ------  End of parallelized burst processing ------
 
 
-
-
-    # TODO some sort of layer would be neessary to proceed to the parent process
-
-
-
-    # NOTE: The following routines assume that the parallelized burst processing was successful.
+    # NOTE: The following routines assume that the
+    #       parallelized burst processing was successful.
     
 
     # iterate over sub-burts
@@ -584,7 +576,6 @@ def run_parallel(cfg: RunConfig):
             nlooks_file = (f'{bursts_output_dir}/{product_prefix}'
                            f'_nlooks.{imagery_extension}')
 
-            # TODO Revise this not to use `os.path.exists`
             if save_secondary_layers_as_hdf5:
                 nlooks_file = (f'NETCDF:"{burst_hdf5_in_output}":'
                                 '/science/SENTINEL1/RTC/grids/frequencyA/'
@@ -602,8 +593,10 @@ def run_parallel(cfg: RunConfig):
             rtc_anf_file = (f'{bursts_output_dir}/{product_prefix}'
                f'_rtc_anf.{imagery_extension}')
             
-            # TODO try to remove that
-            os.rename(rtc_anf_file.replace(output_dir, scratch_path), rtc_anf_file)
+            if save_secondary_layers_as_hdf5:
+                rtc_anf_file = (f'NETCDF:"{burst_hdf5_in_output}":'
+                                '/science/SENTINEL1/RTC/grids/frequencyA/'
+                                'areaNormalizationFactor')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
