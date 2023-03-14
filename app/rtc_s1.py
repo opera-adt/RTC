@@ -337,7 +337,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     return slantrange_layover_shadow_mask_raster
 
 
-def run(cfg: RunConfig, skip_burst_process=False):
+def run(cfg: RunConfig):
     # Processes after the burst processing
     '''
     Run geocode burst workflow with user-defined
@@ -346,8 +346,7 @@ def run(cfg: RunConfig, skip_burst_process=False):
     ---------
     cfg: RunConfig
         RunConfig object with user runconfig options
-    # TODO Add descriptions for the other two parameters
-
+    
     '''
 
     # Start tracking processing time
@@ -376,13 +375,6 @@ def run(cfg: RunConfig, skip_burst_process=False):
         product_id = 'rtc_product'
     product_prefix = f'{product_id}_v{product_version}'
 
-    #if len(cfg.bursts) == 1:
-    #    scratch_path = cfg.groups.product_group.scratch_path
-    #else:
-    #    scratch_path = os.path.join(
-    #        cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
-    
-    # Gustavo's suggestion below:
     scratch_path = os.path.join(
         cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
 
@@ -578,8 +570,7 @@ def run(cfg: RunConfig, skip_burst_process=False):
             not save_bursts or save_secondary_layers_as_hdf5)
 
         burst_scratch_path = f'{scratch_path}/{burst_id}/'
-        if not skip_burst_process:
-            os.makedirs(burst_scratch_path, exist_ok=True)
+        os.makedirs(burst_scratch_path, exist_ok=True)
 
         if not save_bursts:
             # burst files are saved in scratch dir
@@ -619,20 +610,18 @@ def run(cfg: RunConfig, skip_burst_process=False):
             temp_slc_corrected_path = (
                 f'{burst_scratch_path}/rslc_{pol}_corrected.{imagery_extension}')
             
-            if not skip_burst_process:
-                burst_pol.slc_to_vrt_file(temp_slc_path)
+            burst_pol.slc_to_vrt_file(temp_slc_path)
 
             if (flag_apply_thermal_noise_correction or
                     flag_apply_abs_rad_correction):
-                if not skip_burst_process:
-                    apply_slc_corrections(
-                        burst_pol,
-                        temp_slc_path,
-                        temp_slc_corrected_path,
-                        flag_output_complex=False,
-                        flag_thermal_correction =
-                            flag_apply_thermal_noise_correction,
-                        flag_apply_abs_rad_correction=True)
+                apply_slc_corrections(
+                    burst_pol,
+                    temp_slc_path,
+                    temp_slc_corrected_path,
+                    flag_output_complex=False,
+                    flag_thermal_correction =
+                        flag_apply_thermal_noise_correction,
+                    flag_apply_abs_rad_correction=True)
                 input_burst_filename = temp_slc_corrected_path
                 temp_files_list.append(temp_slc_corrected_path)
             else:
@@ -642,15 +631,14 @@ def run(cfg: RunConfig, skip_burst_process=False):
             input_file_list.append(input_burst_filename)
 
         # create multi-band VRT
-        if not skip_burst_process:
-            if len(input_file_list) == 1:
-                rdr_burst_raster = isce3.io.Raster(input_file_list[0])
-            else:
-                temp_vrt_path = f'{burst_scratch_path}/rslc.vrt'
-                gdal.BuildVRT(temp_vrt_path, input_file_list,
-                            options=vrt_options_mosaic)
-                rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
-                temp_files_list.append(temp_vrt_path)
+        if len(input_file_list) == 1:
+            rdr_burst_raster = isce3.io.Raster(input_file_list[0])
+        else:
+            temp_vrt_path = f'{burst_scratch_path}/rslc.vrt'
+            gdal.BuildVRT(temp_vrt_path, input_file_list,
+                        options=vrt_options_mosaic)
+            rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
+            temp_files_list.append(temp_vrt_path)
 
         # At this point, burst imagery files are always temporary
         geo_burst_filename = \
@@ -658,12 +646,11 @@ def run(cfg: RunConfig, skip_burst_process=False):
         temp_files_list.append(geo_burst_filename)
 
         # Generate output geocoded burst raster        
-        if not skip_burst_process:
-            geo_burst_raster = isce3.io.Raster(
-                geo_burst_filename,
-                geogrid.width, geogrid.length,
-                rdr_burst_raster.num_bands, gdal.GDT_Float32,
-                output_raster_format)
+        geo_burst_raster = isce3.io.Raster(
+            geo_burst_filename,
+            geogrid.width, geogrid.length,
+            rdr_burst_raster.num_bands, gdal.GDT_Float32,
+            output_raster_format)
 
             # init Geocode object depending on raster type
             if rdr_burst_raster.datatype() == gdal.GDT_Float32:
@@ -697,18 +684,17 @@ def run(cfg: RunConfig, skip_burst_process=False):
             nlooks_file = (f'{bursts_output_dir}/{product_prefix}'
                            f'_nlooks.{imagery_extension}')
 
-            if skip_burst_process:
-                os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
+            #if skip_burst_process:
+            #    os.rename(nlooks_file.replace(output_dir, scratch_path), nlooks_file)
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
             else:
                 output_file_list.append(nlooks_file)
 
-            if not skip_burst_process:
-                out_geo_nlooks_obj = isce3.io.Raster(
-                    nlooks_file, geogrid.width, geogrid.length, 1,
-                    gdal.GDT_Float32, output_raster_format)
+            out_geo_nlooks_obj = isce3.io.Raster(
+                nlooks_file, geogrid.width, geogrid.length, 1,
+                gdal.GDT_Float32, output_raster_format)
         else:
             nlooks_file = None
             out_geo_nlooks_obj = None
@@ -717,19 +703,18 @@ def run(cfg: RunConfig, skip_burst_process=False):
             rtc_anf_file = (f'{bursts_output_dir}/{product_prefix}'
                f'_rtc_anf.{imagery_extension}')
             # TODO: The if statement below needs to be revised to if- else statement
-            if skip_burst_process:
-                os.rename(rtc_anf_file.replace(output_dir, scratch_path), rtc_anf_file)
+            #if skip_burst_process:
+            #    os.rename(rtc_anf_file.replace(output_dir, scratch_path), rtc_anf_file)
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
             else:
                 output_file_list.append(rtc_anf_file)
 
-            if not skip_burst_process:
-                out_geo_rtc_obj = isce3.io.Raster(
-                    rtc_anf_file,
-                    geogrid.width, geogrid.length, 1,
-                    gdal.GDT_Float32, output_raster_format)
+            out_geo_rtc_obj = isce3.io.Raster(
+                rtc_anf_file,
+                geogrid.width, geogrid.length, 1,
+                gdal.GDT_Float32, output_raster_format)
         else:
             rtc_anf_file = None
             out_geo_rtc_obj = None
@@ -874,16 +859,14 @@ def run(cfg: RunConfig, skip_burst_process=False):
             output_file_list += output_burst_imagery_list
 
         if save_nlooks:
-            if not skip_burst_process:
-                del out_geo_nlooks_obj
+            del out_geo_nlooks_obj
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
     
         if save_rtc_anf:
-            if not skip_burst_process:
-                del out_geo_rtc_obj
+            del out_geo_rtc_obj
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
