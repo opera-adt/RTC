@@ -127,7 +127,7 @@ processing_options:
    geocoding: include('geocoding_options', required=False)
 
    # Numper of parallel processes for burst processing
-   num_process: int(required=False)
+   num_workers: int(required=False)
 
 
 rtc_options:
