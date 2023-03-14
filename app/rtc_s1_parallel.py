@@ -140,11 +140,15 @@ def split_runconfig(path_runconfig_in, path_log_in):
                                  'output_imagery_format'],
                                  'GTiff')
 
+        set_dict_item_recursive(runconfig_dict_out,
+                                ['runconfig',
+                                 'groups',
+                                 'product_group',
+                                 'save_mosaics'],
+                                False)
 
         if runconfig_dict_out['runconfig']['groups']['product_group']['save_mosaics']:
-            set_dict_item_recursive(runconfig_dict_out,
-                                ['runconfig', 'groups', 'product_group', 'save_mosaics'],
-                                False)
+            
             set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig', 'groups', 'processing', 'geocoding', 'save_nlooks'],
                                 True)
