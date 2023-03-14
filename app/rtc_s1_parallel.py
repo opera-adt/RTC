@@ -14,12 +14,6 @@ import yaml
 from rtc.runconfig import RunConfig
 
 import logging
-import numpy as np
-from osgeo import gdal
-
-import isce3
-
-from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
 from rtc.runconfig import RunConfig
 from rtc.core import create_logger
