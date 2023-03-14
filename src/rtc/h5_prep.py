@@ -12,12 +12,9 @@ import shapely
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from s1reader.version import release_version
 from rtc.runconfig import RunConfig
+from rtc.version import VERSION as SOFTWARE_VERSION
 
 from nisar.workflows.h5_prep import set_get_geo_info
-
-# Version: BETA v0.2
-__version__ = 0.2
-
 
 BASE_HDF5_DATASET = f'/science/SENTINEL1'
 FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
@@ -190,7 +187,10 @@ def populate_metadata_group(h5py_obj: h5py.File,
 
     # product version
     product_version_float = cfg_in.groups.product_group.product_version
-    product_version = f'{product_version_float:.1f}'
+    if product_version_float is None:
+        product_version = SOFTWARE_VERSION
+    else:
+        product_version = f'{product_version_float:.1f}'
 
     # DEM description
     dem_description = cfg_in.dem_description
@@ -276,7 +276,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'RTC/metadata/processingInformation/algorithms/ISCEVersion':
             [isce3.__version__, 'ISCE version used for processing'],
         'RTC/metadata/processingInformation/algorithms/RTCVersion':
-            [str(__version__), 'RTC-S1 SAS version used for processing'],
+            [str(SOFTWARE_VERSION), 'RTC-S1 SAS version used for processing'],
         'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
             [release_version, 'S1-Reader version used for processing'],
 
