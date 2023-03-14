@@ -4,7 +4,6 @@
 RTC Workflow
 '''
 
-import datetime
 import os
 import time
 
@@ -190,7 +189,24 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
                           flag_thermal_correction: bool = True,
                           flag_apply_abs_rad_correction: bool = True):
     '''Apply thermal correction stored in burst_in. Save the corrected signal
-    back to ENVI format. Preserves the phase.'''
+    back to ENVI format. Preserves the phase.
+
+    Parameters:
+    -----------
+    burst_in: Sentinel1BurstSlc
+        Input burst
+    path_slc_vrt: str
+        Path to the SLC of `burst_in` as vrt
+    path_slc_out: str
+        Path to the output burst
+    flag_output_complex: bool
+        If `True`, the output will be in complex number i.e. amplitude and phase
+        If `False`, the output will be ampliture only.
+    flag_thermal_correction: bool
+        Turn on / off thermal correction
+    flag_apply_abs_rad_correction: bool
+        Turn on / off radiometric correction
+    '''
 
     # Load the SLC of the burst
     burst_in.slc_to_vrt_file(path_slc_vrt)
@@ -475,14 +491,9 @@ def run(cfg: RunConfig):
     save_nlooks = geocode_namespace.save_nlooks
 
 
-
-
-
     # TODO remove the lines below:
     if save_mosaics:
         save_nlooks = True
-
-
 
 
     save_rtc_anf = geocode_namespace.save_rtc_anf
@@ -574,7 +585,7 @@ def run(cfg: RunConfig):
 
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
-        
+
         # ===========================================================
         # start burst processing
 
@@ -668,7 +679,7 @@ def run(cfg: RunConfig):
             f'{burst_scratch_path}/{product_prefix}.{imagery_extension}'
         temp_files_list.append(geo_burst_filename)
 
-        # Generate output geocoded burst raster        
+        # Generate output geocoded burst raster
         geo_burst_raster = isce3.io.Raster(
             geo_burst_filename,
             geogrid.width, geogrid.length,
@@ -904,7 +915,7 @@ def run(cfg: RunConfig):
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
-    
+
         if save_rtc_anf:
             del out_geo_rtc_obj
             if not flag_bursts_secondary_files_are_temporary:
@@ -1235,13 +1246,13 @@ def _load_parameters(cfg):
 
     if dem_interp_method == 'biquintic':
         dem_interp_method_enum = isce3.core.DataInterpMethod.BIQUINTIC
-    elif (dem_interp_method == 'sinc'):
+    elif dem_interp_method == 'sinc':
         dem_interp_method_enum = isce3.core.DataInterpMethod.SINC
-    elif (dem_interp_method == 'bilinear'):
+    elif dem_interp_method == 'bilinear':
         dem_interp_method_enum = isce3.core.DataInterpMethod.BILINEAR
-    elif (dem_interp_method == 'bicubic'):
+    elif dem_interp_method == 'bicubic':
         dem_interp_method_enum = isce3.core.DataInterpMethod.BICUBIC
-    elif (dem_interp_method == 'nearest'):
+    elif dem_interp_method == 'nearest':
         dem_interp_method_enum = isce3.core.DataInterpMethod.NEAREST
     else:
         err_msg = ('ERROR invalid DEM interpolation method:'
@@ -1282,7 +1293,7 @@ if __name__ == "__main__":
     '''Run geocode rtc workflow from command line'''
     # load arguments from command line
     parser  = get_rtc_s1_parser()
-    
+
     # parse arguments
     args = parser.parse_args()
 
