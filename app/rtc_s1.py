@@ -1045,6 +1045,9 @@ def run(cfg: RunConfig):
     t_end = time.time()
     logger.info(f'elapsed time: {t_end - t_start}')
 
+    # Return value to indicate that the processing has completed succesfully
+    return 0
+
 
 def get_radar_grid(geogrid, dem_interp_method_enum, product_prefix,
                    output_dir, extension, save_incidence_angle,

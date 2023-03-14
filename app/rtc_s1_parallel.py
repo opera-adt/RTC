@@ -30,23 +30,18 @@ def split_runconfig(cfg_in, output_dir_child, scratch_path_child=None):
 
     Parameters
     ----------
-    path_runconfig_in: str
+    cfg_in: rtc.runconfig.RunConfig
         Path to the original runconfig
-    path_log_in: str
-        Path to the original logfile
+    output_dir_child: str
+        Output directory of the child process
+    scratch_path_child: str
+        Scratch path to of the child process.
+        If `None`, it will be "[parent processes' scratch path]_child_scratch"
 
     Returns
     -------
     list_runconfig_burst: list(str)
         List of the burst runconfigs
-    list_logfile_burst: list(str)
-        List of the burst logfiles,
-        which corresponds to `list_runconfig_burst`
-    path_output: str
-        Path to the output directory,
-        which will be the temporary dir. of the following process
-
-    # TODO revise docstring
 
     '''
 
@@ -114,15 +109,6 @@ def split_runconfig(cfg_in, output_dir_child, scratch_path_child=None):
                                  'output_imagery_format'],
                                 'GTiff')
 
-        # NOTE: This should not be forced off in order to make the burst HDF5 writeout to happen in child process level.
-        #set_dict_item_recursive(runconfig_dict_out,
-        #                        ['runconfig',
-        #                         'groups',
-        #                         'product_group',
-        #                         'save_secondary_layers_as_hdf5'],
-        #                        False)
-
-
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
                                  'groups',
@@ -150,18 +136,18 @@ def split_runconfig(cfg_in, output_dir_child, scratch_path_child=None):
 
 def set_dict_item_recursive(dict_in, list_path, val):
     '''
-    - Recursively locate the dict item in the multiple layer of dict,
+    - Recursively locate the key in `dict_in`,
       whose path is provided in the list of keys.
-    - Add or update the value of the located item
-    - Create the key with empty dict when the key does not exist
+    - Add or update the value of the located key of `dict_in`
+    - Create the key in `dict_in` with empty dict when the key does not exist
 
     Parameters
     ----------
     dict_in: dict
-        Dict to set the value
-    list_path:
+        Dict to update
+    list_path: list
         Path to the item in the multiple layer of dict
-    val:
+    val: any
         Value to add or set
     '''
 
@@ -177,8 +163,8 @@ def set_dict_item_recursive(dict_in, list_path, val):
 
 
 def process_child_runconfig(path_runconfig_burst,
-                            path_logfile = None,
-                            full_logfile_format = None,
+                            path_logfile=None,
+                            full_logfile_format=None,
                             keep_burst_runconfig=False):
     '''
     single worker to process runconfig from terminal using `subprocess`
@@ -192,6 +178,14 @@ def process_child_runconfig(path_runconfig_burst,
     full_log_format: bool
         Enable full formatting of log messages.
         See `get_rtc_s1_parser()`
+    keep_burst_runconfig: bool
+        Keep the child runconfig when `True`;
+        delete it after done with the processing when `False`
+
+    Returns
+    -------
+    result_child_process: int
+        0 when the child process has completed succesfully
 
     '''
     # Get a runconfig dict from command line argumens
@@ -202,24 +196,27 @@ def process_child_runconfig(path_runconfig_burst,
     rtc_s1.create_logger(path_logfile, full_logfile_format)
 
     # Run geocode burst workflow
-    rtc_s1.run(cfg)
+    result_child_process = rtc_s1.run(cfg)
 
     # Remove or keep (for debugging purpose) the processed runconfig
     if keep_burst_runconfig:
         os.remove(path_runconfig_burst)
 
 
-def run_parallel(cfg: RunConfig):
+    return result_child_process
+
+
+def run_parallel(cfg: RunConfig, arg_in):
     '''
-    Parallel version of `rtc_s1.run()`
-    Run geocode burst workflow with user-defined
-    args stored in dictionary runconfig `cfg`
+    Run RTC workflow with user-defined args
+    stored in dictionary runconfig `cfg`, and CLI arguments `arg_in`
 
     Parameters
     ---------
     cfg: RunConfig
         RunConfig object with user runconfig options
-
+    arg_in: argparse.Namespace
+        User input from CLI
     '''
 
     # Start tracking processing time
@@ -423,13 +420,13 @@ def run_parallel(cfg: RunConfig):
 
 
 
-    #list_burst_runconfig = split_runconfig(cfg, scratch_path)
+    #burst_runconfig_list = split_runconfig(cfg, scratch_path)
     if not save_bursts:
         # burst files are saved in scratch dir
-        list_burst_runconfig = split_runconfig(cfg, scratch_path, None)
+        burst_runconfig_list = split_runconfig(cfg, scratch_path, None)
     else:
         # burst files (individual or HDF5) are saved in burst_id dir
-        list_burst_runconfig = split_runconfig(cfg, output_dir, scratch_path)
+        burst_runconfig_list = split_runconfig(cfg, output_dir, scratch_path)
 
 
     # extract the logger setting from the logger
@@ -445,15 +442,16 @@ def run_parallel(cfg: RunConfig):
         if omp_num_threads:
             num_workers = min(ncpu_system,
                               omp_num_threads,
-                              len(list_burst_runconfig))
+                              len(burst_runconfig_list))
         else:
             num_workers = min(ncpu_system,
-                              len(list_burst_runconfig))
+                              len(burst_runconfig_list))
 
     # Execute the single burst processes using multiprocessing
     with multiprocessing.Pool(num_workers) as p:
-        p.starmap(process_child_runconfig,
-                  zip(list_burst_runconfig,
+        processing_result_list =\
+            p.starmap(process_child_runconfig,
+                      zip(burst_runconfig_list,
                       repeat(f'{path_logger_parent}.child'),
                       repeat(flag_logger_full_format)
                       )
@@ -461,11 +459,16 @@ def run_parallel(cfg: RunConfig):
 
     # ------  End of parallelized burst processing ------
 
+    # Check if there are any failed child processes
+    if processing_result_list.count(0) != len(burst_runconfig_list):
+        msg_failed_child_proc = (f'Some of the child process(es) (listed below) '
+                                  'did not complete succesfully:\n')
+        for index_child, processing_result in enumerate(burst_runconfig_list):
+            if processing_result != 0:
+                msg_failed_child_proc += f'{burst_runconfig_list[index_child]}\n'
+        raise RuntimeError(msg_failed_child_proc)
 
-    # NOTE: The following routines assume that the
-    #       parallelized burst processing was successful.
     
-
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
 
@@ -859,8 +862,10 @@ def run_parallel(cfg: RunConfig):
     logger.info(f'elapsed time: {t_end - t_start}')
 
 
-
 def get_parent_logger_setting(logger_in):
+    '''
+    TO BE REMOVED
+    '''
     path_logger = ''
 
     flag_full_format = logger_in.handlers[0].formatter._fmt != '%(message)s'
@@ -891,7 +896,7 @@ def main():
     rtc_s1._load_parameters(cfg)
 
     # Run geocode burst workflow
-    run_parallel(cfg)
+    run_parallel(cfg, args)
 
 
 if __name__ == "__main__":
