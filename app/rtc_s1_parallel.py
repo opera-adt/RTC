@@ -457,7 +457,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if not num_workers:
             # Otherwise, read it from os.cpu_count()
             num_workers = os.cpu_count()
-    num_works = min(num_works, len(burst_runconfig_list))
+    num_workers = min(num_workers, len(burst_runconfig_list))
 
     # Execute the single burst processes using multiprocessing
     with multiprocessing.Pool(num_workers) as p:
@@ -484,12 +484,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             temp_files_list += burst_log_list
     else:
 
-        #TODO: Let's test if the lines below actually works
+        # TODO: Let's test if the lines below actually works
         msg_failed_child_proc = (f'Some of the child process(es) (listed below) '
                                   'did not complete succesfully:\n')
-        for index_child, processing_result in enumerate(burst_runconfig_list):
+        list_burst_id = cfg.bursts.keys()
+        for index_child, processing_result in enumerate(processing_result_list):
             if processing_result != 0:
-                msg_failed_child_proc += f'{burst_runconfig_list[index_child]}\n'
+                msg_failed_child_proc += (f'{burst_runconfig_list[index_child]}'
+                                          ' for burst ID '
+                                          f'"{list_burst_id[index_child]}"\n')
         raise RuntimeError(msg_failed_child_proc)
 
 
@@ -578,30 +581,29 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             temp_files_list.append(burst_hdf5_in_output)
 
         if save_nlooks:
-            nlooks_file = (f'{output_dir_sec_bursts}/{product_prefix}'
-                           f'_nlooks.{imagery_extension}')
-
             if save_secondary_layers_as_hdf5:
                 nlooks_file = (f'NETCDF:"{burst_hdf5_in_output}":'
                                 '/science/SENTINEL1/RTC/grids/frequencyA/'
                                 'numberOfLooks')
+            else:
+                nlooks_file = (f'{output_dir_sec_bursts}/{product_prefix}'
+                           f'_nlooks.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
             else:
                 output_file_list.append(nlooks_file)
-
         else:
             nlooks_file = None
 
         if save_rtc_anf:
-            rtc_anf_file = (f'{output_dir_sec_bursts}/{product_prefix}'
-               f'_rtc_anf.{imagery_extension}')
-            
             if save_secondary_layers_as_hdf5:
                 rtc_anf_file = (f'NETCDF:"{burst_hdf5_in_output}":'
                                 '/science/SENTINEL1/RTC/grids/frequencyA/'
                                 'areaNormalizationFactor')
+            else:
+                rtc_anf_file = (f'{output_dir_sec_bursts}/{product_prefix}'
+               f'_rtc_anf.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -896,7 +898,9 @@ def main():
     rtc_s1._load_parameters(cfg)
 
     # Run geocode burst workflow
-    run_parallel(cfg, args)
+    path_logfile_parent = args.log_file
+    flag_full_log_formatting = args.full_log_formatting
+    run_parallel(cfg, path_logfile_parent, flag_full_log_formatting)
 
 
 if __name__ == "__main__":
