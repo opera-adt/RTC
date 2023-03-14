@@ -490,7 +490,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     if all_child_processes_successful:
         # delete the log files for child processes
-        if not save_bursts:
+        if not save_bursts and logfile_path:
             temp_files_list += burst_log_list
     else:
 
