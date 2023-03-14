@@ -105,13 +105,20 @@ def split_runconfig(cfg_in, output_dir_child):
                                  'product_group',
                                  'save_mosaics'],
                                 False)
+        
+        set_dict_item_recursive(runconfig_dict_out,
+                                ['runconfig',
+                                 'groups',
+                                 'product_group',
+                                 'output_imagery_format'],
+                                 'GTiff')
 
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
                                  'groups',
                                  'product_group',
                                  'save_bursts'],
-                                True)
+                                 True)
 
         # TODO: Remove the code below once the mosaicking algorithm does not take nlooks as the weight input
         if cfg_in.groups.product_group.save_mosaics:
@@ -397,6 +404,7 @@ def run_parallel(cfg: RunConfig):
 
     # Split the original runconfig into bursts
     list_burst_runconfig = split_runconfig(cfg, scratch_path)
+    
 
     # extract the logger setting from the logger
     path_logger_parent, flag_logger_full_format = get_parent_logger_setting(logger)
@@ -447,6 +455,7 @@ def run_parallel(cfg: RunConfig):
 
         burst_scratch_path = f'{scratch_path}/{burst_id}/'
 
+
         if not save_bursts:
             # burst files are saved in scratch dir
             bursts_output_dir = burst_scratch_path
@@ -455,6 +464,17 @@ def run_parallel(cfg: RunConfig):
             bursts_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(bursts_output_dir, exist_ok=True)
 
+        # suggested change
+        #if not save_bursts:
+        #    # burst files are saved in scratch dir
+        #    bursts_output_dir = scratch_path
+        #else:
+        #    # burst files (individual or HDF5) are saved in burst_id dir
+        #    bursts_output_dir = output_dir
+        #    os.makedirs(bursts_output_dir, exist_ok=True)
+        ## TODO try to understand what this line is going to do
+        #list_burst_runconfig = split_runconfig(cfg, bursts_output_dir)
+        
         geogrid = cfg.geogrids[burst_id]
 
         # snap coordinates
@@ -810,7 +830,7 @@ def run_parallel(cfg: RunConfig):
     for filename in temp_files_list:
         if not os.path.isfile(filename):
             continue
-        os.remove(filename)
+        #os.remove(filename)  # TODO: Temporary suppression. remove before commit
 
         logger.info(f'    {filename}')
 
