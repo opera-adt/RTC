@@ -699,22 +699,14 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                     radar_grid_file_dict, 'incidenceAngle',
                     save_secondary_layers_as_hdf5, output_dir, product_prefix,
                     'incidence_angle', imagery_extension, burst_hdf5_in_output)
-                #
-                # radar_grid_file_dict['incidenceAngle'] =\
-                #    os.path.join(output_dir,
-                #                f'{product_prefix}_incidence_angle.', imagery_extension)
+
             if save_local_inc_angle:
                 _populate_radar_grid_file_dict(
                     radar_grid_file_dict, 'localIncidenceAngle',
                     save_secondary_layers_as_hdf5, output_dir, product_prefix,
                     'local_incidence_angle', imagery_extension, burst_hdf5_in_output)
-                # radar_grid_file_dict['localIncidenceAngle'] =\
-                #    os.path.join(output_dir,
-                #                f'{product_prefix}_local_incidence_angle.', imagery_extension)
+
             if save_projection_angle:
-                # radar_grid_file_dict['projectionAngle'] =\
-                #    os.path.join(output_dir,
-                #                f'{product_prefix}_projection_angle.', imagery_extension)
                 _populate_radar_grid_file_dict(
                     radar_grid_file_dict, 'projectionAngle',
                     save_secondary_layers_as_hdf5, output_dir, product_prefix,
@@ -724,25 +716,19 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                     radar_grid_file_dict, 'areaNormalizationFactorPsi',
                     save_secondary_layers_as_hdf5, output_dir, product_prefix,
                     'rtc_anf_psi', imagery_extension, burst_hdf5_in_output)
-                # radar_grid_file_dict['areaNormalizationFactorPsi'] =\
-                #    os.path.join(output_dir,
-                #                f'{product_prefix}_rtc_anf_psi.', imagery_extension)
+
             if save_range_slope:
                 _populate_radar_grid_file_dict(
                     radar_grid_file_dict, 'rangeSlope',
                     save_secondary_layers_as_hdf5, output_dir, product_prefix,
                     'range_slope', imagery_extension, burst_hdf5_in_output)
-                # radar_grid_file_dict['rangeSlope'] =\
-                #    os.path.join(output_dir,
-                #                 f'{product_prefix}_range_slope.', imagery_extension)
+
             if save_dem:
                 _populate_radar_grid_file_dict(
                     radar_grid_file_dict, 'interpolatedDem',
                     save_secondary_layers_as_hdf5, output_dir, product_prefix,
                     'interpolated_dem', imagery_extension, burst_hdf5_in_output)
-                # radar_grid_file_dict['interpolatedDem'] =\
-                #    os.path.join(output_dir,
-                #                 f'{product_prefix}_interpolated_dem.', imagery_extension)
+
 
             if flag_bursts_secondary_files_are_temporary:
                 # files are temporary
