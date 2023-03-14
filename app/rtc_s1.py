@@ -31,6 +31,7 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     """Updates mosaic boundaries and check if pixel spacing
        and EPSG code are consistent between burst
        and mosaic geogrid
+
        Parameters
        ----------
        mosaic_geogrid_dict: dict
@@ -79,6 +80,7 @@ def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 def _separate_pol_channels(multi_band_file, output_file_list, logger,
                            output_raster_format):
     """Save a multi-band raster file as individual single-band files
+
        Parameters
        ----------
        multi_band_file : str
@@ -128,6 +130,7 @@ def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
                 radar_grid_file_dict, output_obj_list, flag_create_raster_obj,
                 extension):
     """Create an ISCE3 raster object (GTiff) for a radar geometry layer.
+
        Parameters
        ----------
        output_dir: str
@@ -147,6 +150,7 @@ def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
               Mutable list of output raster objects
        flag_create_raster_obj: bool
               Flag indicating if raster object should be created
+
        Returns
        -------
        raster_obj : isce3.io.Raster
@@ -185,7 +189,24 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
                           flag_thermal_correction: bool = True,
                           flag_apply_abs_rad_correction: bool = True):
     '''Apply thermal correction stored in burst_in. Save the corrected signal
-    back to ENVI format. Preserves the phase.'''
+    back to ENVI format. Preserves the phase when the output is complex
+    
+    Parameters
+    ----------
+    burst_in: Sentinel1BurstSlc
+        Input burst to apply the correction
+    path_slc_vrt: str
+        Path to the input burst to apply correction
+    path_slc_out: str
+        Path to the output SLC which the corrections are applied
+    flag_output_complex: bool
+        `path_slc_out` will be in complex number when this is `True`
+        Otherwise, the output will be amplitude only.
+    flag_thermal_correction: bool
+        flag whether or not to apple the thermal correction.
+    flag_apply_abs_rad_correction: bool
+        Flag to apply radiometirc calibration
+    '''
 
     # Load the SLC of the burst
     burst_in.slc_to_vrt_file(path_slc_vrt)
@@ -341,6 +362,7 @@ def run(cfg: RunConfig):
     '''
     Run geocode burst workflow with user-defined
     args stored in dictionary runconfig `cfg`
+
     Parameters
     ---------
     cfg: RunConfig
