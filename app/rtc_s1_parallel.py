@@ -8,6 +8,7 @@ Parallel execution of RTC Workflow
 # TODO: Let the system decide the number of processes when cfg....num_process is 0
 
 import argparse
+from itertools import repeat
 import logging
 import multiprocessing
 import os
@@ -20,7 +21,7 @@ import numpy as np
 from osgeo import gdal
 
 from rtc.runconfig import RunConfig
-from rtc.core import create_logger
+#from rtc.core import create_logger
 import rtc_s1
 
 logger = logging.getLogger('rtc_s1')
@@ -181,7 +182,7 @@ def split_runconfig(cfg_in, output_dir_child, path_log_in=None):
         with open(path_temp_runconfig, 'w+', encoding='utf8') as fout:
             yaml.dump(runconfig_dict_out, fout)
 
-    return list_runconfig_burst, list_logfile_burst
+    return list_runconfig_burst#, list_logfile_burst
 
 
 def set_dict_item_recursive(dict_in, list_path, val):
@@ -211,7 +212,7 @@ def set_dict_item_recursive(dict_in, list_path, val):
     set_dict_item_recursive(dict_in[key_next], list_path[1:], val)
 
 
-def process_runconfig(path_runconfig_burst):
+def process_runconfig(path_runconfig_burst, path_logfile = None, full_logfile_format = None):
     '''
     single worker to process runconfig from terminal using `subprocess`
 
@@ -227,15 +228,11 @@ def process_runconfig(path_runconfig_burst):
     '''
 
     list_arg_subprocess = ['rtc_s1.py', path_runconfig_burst]
-    #if path_logfile_burst is not None:
-    #    list_arg_subprocess += ['--log-file', path_logfile_burst]
+    if path_logfile is not None:
+        list_arg_subprocess += ['--log-file', path_logfile]
 
-    #if full_log_format:
-    #    list_arg_subprocess.append('--full-log-format')
-
-    #list_arg_subprocess.append('--keep-scratch')
-    #list_arg_subprocess.append('--timestamp')
-    #list_arg_subprocess.append(timestamp)
+    if full_logfile_format:
+        list_arg_subprocess.append('--full-log-format')
 
     rtnval = subprocess.run(list_arg_subprocess)
 
@@ -468,6 +465,9 @@ def run_parallel(cfg: RunConfig):
     # Split the original runconfig into bursts
     list_burst_runconfig = split_runconfig(cfg, scratch_path)
 
+    # extract the logger setting from the logger
+    path_logger_parent, flag_logger_full_format = get_parent_logger_setting(logger)
+    
     # determine the number of the processors here
     num_workers = cfg.groups.processing.num_process
 
@@ -483,7 +483,11 @@ def run_parallel(cfg: RunConfig):
     # Execute the single burst processes using multiprocessing
     with multiprocessing.Pool(num_workers) as p:
         p.starmap(process_runconfig,
-                  zip(list_burst_runconfig))
+                  zip(list_burst_runconfig,
+                      repeat(f'{path_logger_parent}.child'),
+                      repeat(flag_logger_full_format)
+                      )
+                  )
     
     # End of parallelized burst processing
 
@@ -645,9 +649,8 @@ def run_parallel(cfg: RunConfig):
         if save_rtc_anf:
             rtc_anf_file = (f'{bursts_output_dir}/{product_prefix}'
                f'_rtc_anf.{imagery_extension}')
-            # TODO: The if statement below needs to be revised to if- else statement
-            if skip_burst_process:
-                os.rename(rtc_anf_file.replace(output_dir, scratch_path), rtc_anf_file)
+            
+            os.rename(rtc_anf_file.replace(output_dir, scratch_path), rtc_anf_file)
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -1042,19 +1045,30 @@ def run_parallel(cfg: RunConfig):
     t_end = time.time()
     logger.info(f'elapsed time: {t_end - t_start}')
 
+def get_parent_logger_setting(logger_in):
+    path_logger = ''
+    
+    flag_full_format = logger_in.handlers[0].formatter._fmt != '%(message)s'
+
+    for handler_logger in logger_in.handlers:
+        if isinstance(handler_logger, logging.FileHandler):
+            path_logger = handler_logger.baseFilename
+            continue
+
+    return path_logger, flag_full_format
+
 
 
 def main():
     '''
     Main entrypoint of the script
     '''
-    parser  = get_rtc_s1_parser()
-
+    parser  = rtc_s1.get_rtc_s1_parser()
     # parse arguments
     args = parser.parse_args()
 
     # Spawn multiple processes for parallelization
-    create_logger(args.log_file, args.full_log_formatting)
+    rtc_s1.create_logger(args.log_file, args.full_log_formatting)
 
     # Get a runconfig dict from command line argumens
     cfg = RunConfig.load_from_yaml(args.run_config_path, 'rtc_s1')
