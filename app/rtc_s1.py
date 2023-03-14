@@ -875,7 +875,7 @@ def run(cfg: RunConfig):
 
             if flag_inform_user_about_isce3_version_error:
                 logger.warning('WARNING shadow masking is not available'
-                               ' from installed version of ISCE3.')
+                               f' from installed version of ISCE3. ({isce3.__version__})')
 
         del geo_burst_raster
 
