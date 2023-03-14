@@ -22,7 +22,10 @@ from rtc.runconfig import RunConfig
 logger = logging.getLogger('rtc_s1')
 
 
-def split_runconfig(cfg_in, output_dir_child, scratch_path_child=None):
+def split_runconfig(cfg_in,
+                    output_dir_child,
+                    scratch_path_child=None,
+                    path_parent_logfile=None):
     '''
     Split the input runconfig into single burst runconfigs.
     Writes out the runconfigs.
@@ -40,15 +43,19 @@ def split_runconfig(cfg_in, output_dir_child, scratch_path_child=None):
 
     Returns
     -------
-    list_runconfig_burst: list(str)
+    runconfig_burst_list: list(str)
         List of the burst runconfigs
+    
+    logfile_burst_list: list(str)
+        List of the burst logfiles
 
     '''
 
     with open(cfg_in.run_config_path, 'r+', encoding='utf8') as fin:
         runconfig_dict_in = yaml.safe_load(fin.read())
 
-    list_runconfig_burst = []
+    runconfig_burst_list = []
+    logfile_burst_list = []
 
     # determine the bursts to process
     list_burst_id = cfg_in.bursts.keys()
@@ -64,6 +71,12 @@ def split_runconfig(cfg_in, output_dir_child, scratch_path_child=None):
     for burst_id in list_burst_id:
         path_temp_runconfig = os.path.join(cfg_in.scratch_path,
                                            f'burst_runconfig_{burst_id}.yaml')
+        if path_parent_logfile:
+            path_logfile_child = os.path.join(output_dir_child,
+                                              f'{burst_id}.{path_parent_logfile}')
+        else:
+            path_logfile_child = None
+
 
         runconfig_dict_out = runconfig_dict_in.copy()
         set_dict_item_recursive(runconfig_dict_out,
@@ -126,12 +139,13 @@ def split_runconfig(cfg_in, output_dir_child, scratch_path_child=None):
                                      'save_nlooks'],
                                     True)
 
-        list_runconfig_burst.append(path_temp_runconfig)
+        runconfig_burst_list.append(path_temp_runconfig)
+        logfile_burst_list.append(path_logfile_child)
 
         with open(path_temp_runconfig, 'w+', encoding='utf8') as fout:
             yaml.dump(runconfig_dict_out, fout)
 
-    return list_runconfig_burst
+    return runconfig_burst_list, logfile_burst_list
 
 
 def set_dict_item_recursive(dict_in, list_path, val):
@@ -164,7 +178,7 @@ def set_dict_item_recursive(dict_in, list_path, val):
 
 def process_child_runconfig(path_runconfig_burst,
                             path_logfile=None,
-                            full_logfile_format=None,
+                            flag_full_logfile_format=None,
                             keep_burst_runconfig=False):
     '''
     single worker to process runconfig from terminal using `subprocess`
@@ -193,7 +207,7 @@ def process_child_runconfig(path_runconfig_burst,
 
     rtc_s1._load_parameters(cfg)
 
-    rtc_s1.create_logger(path_logfile, full_logfile_format)
+    rtc_s1.create_logger(path_logfile, flag_full_logfile_format)
 
     # Run geocode burst workflow
     result_child_process = rtc_s1.run(cfg)
@@ -417,20 +431,28 @@ def run_parallel(cfg: RunConfig, arg_in):
 
 
     # ------ Start parallelized burst processing ------
-
-
+    t_start_parellel = time.time()
+    logger.info(f'Starting child processes for burst processing')
+    
+    # extract the logger setting from the logger
+    #path_logger_parent, flag_logger_full_format = get_parent_logger_setting(logger)
+    path_logger_parent = arg_in.log_file 
+    flag_logger_full_format = arg_in.full_log_formatting
 
     #burst_runconfig_list = split_runconfig(cfg, scratch_path)
     if not save_bursts:
         # burst files are saved in scratch dir
-        burst_runconfig_list = split_runconfig(cfg, scratch_path, None)
+        burst_runconfig_list, burst_log_list = split_runconfig(cfg,
+                                                               scratch_path,
+                                                               None, # TODO clarify what is going to happen when it is `None`
+                                                               path_logger_parent)
+
     else:
         # burst files (individual or HDF5) are saved in burst_id dir
-        burst_runconfig_list = split_runconfig(cfg, output_dir, scratch_path)
-
-
-    # extract the logger setting from the logger
-    path_logger_parent, flag_logger_full_format = get_parent_logger_setting(logger)
+        burst_runconfig_list, burst_log_list = split_runconfig(cfg,
+                                                               output_dir,
+                                                               scratch_path,
+                                                               path_logger_parent)
 
     # determine the number of the processors here
     num_workers = cfg.groups.processing.num_workers
@@ -452,11 +474,13 @@ def run_parallel(cfg: RunConfig, arg_in):
         processing_result_list =\
             p.starmap(process_child_runconfig,
                       zip(burst_runconfig_list,
-                      repeat(f'{path_logger_parent}.child'),
-                      repeat(flag_logger_full_format)
+                          burst_log_list,
+                          repeat(flag_logger_full_format)
                       )
                   )
-
+    t_end_parellel = time.time()
+    logger.info('Child processes has completed. '
+                f'Elapsed time: {t_end_parellel - t_start_parellel} seconds.')
     # ------  End of parallelized burst processing ------
 
     # Check if there are any failed child processes
@@ -578,7 +602,6 @@ def run_parallel(cfg: RunConfig, arg_in):
             if save_secondary_layers_as_hdf5:
                 rtc_anf_file = (f'NETCDF:"{burst_hdf5_in_output}":'
                                 '/science/SENTINEL1/RTC/grids/frequencyA/'
-                                #'areaNormalizationFactorPsi') # TODO discuss about the correct path to the ANF
                                 'areaNormalizationFactor')
 
             if flag_bursts_secondary_files_are_temporary:
