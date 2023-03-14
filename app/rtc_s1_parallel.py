@@ -493,8 +493,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if not save_bursts and logfile_path:
             temp_files_list += burst_log_list
     else:
-
-        # TODO: Let's test if the lines below actually works
         msg_failed_child_proc = (f'Some of the child process(es) from '
                                  'burst runconfig (listed below) '
                                  'did not complete succesfully:\n')
@@ -695,7 +693,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_metadata_dict['rtc'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
-        # TODO consider writing Gustavo's suggeston into helper function
         if flag_call_radar_grid and save_bursts:
             if save_incidence_angle:
                 _populate_radar_grid_file_dict(
