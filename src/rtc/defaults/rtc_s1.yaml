@@ -127,6 +127,10 @@ runconfig:
                 # RTC DEM upsampling
                 dem_upsampling: 2
 
+            # OPTIONAL - to provide the number of processes when processing the bursts in parallel
+            # 0 will decide the number automatically
+            num_process: 0
+
             # Geocoding options
             geocoding:
 
