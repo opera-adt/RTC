@@ -833,7 +833,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             else:
                 output_file_list.append(output_file)
 
-        # Save HDF5
+        # Save the mosaicked layers as HDF5
         if save_imagery_as_hdf5 or save_metadata:
             if save_nlooks:
                 nlooks_mosaic_file = output_metadata_dict['nlooks'][0]
@@ -872,10 +872,16 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             hdf5_mosaic_obj[sensing_end_ds] = \
                 sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f')
 
+            # Bundle the mosaicked single-pol rasters
+            geo_filename_vrt = f'{geo_filename}.vrt'
+            gdal.BuildVRT(geo_filename_vrt, output_imagery_filename_list,
+                          options=vrt_options_mosaic)
+            temp_files_list.append(geo_filename_vrt)
+
             rtc_s1.save_hdf5_file(
                 hdf5_mosaic_obj, output_hdf5_file, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str,
-                cfg.geogrid, pol_list, geo_filename, nlooks_mosaic_file,
+                cfg.geogrid, pol_list, geo_filename_vrt, nlooks_mosaic_file,
                 rtc_anf_mosaic_file, layover_shadow_mask_file,
                 radar_grid_file_dict, save_imagery=save_imagery_as_hdf5,
                 save_secondary_layers=save_secondary_layers_as_hdf5)
