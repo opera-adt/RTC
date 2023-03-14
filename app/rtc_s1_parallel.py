@@ -139,11 +139,12 @@ def process_frame_parallel(arg_in):
                                                 arg_in.run_config_path,
                                                 arg_in.log_file)
 
+    list_full_log_formatting = [arg_in.full_log_formatting]*len(list_burst_log)
     with multiprocessing.Pool(arg_in.num_workers) as p:
         p.starmap(process_runconfig,
-              zip(list_burst_runconfig,
-                  list_burst_log,
-                  [arg_in.full_log_formatting]*len(list_burst_log)))
+                  zip(list_burst_runconfig,
+                      list_burst_log,
+                      list_full_log_formatting))
 
     t1 = time.time()
 
