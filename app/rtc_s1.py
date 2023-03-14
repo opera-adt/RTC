@@ -359,7 +359,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     return slantrange_layover_shadow_mask_raster
 
 
-def run(cfg: RunConfig):
+def run(cfg: RunConfig, timestamp: str='', keep_scratch: bool=False):
     '''
     Run geocode burst workflow with user-defined
     args stored in dictionary runconfig `cfg`
@@ -1095,6 +1095,8 @@ def run(cfg: RunConfig):
     for filename in temp_files_list:
         if not os.path.isfile(filename):
             continue
+        if keep_scratch:
+            continue
         os.remove(filename)
         logger.info(f'    {filename}')
 
@@ -1286,6 +1288,18 @@ def get_rtc_s1_parser():
                         default=False,
                         help='Enable full formatting of log messages')
 
+    parser.add_argument('--keep-scratch',
+                        dest='keep_scratch',
+                        action='store_true',
+                        default=False,
+                        help='keep the files in scratch directory')
+
+    parser.add_argument('--timestamp',
+                        dest='timestamp',
+                        type=str,
+                        default='',
+                        help='timestamp for temporary directory')
+
     return parser
 
 
@@ -1306,4 +1320,4 @@ if __name__ == "__main__":
     _load_parameters(cfg)
 
     # Run geocode burst workflow
-    run(cfg)
+    run(cfg, args.timestamp, args.keep_scratch)
