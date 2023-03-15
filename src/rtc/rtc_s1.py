@@ -294,7 +294,7 @@ def process_child_runconfig_subprocess(path_runconfig_burst,
     if not keep_burst_runconfig:
         os.remove(path_runconfig_burst)
 
-    return rtnval
+    return rtnval.returncode
 
 
 def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
