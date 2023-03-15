@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-
 '''
-RTC Workflow
+RTC-S1 Science Application Software (single job)
 '''
 
 import datetime
@@ -19,15 +17,16 @@ from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
 from rtc.geogrid import snap_coord
 from rtc.runconfig import RunConfig
-from rtc.mosaic_geobursts import compute_weighted_mosaic_raster, compute_weighted_mosaic_raster_single_band
+from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
+                                  compute_weighted_mosaic_raster_single_band)
 from rtc.core import create_logger, save_as_cog
 from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
 from rtc.version import VERSION as SOFTWARE_VERSION
 
-logger = logging.getLogger('rtc_s1')
+logger = logging.getLogger('rtc_s1_single_job')
 
 
-def _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
+def update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
     """Updates mosaic boundaries and check if pixel spacing
        and EPSG code are consistent between burst
        and mosaic geogrid
@@ -172,7 +171,7 @@ def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
     return raster_obj
 
 
-def _add_output_to_output_metadata_dict(flag, key, output_dir,
+def add_output_to_output_metadata_dict(flag, key, output_dir,
         output_metadata_dict, product_prefix, extension):
     if not flag:
         return
@@ -359,7 +358,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     return slantrange_layover_shadow_mask_raster
 
 
-def run(cfg: RunConfig):
+def run_single_job(cfg: RunConfig):
     '''
     Run geocode burst workflow with user-defined
     args stored in dictionary runconfig `cfg`
@@ -562,14 +561,14 @@ def run(cfg: RunConfig):
         output_dir_sec_mosaic_raster = output_dir
 
     # configure mosaic secondary layers
-    _add_output_to_output_metadata_dict(
+    add_output_to_output_metadata_dict(
         save_layover_shadow_mask, 'layover_shadow_mask',
         output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
-    _add_output_to_output_metadata_dict(
+    add_output_to_output_metadata_dict(
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
-    _add_output_to_output_metadata_dict(
+    add_output_to_output_metadata_dict(
         save_rtc_anf, 'rtc', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
 
@@ -627,7 +626,7 @@ def run(cfg: RunConfig):
         geogrid.start_y = snap_coord(geogrid.start_y, y_snap, np.ceil)
 
         # update mosaic boundaries
-        _update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
+        update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
 
         logger.info(f'    reading burst SLCs')
         radar_grid = burst.as_isce3_radargrid()
@@ -1208,81 +1207,6 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_prefix,
         return
 
 
-def _load_parameters(cfg):
-    '''
-    Load GCOV specific parameters.
-    '''
-
-    geocode_namespace = cfg.groups.processing.geocoding
-    rtc_namespace = cfg.groups.processing.rtc
-
-    if geocode_namespace.clip_max is None:
-        geocode_namespace.clip_max = np.nan
-
-    if geocode_namespace.clip_min is None:
-        geocode_namespace.clip_min = np.nan
-
-    if geocode_namespace.geogrid_upsampling is None:
-        geocode_namespace.geogrid_upsampling = 1.0
-
-    if geocode_namespace.memory_mode == 'single_block':
-        geocode_namespace.memory_mode = \
-            isce3.core.GeocodeMemoryMode.SingleBlock
-    elif geocode_namespace.memory_mode == 'geogrid':
-        geocode_namespace.memory_mode = \
-            isce3.core.GeocodeMemoryMode.BlocksGeogrid
-    elif geocode_namespace.memory_mode == 'geogrid_and_radargrid':
-        geocode_namespace.memory_mode = \
-            isce3.core.GeocodeMemoryMode.BlocksGeogridAndRadarGrid
-    elif (geocode_namespace.memory_mode == 'auto' or
-          geocode_namespace.memory_mode is None):
-        geocode_namespace.memory_mode = \
-            isce3.core.GeocodeMemoryMode.Auto
-    else:
-        err_msg = f"ERROR memory_mode: {geocode_namespace.memory_mode}"
-        raise ValueError(err_msg)
-
-    rtc_output_type = rtc_namespace.output_type
-    if rtc_output_type == 'sigma0':
-        rtc_namespace.output_type = \
-            isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT
-    else:
-        rtc_namespace.output_type = \
-            isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT
-
-    if rtc_namespace.input_terrain_radiometry == "sigma0":
-        rtc_namespace.input_terrain_radiometry = \
-            isce3.geometry.RtcInputTerrainRadiometry.SIGMA_NAUGHT_ELLIPSOID
-    else:
-        rtc_namespace.input_terrain_radiometry = \
-            isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT
-
-    if rtc_namespace.rtc_min_value_db is None:
-        rtc_namespace.rtc_min_value_db = np.nan
-
-    # Update the DEM interpolation method
-    dem_interp_method = \
-        cfg.groups.processing.dem_interpolation_method
-
-    if dem_interp_method == 'biquintic':
-        dem_interp_method_enum = isce3.core.DataInterpMethod.BIQUINTIC
-    elif (dem_interp_method == 'sinc'):
-        dem_interp_method_enum = isce3.core.DataInterpMethod.SINC
-    elif (dem_interp_method == 'bilinear'):
-        dem_interp_method_enum = isce3.core.DataInterpMethod.BILINEAR
-    elif (dem_interp_method == 'bicubic'):
-        dem_interp_method_enum = isce3.core.DataInterpMethod.BICUBIC
-    elif (dem_interp_method == 'nearest'):
-        dem_interp_method_enum = isce3.core.DataInterpMethod.NEAREST
-    else:
-        err_msg = ('ERROR invalid DEM interpolation method:'
-                   f' {dem_interp_method}')
-        raise ValueError(err_msg)
-
-    cfg.groups.processing.dem_interpolation_method_enum = \
-        dem_interp_method_enum
-
-
 def get_rtc_s1_parser():
     '''Initialize YamlArgparse class and parse CLI arguments for OPERA RTC.
     '''
@@ -1307,23 +1231,3 @@ def get_rtc_s1_parser():
                         help='Enable full formatting of log messages')
 
     return parser
-
-
-if __name__ == "__main__":
-    '''Run geocode rtc workflow from command line'''
-    # load arguments from command line
-    parser = get_rtc_s1_parser()
-
-    # parse arguments
-    args = parser.parse_args()
-
-    # create logger
-    create_logger(args.log_file, args.full_log_formatting)
-
-    # Get a runconfig dict from command line argumens
-    cfg = RunConfig.load_from_yaml(args.run_config_path, 'rtc_s1')
-
-    _load_parameters(cfg)
-
-    # Run geocode burst workflow
-    run(cfg)

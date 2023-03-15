@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-
 '''
-Parallel execution of RTC Workflow
+RTC-S1 Science Application Software
 '''
 
 from itertools import repeat
@@ -14,9 +12,18 @@ import yaml
 import isce3
 import numpy as np
 from osgeo import gdal
-import rtc_s1
+from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
+                                   snap_coord,
+                                   run_single_job,
+                                   update_mosaic_boundaries,
+                                   get_radar_grid)
+from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
+                                  compute_weighted_mosaic_raster_single_band)
+from rtc.core import create_logger, save_as_cog
+from rtc.version import VERSION as SOFTWARE_VERSION
+from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
 
-from rtc.runconfig import RunConfig
+from rtc.runconfig import RunConfig, load_parameters
 
 
 logger = logging.getLogger('rtc_s1')
@@ -236,12 +243,12 @@ def process_child_runconfig(path_runconfig_burst,
     workflow_name = 'rtc_s1'
     cfg = RunConfig.load_from_yaml(path_runconfig_burst, workflow_name)
 
-    rtc_s1._load_parameters(cfg)
+    load_parameters(cfg)
 
-    rtc_s1.create_logger(path_burst_logfile, flag_full_logfile_format)
+    create_logger(path_burst_logfile, flag_full_logfile_format)
 
     # Run geocode burst workflow
-    result_child_process = rtc_s1.run(cfg)
+    result_child_process = run_single_job(cfg)
 
     # Remove or keep (for debugging purpose) the processed runconfig
     if keep_burst_runconfig:
@@ -269,13 +276,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     t_start = time.time()
     time_stamp = str(float(time.time()))
     logger.info('OPERA RTC-S1 Science Application Software (SAS)'
-                f' v{rtc_s1.SOFTWARE_VERSION}')
+                f' v{SOFTWARE_VERSION}')
 
     # primary executable
     processing_type = cfg.groups.product_group.processing_type
     product_version_float = cfg.groups.product_group.product_version
     if product_version_float is None:
-        product_version = rtc_s1.SOFTWARE_VERSION
+        product_version = SOFTWARE_VERSION
     else:
         product_version = f'{product_version_float:.1f}'
 
@@ -436,14 +443,14 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     # configure mosaic secondary layers
     # e.g. layover shadow mask, nlooks, area normalization factor
-    rtc_s1._add_output_to_output_metadata_dict(
+    add_output_to_output_metadata_dict(
         save_layover_shadow_mask, 'layover_shadow_mask',
         output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
-    rtc_s1._add_output_to_output_metadata_dict(
+    add_output_to_output_metadata_dict(
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
-    rtc_s1._add_output_to_output_metadata_dict(
+    add_output_to_output_metadata_dict(
         save_rtc_anf, 'rtc', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
 
@@ -483,7 +490,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     if num_workers == 0:
         # Read system variable OMP_NUM_THREADS
-        num_workers = os.getenv('OMP_NUM_THREADS')
+        num_workers = int(os.getenv('OMP_NUM_THREADS'))
         if not num_workers:
             # Otherwise, read it from os.cpu_count()
             num_workers = os.cpu_count()
@@ -559,11 +566,11 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         # snap coordinates
         x_snap = geogrid.spacing_x
         y_snap = geogrid.spacing_y
-        geogrid.start_x = rtc_s1.snap_coord(geogrid.start_x, x_snap, np.floor)
-        geogrid.start_y = rtc_s1.snap_coord(geogrid.start_y, y_snap, np.ceil)
+        geogrid.start_x = snap_coord(geogrid.start_x, x_snap, np.floor)
+        geogrid.start_y = snap_coord(geogrid.start_y, y_snap, np.ceil)
 
         # update mosaic boundaries
-        rtc_s1._update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
+        update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
 
         logger.info(f'    reading burst SLCs')
         radar_grid = burst.as_isce3_radargrid()
@@ -766,7 +773,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         # Create mosaic HDF5
         if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
                 and burst_index == 0):
-            hdf5_mosaic_obj = rtc_s1.create_hdf5_file(
+            hdf5_mosaic_obj = create_hdf5_file(
                 output_hdf5_file, orbit, burst, cfg)
 
         t_burst_end = time.time()
@@ -783,7 +790,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             radar_grid_output_dir = scratch_path
         else:
             radar_grid_output_dir = output_dir
-        rtc_s1.get_radar_grid(cfg.geogrid, dem_interp_method_enum, product_prefix,
+        get_radar_grid(cfg.geogrid, dem_interp_method_enum, product_prefix,
                               radar_grid_output_dir, imagery_extension, save_incidence_angle,
                               save_local_inc_angle, save_projection_angle,
                               save_rtc_anf_psi,
@@ -810,7 +817,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_imagery_filename_list.append(geo_pol_filename)
 
         nlooks_list = output_metadata_dict['nlooks'][1]
-        rtc_s1.compute_weighted_mosaic_raster_single_band(
+        compute_weighted_mosaic_raster_single_band(
             output_imagery_list, nlooks_list,
             output_imagery_filename_list, cfg.geogrid, verbose=False)
 
@@ -823,8 +830,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         for key in output_metadata_dict.keys():
             output_file, input_files = output_metadata_dict[key]
             logger.info(f'mosaicking file: {output_file}')
-            rtc_s1.compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
-                                                  cfg.geogrid, verbose=False)
+            compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
+                                           cfg.geogrid, verbose=False)
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
@@ -863,8 +870,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
 
-            sensing_start_ds = f'{rtc_s1.BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
-            sensing_end_ds = f'{rtc_s1.BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
+            sensing_start_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
+            sensing_end_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
             del hdf5_mosaic_obj[sensing_start_ds]
             del hdf5_mosaic_obj[sensing_end_ds]
             hdf5_mosaic_obj[sensing_start_ds] = \
@@ -878,7 +885,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                           options=vrt_options_mosaic)
             temp_files_list.append(geo_filename_vrt)
 
-            rtc_s1.save_hdf5_file(
+            save_hdf5_file(
                 hdf5_mosaic_obj, output_hdf5_file, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str,
                 cfg.geogrid, pol_list, geo_filename_vrt, nlooks_mosaic_file,
@@ -894,7 +901,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if not filename.endswith('.tif'):
                 continue
             logger.info(f'    processing file: {filename}')
-            rtc_s1.save_as_cog(filename, scratch_path, logger,
+            save_as_cog(filename, scratch_path, logger,
                                compression=output_imagery_compression,
                                nbits=output_imagery_nbits)
 
@@ -912,30 +919,3 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     t_end = time.time()
     logger.info(f'elapsed time: {t_end - t_start}')
-
-
-def main():
-    '''
-    Main entrypoint of the script
-    '''
-    parser = rtc_s1.get_rtc_s1_parser()
-    # parse arguments
-    args = parser.parse_args()
-
-    # Spawn multiple processes for parallelization
-    rtc_s1.create_logger(args.log_file, args.full_log_formatting)
-
-    # Get a runconfig dict from command line argumens
-    cfg = RunConfig.load_from_yaml(args.run_config_path, 'rtc_s1')
-
-    rtc_s1._load_parameters(cfg)
-
-    # Run geocode burst workflow
-    path_logfile_parent = args.log_file
-    flag_full_log_formatting = args.full_log_formatting
-    run_parallel(cfg, path_logfile_parent, flag_full_log_formatting)
-
-
-if __name__ == "__main__":
-    # load arguments from command line
-    main()
