@@ -92,6 +92,10 @@ def save_as_cog(filename, scratch_dir = '.', logger = None,
     elif ovr_resamp_algorithm is None:
         ovr_resamp_algorithm = 'CUBICSPLINE'
 
+    logger.info('            overview resampling algorithm:'
+                f' {ovr_resamp_algorithm}')
+    logger.info(f'            overview list: {overviews_list}')
+
     gdal_ds.BuildOverviews(ovr_resamp_algorithm, overviews_list,
                            gdal.TermProgress_nocb)
 

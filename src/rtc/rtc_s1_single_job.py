@@ -1105,10 +1105,20 @@ def run_single_job(cfg: RunConfig):
         for filename in output_file_list:
             if not filename.endswith('.tif'):
                 continue
+
             logger.info(f'    processing file: {filename}')
+
+            # if file is backscatter, use the 'AVERAGE' mode to create overlays
+            flag_file_is_backscatter = filename in \
+                output_burst_imagery_list +output_imagery_filename_list
+            options_save_as_cog = {}
+            if flag_file_is_backscatter:
+                options_save_as_cog['ovr_resamp_algorithm'] = 'AVERAGE'
+
             save_as_cog(filename, scratch_path, logger,
                         compression=output_imagery_compression,
-                        nbits=output_imagery_nbits)
+                        nbits=output_imagery_nbits,
+                        **options_save_as_cog)
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:
