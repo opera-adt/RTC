@@ -220,50 +220,7 @@ def process_child_runconfig(path_runconfig_burst,
                             flag_full_logfile_format=None,
                             keep_burst_runconfig=False):
     '''
-    single worker to process runconfig from terminal using `subprocess`
-
-    Parameters
-    ----------
-    path_runconfig_burst: str
-        Path to the burst runconfig
-    path_burst_logfile: str
-        Path to the burst logfile
-    full_log_format: bool
-        Enable full formatting of log messages.
-        See `get_rtc_s1_parser()`
-    keep_burst_runconfig: bool
-        Keep the child runconfig when `True`;
-        delete it after done with the processing when `False`
-
-    Returns
-    -------
-    result_child_process: int
-        0 when the child process has completed succesfully
-    '''
-    # Get a runconfig dict from command line argumens
-    workflow_name = 'rtc_s1'
-    cfg = RunConfig.load_from_yaml(path_runconfig_burst, workflow_name)
-
-    load_parameters(cfg)
-
-    create_logger(path_burst_logfile, flag_full_logfile_format)
-
-    # Run geocode burst workflow
-    result_child_process = run_single_job(cfg)
-
-    # Remove or keep (for debugging purpose) the processed runconfig
-    if keep_burst_runconfig:
-        os.remove(path_runconfig_burst)
-
-    return result_child_process
-
-
-def process_child_runconfig_subprocess(path_runconfig_burst,
-                            path_burst_logfile=None,
-                            flag_full_logfile_format=None,
-                            keep_burst_runconfig=False):
-    '''
-    single worker to process runconfig from terminal using `subprocess`
+    single worker to process runconfig using `subprocess`
     Parameters
     ----------
     path_runconfig_burst: str
@@ -540,7 +497,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # Execute the single burst processes using multiprocessing
     with multiprocessing.Pool(num_workers) as p:
         processing_result_list =\
-            p.starmap(process_child_runconfig_subprocess,
+            p.starmap(process_child_runconfig,
                       zip(burst_runconfig_list,
                           burst_log_list,
                           repeat(flag_logger_full_format)
