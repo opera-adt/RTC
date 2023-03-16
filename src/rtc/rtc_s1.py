@@ -281,6 +281,7 @@ def process_child_runconfig_subprocess(path_runconfig_burst,
     result_child_process: int
         0 when the child process has completed succesfully
     '''
+    os.environ['OMP_NUM_THREADS'] = "1"
     list_arg_subprocess = ['rtc_s1_single_job.py', path_runconfig_burst]
 
     if path_burst_logfile is not None: 
