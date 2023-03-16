@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import os
 from types import SimpleNamespace
 import sys
+import numpy as np
 
 import isce3
 from isce3.product import GeoGridParameters
@@ -20,6 +21,83 @@ from s1reader.s1_orbit import get_orbit_file_from_list
 from s1reader.s1_reader import load_bursts
 
 logger = logging.getLogger('rtc_s1')
+
+
+def load_parameters(cfg):
+    '''
+    Load RTC-S1 specific parameters.
+    '''
+
+    geocode_namespace = cfg.groups.processing.geocoding
+    rtc_namespace = cfg.groups.processing.rtc
+
+    if geocode_namespace.clip_max is None:
+        geocode_namespace.clip_max = np.nan
+
+    if geocode_namespace.clip_min is None:
+        geocode_namespace.clip_min = np.nan
+
+    if geocode_namespace.geogrid_upsampling is None:
+        geocode_namespace.geogrid_upsampling = 1.0
+
+    if geocode_namespace.memory_mode == 'single_block':
+        geocode_namespace.memory_mode = \
+            isce3.core.GeocodeMemoryMode.SingleBlock
+    elif geocode_namespace.memory_mode == 'geogrid':
+        geocode_namespace.memory_mode = \
+            isce3.core.GeocodeMemoryMode.BlocksGeogrid
+    elif geocode_namespace.memory_mode == 'geogrid_and_radargrid':
+        geocode_namespace.memory_mode = \
+            isce3.core.GeocodeMemoryMode.BlocksGeogridAndRadarGrid
+    elif (geocode_namespace.memory_mode == 'auto' or
+          geocode_namespace.memory_mode is None):
+        geocode_namespace.memory_mode = \
+            isce3.core.GeocodeMemoryMode.Auto
+    else:
+        err_msg = f"ERROR memory_mode: {geocode_namespace.memory_mode}"
+        raise ValueError(err_msg)
+
+    rtc_output_type = rtc_namespace.output_type
+    if rtc_output_type == 'sigma0':
+        rtc_namespace.output_type = \
+            isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT
+    else:
+        rtc_namespace.output_type = \
+            isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT
+
+    if rtc_namespace.input_terrain_radiometry == "sigma0":
+        rtc_namespace.input_terrain_radiometry = \
+            isce3.geometry.RtcInputTerrainRadiometry.SIGMA_NAUGHT_ELLIPSOID
+    else:
+        rtc_namespace.input_terrain_radiometry = \
+            isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT
+
+    if rtc_namespace.rtc_min_value_db is None:
+        rtc_namespace.rtc_min_value_db = np.nan
+
+    # Update the DEM interpolation method
+    dem_interp_method = \
+        cfg.groups.processing.dem_interpolation_method
+
+    if dem_interp_method == 'biquintic':
+        dem_interp_method_enum = isce3.core.DataInterpMethod.BIQUINTIC
+    elif (dem_interp_method == 'sinc'):
+        dem_interp_method_enum = isce3.core.DataInterpMethod.SINC
+    elif (dem_interp_method == 'bilinear'):
+        dem_interp_method_enum = isce3.core.DataInterpMethod.BILINEAR
+    elif (dem_interp_method == 'bicubic'):
+        dem_interp_method_enum = isce3.core.DataInterpMethod.BICUBIC
+    elif (dem_interp_method == 'nearest'):
+        dem_interp_method_enum = isce3.core.DataInterpMethod.NEAREST
+    else:
+        err_msg = ('ERROR invalid DEM interpolation method:'
+                   f' {dem_interp_method}')
+        raise ValueError(err_msg)
+
+    cfg.groups.processing.dem_interpolation_method_enum = \
+        dem_interp_method_enum
+
+
 
 def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
     """Initialize RunConfig class with options from given yaml file.
