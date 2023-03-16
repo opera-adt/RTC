@@ -261,7 +261,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 lines_per_block_rdr2geo: int=1000,
                                 threshold_geo2rdr: float=1.0e-7,
                                 numiter_geo2rdr: int=25,
-                                memory_mode: str=''):
+                                memory_mode: str=None):
     '''
     Compute the layover/shadow mask and geocode it
 
