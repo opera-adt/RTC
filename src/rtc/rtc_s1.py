@@ -290,12 +290,12 @@ def process_child_runconfig_subprocess(path_runconfig_burst,
     if flag_full_logfile_format:
         list_arg_subprocess.append('--full-log-format')
 
-    rtnval = subprocess.run(list_arg_subprocess)
+    child_processing_result = subprocess.run(list_arg_subprocess)
 
     if not keep_burst_runconfig:
         os.remove(path_runconfig_burst)
 
-    return rtnval.returncode
+    return child_processing_result.returncode
 
 
 def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
