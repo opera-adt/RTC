@@ -6,6 +6,7 @@ from itertools import repeat
 import logging
 import multiprocessing
 import os
+import subprocess
 import time
 import yaml
 
@@ -219,8 +220,7 @@ def process_child_runconfig(path_runconfig_burst,
                             flag_full_logfile_format=None,
                             keep_burst_runconfig=False):
     '''
-    single worker to process runconfig from terminal using `subprocess`
-
+    single worker to process runconfig using `subprocess`
     Parameters
     ----------
     path_runconfig_burst: str
@@ -233,28 +233,26 @@ def process_child_runconfig(path_runconfig_burst,
     keep_burst_runconfig: bool
         Keep the child runconfig when `True`;
         delete it after done with the processing when `False`
-
     Returns
     -------
     result_child_process: int
         0 when the child process has completed succesfully
     '''
-    # Get a runconfig dict from command line argumens
-    workflow_name = 'rtc_s1'
-    cfg = RunConfig.load_from_yaml(path_runconfig_burst, workflow_name)
+    os.environ['OMP_NUM_THREADS'] = "1"
+    list_arg_subprocess = ['rtc_s1_single_job.py', path_runconfig_burst]
 
-    load_parameters(cfg)
+    if path_burst_logfile is not None: 
+        list_arg_subprocess += ['--log-file', path_burst_logfile]
 
-    create_logger(path_burst_logfile, flag_full_logfile_format)
+    if flag_full_logfile_format:
+        list_arg_subprocess.append('--full-log-format')
 
-    # Run geocode burst workflow
-    result_child_process = run_single_job(cfg)
+    child_processing_result = subprocess.run(list_arg_subprocess)
 
-    # Remove or keep (for debugging purpose) the processed runconfig
-    if keep_burst_runconfig:
+    if not keep_burst_runconfig:
         os.remove(path_runconfig_burst)
 
-    return result_child_process
+    return child_processing_result.returncode
 
 
 def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):

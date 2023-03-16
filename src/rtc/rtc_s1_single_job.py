@@ -260,7 +260,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 extraiter_rdr2geo: int=10,
                                 lines_per_block_rdr2geo: int=1000,
                                 threshold_geo2rdr: float=1.0e-7,
-                                numiter_geo2rdr: int=25):
+                                numiter_geo2rdr: int=25,
+                                memory_mode: str=None):
     '''
     Compute the layover/shadow mask and geocode it
 
@@ -353,7 +354,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                 input_raster=slantrange_layover_shadow_mask_raster,
                 output_raster=geocoded_layover_shadow_mask_raster,
                 dem_raster=dem_raster,
-                output_mode=isce3.geocode.GeocodeOutputMode.INTERP)
+                output_mode=isce3.geocode.GeocodeOutputMode.INTERP,
+                memory_mode=memory_mode)
 
     return slantrange_layover_shadow_mask_raster
 
@@ -772,7 +774,7 @@ def run_single_job(cfg: RunConfig):
                 layover_shadow_mask_file = \
                     (f'{output_dir_sec_bursts}/{product_prefix}'
                      f'_layover_shadow_mask.{imagery_extension}')
-
+            logger.info(f'Computing layover shadow mask for {burst_id}')
             slantrange_layover_shadow_mask_raster = compute_layover_shadow_mask(
                 radar_grid,
                 orbit,
@@ -784,7 +786,8 @@ def run_single_job(cfg: RunConfig):
                 threshold_rdr2geo=cfg.rdr2geo_params.threshold,
                 numiter_rdr2geo=cfg.rdr2geo_params.numiter,
                 threshold_geo2rdr=cfg.geo2rdr_params.threshold,
-                numiter_geo2rdr=cfg.geo2rdr_params.numiter)
+                numiter_geo2rdr=cfg.geo2rdr_params.numiter,
+                memory_mode=geocode_namespace.memory_mode)
 
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
