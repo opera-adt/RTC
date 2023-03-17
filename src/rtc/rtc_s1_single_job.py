@@ -90,6 +90,8 @@ def _save_browse(burst_imagery_list, browse_image_filename,
 
     BROWSE_IMAGE_MAX_PERCENTILE = 97
 
+    logger.info(f'creating browse image: {browse_image_filename}')
+
     n_images = len(burst_imagery_list)
 
     if n_images == 1:
@@ -100,12 +102,12 @@ def _save_browse(burst_imagery_list, browse_image_filename,
         expected_pol_order = ['VV', 'VH']
     else:
         expected_pol_order = ['HH', 'HV', 'VV']
-    print('browse image, expected pol order:', expected_pol_order)
 
     alpha_channel = None
     band_list = [None] * n_images
-    print('len(band_list):', band_list)
+
     for filename, pol in zip(burst_imagery_list, pol_list):
+        logger.info(f'    pol: {pol}')
         gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
         gdal_band = gdal_ds.GetRasterBand(1)
         band_image = np.asarray(gdal_band.ReadAsArray(), dtype=np.float32)
@@ -113,12 +115,12 @@ def _save_browse(burst_imagery_list, browse_image_filename,
             alpha_channel = np.asarray(np.isfinite(band_image),
                                        dtype=np.float32)
         vmax = np.nanpercentile(band_image, BROWSE_IMAGE_MAX_PERCENTILE)
+        logger.info('        min: 0')
+        logger.info(f'        max ({BROWSE_IMAGE_MAX_PERCENTILE}% percentile):'
+                    f' {vmax}')
         band_image /= vmax
         band_image = np.clip(band_image, 0, 1)
-        print('    filename:', filename)
-        print('    pol:', pol)
         band_list_index = expected_pol_order.index(pol)
-        print('    band_list_index:', band_list_index)
         band_list[band_list_index] = band_image
 
     if n_images == 1:
@@ -126,7 +128,7 @@ def _save_browse(burst_imagery_list, browse_image_filename,
                            band_list[0],
                            band_list[0],
                            alpha_channel))
-    if n_images == 2:
+    elif n_images == 2:
         image = np.dstack((band_list[0],
                            band_list[1],
                            band_list[0],
@@ -136,10 +138,7 @@ def _save_browse(burst_imagery_list, browse_image_filename,
                            band_list[1],
                            band_list[2],
                            alpha_channel))
-
     mpimg.imsave(browse_image_filename, image, format='png')
-    # im = Image.fromarray(image)
-    # im.save(browse_image_filename)  # default = 72 dpi
 
 
 def _separate_pol_channels(multi_band_file, output_file_list,
@@ -487,6 +486,7 @@ def run_single_job(cfg: RunConfig):
     # RTC-S1 imagery
     save_bursts = cfg.groups.product_group.save_bursts
     save_mosaics = cfg.groups.product_group.save_mosaics
+    save_browse = cfg.groups.product_group.save_browse
 
     if not save_bursts and not save_mosaics:
         err_msg = (f"ERROR either `save_bursts` or `save_mosaics` needs to be"
@@ -515,6 +515,7 @@ def run_single_job(cfg: RunConfig):
     logger.info(f'    output dir: {output_dir}')
     logger.info(f'    save bursts: {save_bursts}')
     logger.info(f'    save mosaics: {save_mosaics}')
+    logger.info(f'    save browse: {save_browse}')
     logger.info(f'    output imagery format: {output_imagery_format}')
     logger.info(f'    output imagery compression: {output_imagery_compression}')
     logger.info(f'    output imagery nbits: {output_imagery_nbits}')
@@ -1008,8 +1009,7 @@ def run_single_job(cfg: RunConfig):
                                           f'frequencyA/{pol}')
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
-        flag_save_browse = True
-        if flag_save_browse:
+        if save_browse:
             browse_image_filename = \
                 os.path.join(output_dir_bursts, f'{product_prefix}.png')
             _save_browse(output_burst_imagery_list, browse_image_filename,

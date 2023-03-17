@@ -52,7 +52,13 @@ runconfig:
 
             # RTC-S1 imagery
             save_bursts: bool(required=False)
+
+            # Save mosaic of RTC-S1 bursts
             save_mosaics: bool(required=False)
+
+            # Save browse image(s)
+            save_browse: bool(required=False)
+
             output_imagery_format: enum('HDF5', 'NETCDF', 'ENVI', 'GTiff', 'COG', required=False)
             output_imagery_compression: str(required=False)
             output_imagery_nbits: int(min=1, required=False)
