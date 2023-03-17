@@ -76,21 +76,27 @@ def update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 
 
 
-def _separate_pol_channels(multi_band_file, output_file_list, logger,
-                           output_raster_format):
+def _separate_pol_channels(multi_band_file, output_file_list,
+                           pol_list, output_radiometry_str,
+                           logger, output_raster_format):
     """Save a multi-band raster file as individual single-band files
 
        Parameters
        ----------
        multi_band_file : str
-              Multi-band raster file
-       output_file_list : list
-              Output file list
+           Multi-band raster file
+       pol_list : list(str)
+           List of polarization channels
+       output_radiometry_str: str
+           Output radiometry
+       output_file_list : list(str)
+           Output file list
        logger : loggin.Logger
-              Logger
+           Logger
+       output_raster_format : str
+           Output raster format
     """
     gdal_ds = gdal.Open(multi_band_file, gdal.GA_ReadOnly)
-    description = gdal_ds.GetDescription()
     projection = gdal_ds.GetProjectionRef()
     geotransform = gdal_ds.GetGeoTransform()
     metadata = gdal_ds.GetMetadata()
@@ -113,6 +119,7 @@ def _separate_pol_channels(multi_band_file, output_file_list, logger,
             output_file, band_image.shape[1],
             band_image.shape[0], 1, gdal_dtype)
 
+        description = f'RTC-S1 {output_radiometry_str} ({pol_list[b]})'
         raster_out.SetDescription(description)
         raster_out.SetProjection(projection)
         raster_out.SetGeoTransform(geotransform)
@@ -261,7 +268,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 lines_per_block_rdr2geo: int=1000,
                                 threshold_geo2rdr: float=1.0e-7,
                                 numiter_geo2rdr: int=25,
-                                memory_mode: str=None):
+                                memory_mode: isce3.core.GeocodeMemoryMode=None):
     '''
     Compute the layover/shadow mask and geocode it
 
@@ -295,6 +302,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         Iteration threshold for geo2rdr
     numiter_geo2rdr: int
         Number of max. iteration for geo2rdr object
+    memory_mode: isce3.core.GeocodeMemoryMode
+        Geocoding memory mode
 
     Returns
     -------
@@ -350,12 +359,16 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                       geogrid_in.width, geogrid_in.length, 1,
                                       gdal.GDT_Byte, output_raster_format)
 
+    geocode_options = {}
+    if memory_mode is not None:
+        geocode_options['memory_mode'] = memory_mode
+
     geo.geocode(radar_grid=radar_grid,
                 input_raster=slantrange_layover_shadow_mask_raster,
                 output_raster=geocoded_layover_shadow_mask_raster,
                 dem_raster=dem_raster,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP,
-                memory_mode=memory_mode)
+                **geocode_options)
 
     return slantrange_layover_shadow_mask_raster
 
@@ -798,7 +811,7 @@ def run_single_job(cfg: RunConfig):
                 layover_shadow_mask_file)
 
             if apply_shadow_masking:
-                geocode_new_isce3_kwargs['input_slantrange_layover_shadow_mask_raster'] = \
+                geocode_new_isce3_kwargs['input_layover_shadow_mask_raster'] = \
                     slantrange_layover_shadow_mask_raster
         else:
             layover_shadow_mask_file = None
@@ -916,6 +929,7 @@ def run_single_job(cfg: RunConfig):
 
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
+                                   pol_list, output_radiometry_str,
                                    logger, output_raster_format)
 
             output_file_list += output_burst_imagery_list
@@ -1109,11 +1123,12 @@ def run_single_job(cfg: RunConfig):
             logger.info(f'    processing file: {filename}')
 
             # if file is backscatter, use the 'AVERAGE' mode to create overlays
-            flag_file_is_backscatter = filename in \
-                output_burst_imagery_list +output_imagery_filename_list
             options_save_as_cog = {}
-            if flag_file_is_backscatter:
+            gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
+            description = gdal_ds.GetDescription()
+            if  description and 'backscatter' in description.lower():
                 options_save_as_cog['ovr_resamp_algorithm'] = 'AVERAGE'
+            del gdal_ds
 
             save_as_cog(filename, scratch_path, logger,
                         compression=output_imagery_compression,

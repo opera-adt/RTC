@@ -347,7 +347,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         else:
             stats_vector = isce3.math.compute_raster_stats_float32(raster)
 
-    gdal_ds = gdal.Open(ds_filename)
+    gdal_ds = gdal.Open(ds_filename, gdal.GA_ReadOnly)
     nbands = gdal_ds.RasterCount
     for band in range(nbands):
         data = gdal_ds.GetRasterBand(band+1).ReadAsArray()
