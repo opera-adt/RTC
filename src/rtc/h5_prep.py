@@ -218,17 +218,17 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/missionId':
             [burst_in.platform_id,
              'Mission identifier'],
-        'identification/instrument': # placeholder for 1.6.2
+        'RTC/grids/instrument': # placeholder for 1.6.2
             ['',
              'Instrument name'],
-        'identification/radarBand': # 1.6.4
+        'RTC/grids//radarBand': # 1.6.4
             ['C',
              'Radar band'],
-        'identification/acquisitionMode': # 1.6.4
+        'RTC/grids//acquisitionMode': # 1.6.4
             ['IW',
              'Acquisition mode'],
         
-        'identification/beamID': # Placholder for 1.6.4
+        'RTC/grids//beamID': # Placholder for 1.6.4
             ['[IW1, IW2, IW3]',
              'Bean ID'],
             
@@ -270,40 +270,40 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/DocumentIdentifier':
             ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
              'Product version'],
-        'identification/numberOfAcquisitions': # placeholder
+        'RTC/grids/sourceDataNumberOfAcquisitions': # placeholder
             [0,
              'Number of source data acquisitions'],
-        'identification/sourceDataAccess': # placeholder
+        'RTC/grids/sourceDataAccess': # placeholder
             ['',
              'Where the source data can be retrieved'],
-        'identification/sourceDataProcessingDate': # placeholder for 1.6.6
+        'RTC/grids/sourceDataProcessingDate': # placeholder for 1.6.6
             ['0000-00-00T00:00:00.000000',
              'Processing date'],
-        'identification/sourceDataProcessingSoftwareVersion': # placeholder for 1.6.6
+        'RTC/grids/sourceDataProcessingSoftwareVersion': # placeholder for 1.6.6
             [str(burst_in.ipf_version),
              'IPF version of the source data'],
-        'identification/sourceDataProductLevel': # placeholder for 1.6.6
+        'RTC/grids/sourceDataProductLevel': # placeholder for 1.6.6
             [1,
              'Product level of the source data'],
-        'identification/sourceDataAzimuthSpacing': # placeholder for 1.6.7
+        'RTC/grids/sourceDataAzimuthSpacing': # placeholder for 1.6.7
             [0,
              'Azimuth time spacing of the source data in seconds'],
-        'identification/sourceDataRangeSpacing': # placeholder for 1.6.7
+        'RTC/grids/sourceDataRangeSpacing': # placeholder for 1.6.7
             [0,
              'Slant range spacing of the source data in meters'],
-        'identification/sourceDataAzimuthResolution': # placeholder for 1.6.7
+        'RTC/grids/sourceDataAzimuthResolution': # placeholder for 1.6.7
             [0,
              'Azimuth time resolution of the source data in seconds'],
-        'identification/sourceDataRangeResolution': # placeholder for 1.6.7
+        'RTC/grids/sourceDataRangeResolution': # placeholder for 1.6.7
             [0,
              'Slant range resolution of the source data in meters'],
-        'identification/nearRangeIncidenceAngle': # placeholder for 1.6.7
+        'RTC/grids/nearRangeIncidenceAngle': # placeholder for 1.6.7
             [0,
              'Near range incidence angle in meters'],
-        'identification/farRangeIncidenceAngle': # placeholder for 1.6.7
+        'RTC/grids/farRangeIncidenceAngle': # placeholder for 1.6.7
             [0,
              'Far range incidence angle in meters'],
-        'identification/sourceDataProcessingFacility': # 1.6.6
+        'RTC/grids/sourceDataProcessingFacility': # 1.6.6
             ['IPF',
              'Source data processing facility'],
 
