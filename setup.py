@@ -50,19 +50,17 @@ package_data_dict['rtc'] = [
 setup(
     name = 'rtc',
     version = version,
-    description = 'OPERA Radiometric Terrain-Corrected (RTC) Product',
+    description = ('OPERA Radiometric Terrain-Corrected (RTC) SAR backscatter'
+                   ' from Sentinel-1 Science Application Software (SAS)'),
     package_dir = {'rtc': 'src/rtc'},
-    #packages = ['rtc'],
     include_package_data = True,
     package_data = package_data_dict,
     classifiers = ['Programming Language :: Python',],
     scripts = ['app/rtc_s1.py'],
     install_requires = ['argparse', 'numpy', 'yamale',
                        'scipy', 'pytest', 'requests',
-                       'pyproj', 'shapely'],
+                       'pyproj', 'shapely', 'pillow'],
     url = 'https://github.com/opera-adt/RTC',
-    author = ('Gustavo H. X. Shiroma', 'Seongsu Jeong'),
-    author_email = ('gustavo.h.shiroma@jpl.nasa.gov, seongsu.jeong@jpl.nasa.gov'),
     license = 'Copyright by the California Institute of Technology.'
     ' ALL RIGHTS RESERVED.',
     long_description=long_description,

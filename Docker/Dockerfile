@@ -1,8 +1,8 @@
 FROM ubuntu:22.04
 
 LABEL author="OPERA ADT" \
-      description="RTC beta release R2.1" \
-      version="0.2.1-beta"
+      description="RTC gamma release R3" \
+      version="0.3-beta"
 
 RUN apt-get -y update &&\
     apt-get -y install curl zip make &&\
