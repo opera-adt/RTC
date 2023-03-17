@@ -488,11 +488,11 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     if num_workers == 0:
         # Read system variable OMP_NUM_THREADS
-        num_workers = int(os.getenv('OMP_NUM_THREADS'))
+        num_workers = os.getenv('OMP_NUM_THREADS')
         if not num_workers:
             # Otherwise, read it from os.cpu_count()
             num_workers = os.cpu_count()
-    num_workers = min(num_workers, len(burst_runconfig_list))
+    num_workers = min(int(num_workers), len(burst_runconfig_list))
 
     # Execute the single burst processes using multiprocessing
     with multiprocessing.Pool(num_workers) as p:
@@ -664,18 +664,19 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
+                layover_shadow_mask_file = None
             else:
                 output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
 
-            # Take the layover shadow mask from HDF5 file if not exists
-            if save_secondary_layers_as_hdf5:
-                layover_shadow_mask_file = (f'NETCDF:{burst_hdf5_in_output}:'
-                                            '/science/SENTINEL1/RTC/grids/'
-                                            'frequencyA/layoverShadowMask')
+                # Take the layover shadow mask from HDF5 file if not exists
+                if save_secondary_layers_as_hdf5:
+                    layover_shadow_mask_file = (f'NETCDF:{burst_hdf5_in_output}:'
+                                                '/science/SENTINEL1/RTC/grids/'
+                                                'frequencyA/layoverShadowMask')
 
-            output_metadata_dict['layover_shadow_mask'][1].append(
-                layover_shadow_mask_file)
+                output_metadata_dict['layover_shadow_mask'][1].append(
+                    layover_shadow_mask_file)
 
         else:
             layover_shadow_mask_file = None
