@@ -22,6 +22,7 @@ from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
 from rtc.core import create_logger, save_as_cog
 from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
 from rtc.version import VERSION as SOFTWARE_VERSION
+from PIL import Image
 
 logger = logging.getLogger('rtc_s1')
 
@@ -71,9 +72,56 @@ def update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 
 
 
+def _save_browse(burst_imagery_list, browse_image_filename,
+                 pol_list, logger):
+    """Create and save a browse image for the RTC-S1 product
 
+       Parameters
+       ----------
+       burst_imagery_list : list(str)
+           List of burst imagery files (one file for each polarization channel)
+       browse_image_filename : str
+           Output browse file
+       pol_list : list(str)
+           List of polarization channels
+       logger : loggin.Logger
+           Logger
+    """
 
+    BROWSE_IMAGE_MAX_PERCENTILE = 95
 
+    alpha_channel = None
+    band_list = []
+    for f in burst_imagery_list:    
+        gdal_ds = gdal.Open(f, gdal.GA_ReadOnly)
+        gdal_band = gdal_ds.GetRasterBand(1)
+        band_image = gdal_band.ReadAsArray()
+        if alpha_channel is None:
+            alpha_channel = np.isfinite(band_image, dtype=band_image.dtype())
+        vmax = np.nanpercentile(band_image, BROWSE_IMAGE_MAX_PERCENTILE)
+        band_image /= vmax
+        band_list.append(band_image)
+    band_list.append(alpha_channel)
+
+    n_images = len(band_list)
+    if n_images == 1:
+        im = Image.fromarray(band_list[0], mode='L')
+        im.save(browse_image_filename)  # default = 72 dpi
+        return
+
+    if n_images == 2:
+        image = np.dstack((band_list[0],
+                           band_list[1],
+                           band_list[0],
+                           alpha_channel))
+    else:
+        image = np.dstack((band_list[0],
+                           band_list[1],
+                           band_list[2],
+                           alpha_channel))
+
+    im = Image.fromarray(image)
+    im.save(browse_image_filename)  # default = 72 dpi
 
 
 def _separate_pol_channels(multi_band_file, output_file_list,
@@ -918,11 +966,11 @@ def run_single_job(cfg: RunConfig):
         output_imagery_list.append(geo_burst_filename)
 
         # If burst imagery is not temporary, separate polarization channels
+        output_burst_imagery_list = []
         if not flag_bursts_files_are_temporary:
-            output_burst_imagery_list = []
             for pol in pol_list:
                 geo_burst_pol_filename = \
-                    os.path.join(output_dir, burst_id,
+                    os.path.join(output_dir_bursts,
                                  f'{product_prefix}_{pol}.' +
                                  f'{imagery_extension}')
                 output_burst_imagery_list.append(geo_burst_pol_filename)
@@ -933,6 +981,35 @@ def run_single_job(cfg: RunConfig):
                                    logger, output_raster_format)
 
             output_file_list += output_burst_imagery_list
+
+
+        else:
+            for pol in pol_list:
+                geo_burst_pol_filename = (f'NETCDF:{burst_hdf5_in_output}:'
+                                          '/science/SENTINEL1/RTC/grids/'
+                                          f'frequencyA/{pol}')
+            output_burst_imagery_list.append(geo_burst_pol_filename)
+
+
+
+        flag_save_browse = True
+        if flag_save_browse:
+            browse_image_filename = \
+                os.path.join(output_dir_bursts, f'{product_prefix}_{pol}.png')
+            _save_browse(output_burst_imagery_list, browse_image_filename,
+                         pol_list, logger)
+
+
+
+
+
+
+
+
+
+
+
+
 
         if save_nlooks:
             del out_geo_nlooks_obj
