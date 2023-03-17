@@ -8,8 +8,6 @@ import tempfile
 
 from osgeo import gdal
 
-logger = logging.getLogger('rtc_s1')
-
 class Logger(object):
     """
     Class to redirect stdout and stderr to the logger
@@ -77,7 +75,7 @@ def save_as_cog(filename, scratch_dir = '.', logger = None,
 
     """
     if logger is None:
-        logger = logging.getLogger('proteus')
+        logger = logging.getLogger('rtc_s1')
 
     logger.info('        COG step 1: add overviews')
     gdal_ds = gdal.Open(filename, gdal.GA_Update)
@@ -170,6 +168,8 @@ def create_logger(log_file, full_log_formatting=None):
               Logger object
     """
     # create logger
+
+    logger = logging.getLogger('rtc_s1')
     logger.setLevel(logging.DEBUG)
 
     # create console handler and set level to debug

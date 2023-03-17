@@ -10,8 +10,8 @@ from rtc.core import create_logger
 from rtc.rtc_s1_single_job import get_rtc_s1_parser
 from rtc.rtc_s1 import run_parallel
 
-logger = logging.getLogger('rtc_s1')
 
+logger = logging.getLogger('rtc_s1')
 
 def main():
     '''

@@ -81,13 +81,13 @@ def load_parameters(cfg):
 
     if dem_interp_method == 'biquintic':
         dem_interp_method_enum = isce3.core.DataInterpMethod.BIQUINTIC
-    elif (dem_interp_method == 'sinc'):
+    elif dem_interp_method == 'sinc':
         dem_interp_method_enum = isce3.core.DataInterpMethod.SINC
-    elif (dem_interp_method == 'bilinear'):
+    elif dem_interp_method == 'bilinear':
         dem_interp_method_enum = isce3.core.DataInterpMethod.BILINEAR
-    elif (dem_interp_method == 'bicubic'):
+    elif dem_interp_method == 'bicubic':
         dem_interp_method_enum = isce3.core.DataInterpMethod.BICUBIC
-    elif (dem_interp_method == 'nearest'):
+    elif dem_interp_method == 'nearest':
         dem_interp_method_enum = isce3.core.DataInterpMethod.NEAREST
     else:
         err_msg = ('ERROR invalid DEM interpolation method:'
@@ -155,12 +155,12 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
     helpers.deep_update(default_cfg, user_cfg)
 
     # Validate YAML values under groups dict
-    validate_group_dict(default_cfg['runconfig']['groups'], workflow_name)
+    validate_group_dict(default_cfg['runconfig']['groups'])
 
     return default_cfg
 
 
-def validate_group_dict(group_cfg: dict, workflow_name) -> None:
+def validate_group_dict(group_cfg: dict) -> None:
     """Check and validate runconfig entries.
 
     Parameters

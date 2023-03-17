@@ -23,7 +23,7 @@ from rtc.core import create_logger, save_as_cog
 from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
 from rtc.version import VERSION as SOFTWARE_VERSION
 
-logger = logging.getLogger('rtc_s1_single_job')
+logger = logging.getLogger('rtc_s1')
 
 
 def update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
@@ -119,13 +119,13 @@ def _separate_pol_channels(multi_band_file, output_file_list,
             output_file, band_image.shape[1],
             band_image.shape[0], 1, gdal_dtype)
 
-        description = f'RTC-S1 {output_radiometry_str} ({pol_list[b]})'
-        raster_out.SetDescription(description)
         raster_out.SetProjection(projection)
         raster_out.SetGeoTransform(geotransform)
         raster_out.SetMetadata(metadata)
 
+        description = f'RTC-S1 {output_radiometry_str} ({pol_list[b]})'
         band_out = raster_out.GetRasterBand(1)
+        band_out.SetDescription(description)
         band_out.WriteArray(band_image)
         band_out.FlushCache()
         del band_out
@@ -595,7 +595,7 @@ def run_single_job(cfg: RunConfig):
     vrt_options_mosaic = gdal.BuildVRTOptions(separate=True)
 
     n_bursts = len(cfg.bursts.items())
-    print('Number of bursts to process:', n_bursts)
+    logger.info(f'Number of bursts to process: {n_bursts}')
 
     hdf5_mosaic_obj = None
     output_hdf5_file = os.path.join(output_dir,
@@ -1125,7 +1125,7 @@ def run_single_job(cfg: RunConfig):
             # if file is backscatter, use the 'AVERAGE' mode to create overlays
             options_save_as_cog = {}
             gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
-            description = gdal_ds.GetDescription()
+            description = gdal_ds.GetRasterBand(1).GetDescription()
             if  description and 'backscatter' in description.lower():
                 options_save_as_cog['ovr_resamp_algorithm'] = 'AVERAGE'
             del gdal_ds

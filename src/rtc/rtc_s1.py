@@ -460,7 +460,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     vrt_options_mosaic = gdal.BuildVRTOptions(separate=True)
 
     n_bursts = len(cfg.bursts.items())
-    print('Number of bursts to process:', n_bursts)
+    logger.info(f'Number of bursts to process: {n_bursts}')
 
     hdf5_mosaic_obj = None
     output_hdf5_file = os.path.join(output_dir,
@@ -903,7 +903,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             # if file is backscatter, use the 'AVERAGE' mode to create overlays
             options_save_as_cog = {}
             gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
-            description = gdal_ds.GetDescription()
+            description = gdal_ds.GetRasterBand(1).GetDescription()
             if  description and 'backscatter' in description.lower():
                 options_save_as_cog['ovr_resamp_algorithm'] = 'AVERAGE'
             del gdal_ds

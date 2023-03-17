@@ -122,7 +122,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
     '''
 
     num_raster = len(list_rtc_images)
-    description = None
+    description_list = []
     num_bands = None
     posting_x = None
     posting_y = None
@@ -141,13 +141,15 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
         # Check if the number of bands are consistent over the input RTC rasters
         if num_bands is None:
             num_bands = raster_in.RasterCount
-            continue
+
         elif num_bands != raster_in.RasterCount:
             raise ValueError(f'Anomaly detected on # of bands from source'
                              f' file: {os.path.basename(path_rtc)}')
 
-        if description is None:
-            description = raster_in.GetDescription()
+        if len(description_list) == 0:
+            for i_band in range(num_bands):
+                description_list.append(
+                    raster_in.GetRasterBand(i_band+1).GetDescription())
 
         raster_in = None
 
@@ -254,7 +256,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
 
     mosaic_dict = {
         'mosaic_array': arr_numerator,
-        'description': description,
+        'description_list': description_list,
         'length': dim_mosaic[0],
         'width': dim_mosaic[1],
         'num_bands': num_bands,
@@ -290,7 +292,7 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
                                    geogrid_in=geogrid_in, verbose = verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']
-    description = mosaic_dict['description']
+    description_list = mosaic_dict['description_list']
     length = mosaic_dict['length']
     width = mosaic_dict['width']
     num_bands = mosaic_dict['num_bands']
@@ -312,11 +314,12 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
                                 datatype_mosaic)
 
     raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
-    raster_out.SetDescription(description)
     raster_out.SetProjection(wkt_projection)
 
     for i_band in range(num_bands):
-        raster_out.GetRasterBand(i_band+1).WriteArray(arr_numerator[i_band])
+        gdal_band = raster_out.GetRasterBand(i_band+1)
+        gdal_band.WriteArray(arr_numerator[i_band])
+        gdal_band.SetDescription(description_list[i_band])
 
 
 
