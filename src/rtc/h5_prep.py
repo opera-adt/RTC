@@ -128,6 +128,9 @@ def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
 
     populate_metadata_group(hdf5_obj, burst, cfg)
 
+    populate_rfi_info(hdf5_obj, burst,
+                      f'{BASE_HDF5_DATASET}/RTC/grids/RFI_information')
+
     # save orbit
     orbit_group = hdf5_obj.require_group(
         f'{BASE_HDF5_DATASET}/RTC/metadata/orbit')
@@ -496,3 +499,31 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
     del gdal_ds
 
+
+def populate_rfi_info(h5py_obj, burst, rfi_root_path):
+    '''
+    Populate the RFI information into HDF5 object
+    '''
+    is_empty_rfi_info = burst.burst_rfi_info is None
+    dset = h5py_obj.create_dataset(f'{rfi_root_path}/isRfiInfoAvailable',
+                                                              data=not is_empty_rfi_info)
+    dset.attrs['description'] = 'Whether RFI information is available'
+    
+    if is_empty_rfi_info:
+        return
+
+    # Create group for RFI info
+    subpath_data_dict = {
+        'rfiMitigationPerformed':[burst.burst_rfi_info.rfi_mitigation_performed, 'Whether or not the RFI mitigation step was performed'],
+        'rfiMitigationDomain':[burst.burst_rfi_info.rfi_mitigation_domain, 'Whether or not the RFI mitigation step was performed'],
+        'rfiBurstReport':[[], 'Burst RFI report']
+    }
+
+    for fieldname, data in subpath_data_dict.items():
+            path_dataset_in_h5 = os.path.join(rfi_root_path, fieldname)
+            if data[0] is str:
+                dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data[0]))
+            else:
+                dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data[0])
+
+            dset.attrs['description'] = np.string_(data[1])
