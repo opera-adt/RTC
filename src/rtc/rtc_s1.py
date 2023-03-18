@@ -678,6 +678,9 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 output_metadata_dict['layover_shadow_mask'][1].append(
                     layover_shadow_mask_file)
 
+            if not save_layover_shadow_mask:
+                layover_shadow_mask_file = None
+
         else:
             layover_shadow_mask_file = None
 
