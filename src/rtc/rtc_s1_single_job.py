@@ -794,8 +794,11 @@ def run_single_job(cfg: RunConfig):
             else:
                 output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
-            output_metadata_dict['layover_shadow_mask'][1].append(
-                layover_shadow_mask_file)
+                output_metadata_dict['layover_shadow_mask'][1].append(
+                    layover_shadow_mask_file)
+
+            if not save_layover_shadow_mask:
+                layover_shadow_mask_file = None
 
             if apply_shadow_masking:
                 geocode_new_isce3_kwargs['input_slantrange_layover_shadow_mask_raster'] = \
