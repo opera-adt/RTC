@@ -939,8 +939,9 @@ def run_single_job(cfg: RunConfig):
             else:
                 output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
-                output_metadata_dict['layover_shadow_mask'][1].append(
-                    layover_shadow_mask_file)
+                if save_layover_shadow_mask:
+                    output_metadata_dict['layover_shadow_mask'][1].append(
+                        layover_shadow_mask_file)
 
             if not save_layover_shadow_mask:
                 layover_shadow_mask_file = None
@@ -1077,6 +1078,7 @@ def run_single_job(cfg: RunConfig):
                                           f'frequencyA/{pol}')
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
+        # save browse image (burst)
         if save_browse:
             browse_image_filename = \
                 os.path.join(output_dir_bursts, f'{product_prefix}.png')
@@ -1181,9 +1183,11 @@ def run_single_job(cfg: RunConfig):
             output_imagery_filename_list.append(geo_pol_filename)
 
         nlooks_list = output_metadata_dict['nlooks'][1]
-        compute_weighted_mosaic_raster_single_band(
-            output_imagery_list, nlooks_list,
-            output_imagery_filename_list, cfg.geogrid, verbose=False)
+
+        if len(output_imagery_list) > 0:
+            compute_weighted_mosaic_raster_single_band(
+                output_imagery_list, nlooks_list,
+                output_imagery_filename_list, cfg.geogrid, verbose=False)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
@@ -1194,6 +1198,8 @@ def run_single_job(cfg: RunConfig):
         for key in output_metadata_dict.keys():
             output_file, input_files = output_metadata_dict[key]
             logger.info(f'mosaicking file: {output_file}')
+            if len(input_files) == 0:
+                continue
             compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
                                            cfg.geogrid, verbose=False)
 
@@ -1207,6 +1213,16 @@ def run_single_job(cfg: RunConfig):
             else:
                 output_file_list.append(output_file)
 
+
+        # save browse image (mosaic)
+        if save_browse:
+            browse_image_filename = \
+                os.path.join(output_dir, f'{product_prefix}.png')
+            _save_browse(output_imagery_filename_list, browse_image_filename,
+                            pol_list, browse_image_mosaic_height,
+                            browse_image_mosaic_width, temp_files_list,
+                            scratch_path, logger)
+            output_file_list.append(browse_image_filename)
 
 
 

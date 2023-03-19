@@ -322,12 +322,14 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     output_imagery_nbits = \
         cfg.groups.product_group.output_imagery_nbits
 
-    browse_image_burst_height = cfg.groups.processing.browse_image_burst_height
-    browse_image_burst_width = cfg.groups.processing.browse_image_burst_width
+    browse_image_burst_height = \
+        cfg.groups.processing.browse_image_group.browse_image_burst_height
+    browse_image_burst_width = \
+        cfg.groups.processing.browse_image_group.browse_image_burst_width
     browse_image_mosaic_height = \
-        cfg.groups.processing.browse_image_mosaic_height
+        cfg.groups.processing.browse_image_group.browse_image_mosaic_height
     browse_image_mosaic_width = \
-        cfg.groups.processing.browse_image_mosaic_width
+        cfg.groups.processing.browse_image_group.browse_image_mosaic_width
 
     logger.info(f'Identification:')
     logger.info(f'    product ID: {product_id}')
@@ -689,8 +691,9 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                                 '/science/SENTINEL1/RTC/grids/'
                                                 'frequencyA/layoverShadowMask')
 
-                output_metadata_dict['layover_shadow_mask'][1].append(
-                    layover_shadow_mask_file)
+                if save_layover_shadow_mask:
+                    output_metadata_dict['layover_shadow_mask'][1].append(
+                        layover_shadow_mask_file)
 
             if not save_layover_shadow_mask:
                 layover_shadow_mask_file = None
@@ -833,9 +836,11 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_imagery_filename_list.append(geo_pol_filename)
 
         nlooks_list = output_metadata_dict['nlooks'][1]
-        compute_weighted_mosaic_raster_single_band(
-            output_imagery_list, nlooks_list,
-            output_imagery_filename_list, cfg.geogrid, verbose=False)
+
+        if len(output_imagery_list) > 0:
+            compute_weighted_mosaic_raster_single_band(
+                output_imagery_list, nlooks_list,
+                output_imagery_filename_list, cfg.geogrid, verbose=False)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
@@ -846,6 +851,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         for key in output_metadata_dict.keys():
             output_file, input_files = output_metadata_dict[key]
             logger.info(f'mosaicking file: {output_file}')
+            if len(input_files) == 0:
+                continue
             compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
                                            cfg.geogrid, verbose=False)
 
