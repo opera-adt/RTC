@@ -132,6 +132,10 @@ processing_options:
    # Geocoding options
    geocoding: include('geocoding_options', required=False)
 
+   # Browse image
+   browse_image_group: include('browse_image_options', required=False)
+
+
    # Numper of parallel processes for burst processing
    num_workers: int(required=False)
 
@@ -235,3 +239,29 @@ geocoding_options:
       x: num(required=False)
       y: num(required=False)
 
+
+browse_image_options:
+
+    # If neither height or width parameters are provided, the browse
+    # image is generated with the same pixel spacing of the RTC-S1 
+    # imagery (burst or mosaic).
+
+    # If the height parameter is provided but the width is not provided,
+    # a new width is assigned in order to keep the aspect ratio
+    # of the RTC-S1 geographic grid.
+
+    # Conversely, if the width parameter is provided but the height is not,
+    # a new height is assigned in order to keep the aspect ratio
+    # of the RTC-S1 geographic grid.
+
+    # Height in pixels for the PNG browse image of RTC-S1 bursts.
+    browse_image_burst_height: int(min=1, required=False)
+
+    # Width in pixels for the PNG browse image of RTC-S1 bursts
+    browse_image_burst_width: int(min=1, required=False)
+
+    # Height in pixels for the PNG browse image of RTC-S1 mosaics.
+    browse_image_mosaic_height: int(min=1, required=False)
+
+    # Width in pixels for the PNG browse image of RTC-S1 mosaics
+    browse_image_mosaic_width: int(min=1, required=False)

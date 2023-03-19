@@ -211,4 +211,28 @@ runconfig:
                     x:
                     y:
 
- 
+            browse_image_group:
+
+                # If neither height or width parameters are provided, the browse
+                # image is generated with the same pixel spacing of the RTC-S1 
+                # imagery (burst or mosaic).
+
+                # If the height parameter is provided but the width is not provided,
+                # a new width is assigned in order to keep the aspect ratio
+                # of the RTC-S1 geographic grid.
+
+                # Conversely, if the width parameter is provided but the height is not,
+                # a new height is assigned in order to keep the aspect ratio
+                # of the RTC-S1 geographic grid.
+
+                # Height in pixels for the PNG browse image of RTC-S1 bursts.
+                browse_image_burst_height: 1024
+
+                # Width in pixels for the PNG browse image of RTC-S1 bursts
+                browse_image_burst_width:
+
+                # Height in pixels for the PNG browse image of RTC-S1 mosaics.
+                browse_image_mosaic_height: 1024
+
+                # Width in pixels for the PNG browse image of RTC-S1 mosaics
+                browse_image_mosaic_width:

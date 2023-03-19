@@ -322,6 +322,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     output_imagery_nbits = \
         cfg.groups.product_group.output_imagery_nbits
 
+    browse_image_burst_height = cfg.groups.processing.browse_image_burst_height
+    browse_image_burst_width = cfg.groups.processing.browse_image_burst_width
+    browse_image_mosaic_height = \
+        cfg.groups.processing.browse_image_mosaic_height
+    browse_image_mosaic_width = \
+        cfg.groups.processing.browse_image_mosaic_width
+
     logger.info(f'Identification:')
     logger.info(f'    product ID: {product_id}')
     logger.info(f'    processing type: {processing_type}')
@@ -341,6 +348,11 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     logger.info(f'    output imagery format: {output_imagery_format}')
     logger.info(f'    output imagery compression: {output_imagery_compression}')
     logger.info(f'    output imagery nbits: {output_imagery_nbits}')
+    logger.info(f'Browse images:')
+    logger.info(f'    burst height: {browse_image_burst_height}')
+    logger.info(f'    burst width: {browse_image_burst_width}')
+    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
+    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
 
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')

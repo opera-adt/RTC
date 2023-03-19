@@ -5,6 +5,7 @@ RTC-S1 Science Application Software (single job)
 import datetime
 import os
 import time
+import tempfile
 
 import logging
 import numpy as np
@@ -73,7 +74,8 @@ def update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 
 
 def _save_browse(burst_imagery_list, browse_image_filename,
-                 pol_list, logger):
+                 pol_list, browse_image_height, browse_image_width,
+                 temp_files_list, scratch_dir, logger):
     """Create and save a browse image for the RTC-S1 product
 
        Parameters
@@ -84,6 +86,16 @@ def _save_browse(burst_imagery_list, browse_image_filename,
            Output browse file
        pol_list : list(str)
            List of polarization channels
+       browse_image_height : int
+           Browse image height
+       browse_image_width : int
+           Browse image width
+       scratch_dir : str
+           Directory for temporary files
+       temp_files_list: list (optional)
+           Mutable list of temporary files. If provided,
+           paths to the temporary files generated will be
+           appended to this list.
        logger : loggin.Logger
            Logger
     """
@@ -109,6 +121,44 @@ def _save_browse(burst_imagery_list, browse_image_filename,
     for filename, pol in zip(burst_imagery_list, pol_list):
         logger.info(f'    pol: {pol}')
         gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
+        image_width = gdal_ds.GetRasterBand(1).XSize
+        image_height = gdal_ds.GetRasterBand(1).YSize
+
+        if (browse_image_height is not None or
+                browse_image_width is not None):
+
+            del gdal_ds
+
+            if browse_image_width is None:
+                browse_image_width =  int(np.round(
+                    (browse_image_height * float(image_width) / image_height)))
+
+            if browse_image_height is None:
+                browse_image_height = int(np.round(
+                    (browse_image_width * float(image_height) / image_width)))
+
+            logger.info(f'        browse length: {browse_image_height}')
+            logger.info(f'        browse width: {browse_image_width}')
+
+            browse_temp_file = tempfile.NamedTemporaryFile(
+                dir=scratch_dir, suffix='.tif').name
+
+            if temp_files_list is not None:
+                temp_files_list.append(browse_temp_file)
+
+            resamp_algorithm = 'AVERAGE'
+
+            # Translate the existing geotiff to the .png format
+            gdal.Translate(browse_temp_file,
+                           filename,
+                           # outputSRS="+proj=longlat +ellps=WGS84",
+                           # format='PNG',
+                           height=browse_image_height,
+                           width=browse_image_width,
+                           resampleAlg=resamp_algorithm)
+
+            gdal_ds = gdal.Open(browse_temp_file, gdal.GA_ReadOnly)
+
         gdal_band = gdal_ds.GetRasterBand(1)
         band_image = np.asarray(gdal_band.ReadAsArray(), dtype=np.float32)
         if alpha_channel is None:
@@ -500,6 +550,15 @@ def run_single_job(cfg: RunConfig):
     output_imagery_nbits = \
         cfg.groups.product_group.output_imagery_nbits
 
+    browse_image_burst_height = \
+        cfg.groups.processing.browse_image_group.browse_image_burst_height
+    browse_image_burst_width = \
+        cfg.groups.processing.browse_image_group.browse_image_burst_width
+    browse_image_mosaic_height = \
+        cfg.groups.processing.browse_image_group.browse_image_mosaic_height
+    browse_image_mosaic_width = \
+        cfg.groups.processing.browse_image_group.browse_image_mosaic_width
+
     logger.info(f'Identification:')
     logger.info(f'    product ID: {product_id}')
     logger.info(f'    processing type: {processing_type}')
@@ -517,8 +576,14 @@ def run_single_job(cfg: RunConfig):
     logger.info(f'    save mosaics: {save_mosaics}')
     logger.info(f'    save browse: {save_browse}')
     logger.info(f'    output imagery format: {output_imagery_format}')
-    logger.info(f'    output imagery compression: {output_imagery_compression}')
+    logger.info(f'    output imagery compression:'
+                f' {output_imagery_compression}')
     logger.info(f'    output imagery nbits: {output_imagery_nbits}')
+    logger.info(f'Browse images:')
+    logger.info(f'    burst height: {browse_image_burst_height}')
+    logger.info(f'    burst width: {browse_image_burst_width}')
+    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
+    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
 
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
@@ -1016,7 +1081,9 @@ def run_single_job(cfg: RunConfig):
             browse_image_filename = \
                 os.path.join(output_dir_bursts, f'{product_prefix}.png')
             _save_browse(output_burst_imagery_list, browse_image_filename,
-                         pol_list, logger)
+                         pol_list, browse_image_burst_height,
+                         browse_image_burst_width, temp_files_list,
+                         burst_scratch_path, logger)
             output_file_list.append(browse_image_filename)
 
         if save_nlooks:
