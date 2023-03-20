@@ -465,7 +465,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc', output_dir_sec_mosaic_raster,
+        save_rtc_anf, 'rtc_area_normalization_factor',
+        output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
 
     mosaic_geogrid_dict = {}
@@ -648,7 +649,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if save_secondary_layers_as_hdf5:
                 rtc_anf_file = (f'NETCDF:"{burst_hdf5_in_output}":'
                                 '/science/SENTINEL1/RTC/grids/frequencyA/'
-                                'areaNormalizationFactor')
+                                'RTCAreaNormalizationFactor')
             else:
                 rtc_anf_file = (f'{output_dir_sec_bursts}/{product_prefix}'
                                 f'_rtc_anf.{imagery_extension}')
@@ -735,7 +736,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_metadata_dict['nlooks'][1].append(nlooks_file)
 
         if save_rtc_anf:
-            output_metadata_dict['rtc'][1].append(rtc_anf_file)
+            output_metadata_dict['rtc_area_normalization_factor'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
         if flag_call_radar_grid and save_bursts:
@@ -758,7 +759,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                     'projection_angle', imagery_extension, burst_hdf5_in_output)
             if save_rtc_anf_psi:
                 _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'areaNormalizationFactorPsi',
+                    radar_grid_file_dict, 'RTCAreaNormalizationFactorPsi',
                     save_secondary_layers_as_hdf5, output_dir, product_prefix,
                     'rtc_anf_psi', imagery_extension, burst_hdf5_in_output)
 
@@ -870,7 +871,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             else:
                 nlooks_mosaic_file = None
             if save_rtc_anf:
-                rtc_anf_mosaic_file = output_metadata_dict['rtc'][0]
+                rtc_anf_mosaic_file = output_metadata_dict[
+                    'rtc_area_normalization_factor'][0]
             else:
                 rtc_anf_mosaic_file = None
             if save_layover_shadow_mask:

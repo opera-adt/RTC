@@ -97,7 +97,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
         # save rtc
         if rtc_anf_file:
             save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
-                               yds, xds, 'areaNormalizationFactor',
+                               yds, xds, 'RTCAreaNormalizationFactor',
                                long_name = 'RTC area factor',
                                units = '',
                                valid_min = 0)

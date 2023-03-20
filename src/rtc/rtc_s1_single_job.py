@@ -716,7 +716,7 @@ def run_single_job(cfg: RunConfig):
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc', output_dir_sec_mosaic_raster,
+        save_rtc_anf, 'rtc_area_normalization_factor', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
 
     mosaic_geogrid_dict = {}
@@ -1053,6 +1053,13 @@ def run_single_job(cfg: RunConfig):
         # will be used for mosaicking
         output_imagery_list.append(geo_burst_filename)
 
+        # Create burst HDF5
+        if (save_hdf5_metadata and save_bursts):
+            hdf5_file_output_dir = os.path.join(output_dir, burst_id)
+            os.makedirs(hdf5_file_output_dir, exist_ok=True)
+            output_hdf5_file_burst = os.path.join(
+                hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
+
         # If burst imagery is not temporary, separate polarization channels
         output_burst_imagery_list = []
         if not flag_bursts_files_are_temporary:
@@ -1073,20 +1080,11 @@ def run_single_job(cfg: RunConfig):
 
         else:
             for pol in pol_list:
-                geo_burst_pol_filename = (f'NETCDF:{burst_hdf5_in_output}:'
+                geo_burst_pol_filename = (f'NETCDF:{output_hdf5_file_burst}:'
                                           '/science/SENTINEL1/RTC/grids/'
                                           f'frequencyA/{pol}')
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
-        # save browse image (burst)
-        if save_browse:
-            browse_image_filename = \
-                os.path.join(output_dir_bursts, f'{product_prefix}.png')
-            _save_browse(output_burst_imagery_list, browse_image_filename,
-                         pol_list, browse_image_burst_height,
-                         browse_image_burst_width, temp_files_list,
-                         burst_scratch_path, logger)
-            output_file_list.append(browse_image_filename)
 
         if save_nlooks:
             del out_geo_nlooks_obj
@@ -1100,7 +1098,7 @@ def run_single_job(cfg: RunConfig):
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
-            output_metadata_dict['rtc'][1].append(rtc_anf_file)
+            output_metadata_dict['rtc_area_normalization_factor'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
         if flag_call_radar_grid and save_bursts:
@@ -1122,9 +1120,6 @@ def run_single_job(cfg: RunConfig):
         # Create burst HDF5
         if (save_hdf5_metadata and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
-            os.makedirs(hdf5_file_output_dir, exist_ok=True)
-            output_hdf5_file_burst = os.path.join(
-                hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
             with create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg) as hdf5_burst_obj:
                 save_hdf5_file(
                     hdf5_burst_obj, output_hdf5_file_burst, flag_apply_rtc,
@@ -1135,6 +1130,16 @@ def run_single_job(cfg: RunConfig):
                     save_imagery=save_imagery_as_hdf5,
                     save_secondary_layers=save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
+
+        # save browse image (burst)
+        if save_browse:
+            browse_image_filename = \
+                os.path.join(output_dir_bursts, f'{product_prefix}.png')
+            _save_browse(output_burst_imagery_list, browse_image_filename,
+                         pol_list, browse_image_burst_height,
+                         browse_image_burst_width, temp_files_list,
+                         burst_scratch_path, logger)
+            output_file_list.append(browse_image_filename)
 
         # Create mosaic HDF5
         if (save_hdf5_metadata and save_mosaics
@@ -1234,7 +1239,8 @@ def run_single_job(cfg: RunConfig):
             else:
                 nlooks_mosaic_file = None
             if save_rtc_anf:
-                rtc_anf_mosaic_file = output_metadata_dict['rtc'][0]
+                rtc_anf_mosaic_file = output_metadata_dict[
+                    'rtc_area_normalization_factor'][0]
             else:
                 rtc_anf_mosaic_file = None
             if save_layover_shadow_mask:
@@ -1348,7 +1354,7 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_prefix,
         output_obj_list, save_projection_angle, extension)
     rtc_anf_psi_raster = _create_raster_obj(
         output_dir, f'{product_prefix}_rtc_anf_psi',
-        'areaNormalizationFactorPsi', gdal.GDT_Float32, shape,
+        'RTCAreaNormalizationFactorPsi', gdal.GDT_Float32, shape,
         radar_grid_file_dict, output_obj_list,
         save_rtc_anf_psi, extension)
     range_slope_raster = _create_raster_obj(
