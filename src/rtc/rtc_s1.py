@@ -361,9 +361,9 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_secondary_layers_as_hdf5 = \
         cfg.groups.product_group.save_secondary_layers_as_hdf5
 
-    save_metadata = (cfg.groups.product_group.save_metadata or
-                     save_imagery_as_hdf5 or
-                     save_secondary_layers_as_hdf5)
+    save_hdf5_metadata = (cfg.groups.product_group.save_metadata or
+                          save_imagery_as_hdf5 or
+                          save_secondary_layers_as_hdf5)
 
     if output_imagery_format == 'NETCDF':
         hdf5_file_extension = 'nc'
@@ -782,7 +782,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 output_file_list += list(radar_grid_file_dict.values())
 
         # Create burst HDF5
-        if ((save_imagery_as_hdf5 or save_metadata) and save_bursts):
+        if (save_hdf5_metadata and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
             output_hdf5_file_burst = os.path.join(
@@ -790,7 +790,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_file_list.append(output_hdf5_file_burst)
 
         # Create mosaic HDF5
-        if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
+        if (save_hdf5_metadata and save_mosaics
                 and burst_index == 0):
             hdf5_mosaic_obj = create_hdf5_file(
                 output_hdf5_file, orbit, burst, cfg)
@@ -817,7 +817,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                               dem_raster, radar_grid_file_dict,
                               mosaic_geogrid_dict,
                               orbit, verbose=not save_imagery_as_hdf5)
-        if save_secondary_layers_as_hdf5:
+        if save_hdf5_metadata:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
         else:
@@ -864,7 +864,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 output_file_list.append(output_file)
 
         # Save the mosaicked layers as HDF5
-        if save_imagery_as_hdf5 or save_metadata:
+        if save_hdf5_metadata:
             if save_nlooks:
                 nlooks_mosaic_file = output_metadata_dict['nlooks'][0]
             else:
