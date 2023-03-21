@@ -313,7 +313,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'RTC/metadata/processingInformation/parameters/productFiltering': # placeholder for 1.7.4
             [False,
              'Flag if filter has been applied'],
-        'identification/productBoundingBox': # placeholder for 1.7.4
+        'identification/boundingBox': # placeholder for 1.7.4
             [np.zeros(4),
              'xmin, ymin, xmax, ymax'],
         'identification/productImageSize': # placeholder for 1.7.7
