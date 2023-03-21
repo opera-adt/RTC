@@ -5,6 +5,7 @@ RTC-S1 Science Application Software (single job)
 import datetime
 import os
 import time
+import tempfile
 
 import logging
 import numpy as np
@@ -22,8 +23,9 @@ from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
 from rtc.core import create_logger, save_as_cog
 from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
 from rtc.version import VERSION as SOFTWARE_VERSION
+import matplotlib.image as mpimg
 
-logger = logging.getLogger('rtc_s1_single_job')
+logger = logging.getLogger('rtc_s1')
 
 
 def update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
@@ -71,26 +73,149 @@ def update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 
 
 
+def _save_browse(imagery_list, browse_image_filename,
+                 pol_list, browse_image_height, browse_image_width,
+                 temp_files_list, scratch_dir, logger):
+    """Create and save a browse image for the RTC-S1 product
+
+       Parameters
+       ----------
+       imagery_list : list(str)
+           List of imagery files (one file for each polarization channel)
+       browse_image_filename : str
+           Output browse file
+       pol_list : list(str)
+           List of polarization channels
+       browse_image_height : int
+           Browse image height
+       browse_image_width : int
+           Browse image width
+       scratch_dir : str
+           Directory for temporary files
+       temp_files_list: list (optional)
+           Mutable list of temporary files. If provided,
+           paths to the temporary files generated will be
+           appended to this list.
+       logger : loggin.Logger
+           Logger
+    """
+
+    BROWSE_IMAGE_MAX_PERCENTILE = 97
+
+    logger.info(f'creating browse image: {browse_image_filename}')
+
+    n_images = len(imagery_list)
+
+    if n_images == 1:
+        expected_pol_order = pol_list
+    elif n_images == 2 and 'HH' in pol_list:
+        expected_pol_order = ['HH', 'HV']
+    elif n_images == 2:
+        expected_pol_order = ['VV', 'VH']
+    elif n_images == 3 or n_images == 4:
+        expected_pol_order = ['HH', 'HV', 'VV']
+    else:
+        raise ValueError('Unexpected number of images in the imagery'
+                         f' list {n_images} for generating browse'
+                         'images')
+
+    alpha_channel = None
+    band_list = [None] * n_images
+
+    for filename, pol in zip(imagery_list, pol_list):
+        logger.info(f'    pol: {pol}')
+        gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
+        image_width = gdal_ds.GetRasterBand(1).XSize
+        image_height = gdal_ds.GetRasterBand(1).YSize
+
+        if (browse_image_height is not None or
+                browse_image_width is not None):
+
+            del gdal_ds
+
+            if browse_image_width is None:
+                browse_image_width =  int(np.round(
+                    (browse_image_height * float(image_width) / image_height)))
+
+            if browse_image_height is None:
+                browse_image_height = int(np.round(
+                    (browse_image_width * float(image_height) / image_width)))
+
+            logger.info(f'        browse length: {browse_image_height}')
+            logger.info(f'        browse width: {browse_image_width}')
+
+            browse_temp_file = tempfile.NamedTemporaryFile(
+                dir=scratch_dir, suffix='.tif').name
+
+            if temp_files_list is not None:
+                temp_files_list.append(browse_temp_file)
+
+            resamp_algorithm = 'AVERAGE'
+
+            # Translate the existing geotiff to the .png format
+            gdal.Translate(browse_temp_file,
+                           filename,
+                           # outputSRS="+proj=longlat +ellps=WGS84",
+                           # format='PNG',
+                           height=browse_image_height,
+                           width=browse_image_width,
+                           resampleAlg=resamp_algorithm)
+
+            gdal_ds = gdal.Open(browse_temp_file, gdal.GA_ReadOnly)
+
+        gdal_band = gdal_ds.GetRasterBand(1)
+        band_image = np.asarray(gdal_band.ReadAsArray(), dtype=np.float32)
+        if alpha_channel is None:
+            alpha_channel = np.asarray(np.isfinite(band_image),
+                                       dtype=np.float32)
+        vmax = np.nanpercentile(band_image, BROWSE_IMAGE_MAX_PERCENTILE)
+        logger.info('        min: 0')
+        logger.info(f'        max ({BROWSE_IMAGE_MAX_PERCENTILE}% percentile):'
+                    f' {vmax}')
+        band_image /= vmax
+        band_image = np.clip(band_image, 0, 1)
+        band_list_index = expected_pol_order.index(pol)
+        band_list[band_list_index] = band_image
+
+    if n_images == 1:
+        image = np.dstack((band_list[0],
+                           band_list[0],
+                           band_list[0],
+                           alpha_channel))
+    elif n_images == 2:
+        image = np.dstack((band_list[0],
+                           band_list[1],
+                           band_list[0],
+                           alpha_channel))
+    else:
+        image = np.dstack((band_list[0],
+                           band_list[1],
+                           band_list[2],
+                           alpha_channel))
+    mpimg.imsave(browse_image_filename, image, format='png')
 
 
-
-
-
-def _separate_pol_channels(multi_band_file, output_file_list, logger,
-                           output_raster_format):
+def _separate_pol_channels(multi_band_file, output_file_list,
+                           pol_list, output_radiometry_str,
+                           logger, output_raster_format):
     """Save a multi-band raster file as individual single-band files
 
        Parameters
        ----------
        multi_band_file : str
-              Multi-band raster file
-       output_file_list : list
-              Output file list
+           Multi-band raster file
+       pol_list : list(str)
+           List of polarization channels
+       output_radiometry_str: str
+           Output radiometry
+       output_file_list : list(str)
+           Output file list
        logger : loggin.Logger
-              Logger
+           Logger
+       output_raster_format : str
+           Output raster format
     """
     gdal_ds = gdal.Open(multi_band_file, gdal.GA_ReadOnly)
-    description = gdal_ds.GetDescription()
     projection = gdal_ds.GetProjectionRef()
     geotransform = gdal_ds.GetGeoTransform()
     metadata = gdal_ds.GetMetadata()
@@ -113,12 +238,13 @@ def _separate_pol_channels(multi_band_file, output_file_list, logger,
             output_file, band_image.shape[1],
             band_image.shape[0], 1, gdal_dtype)
 
-        raster_out.SetDescription(description)
         raster_out.SetProjection(projection)
         raster_out.SetGeoTransform(geotransform)
         raster_out.SetMetadata(metadata)
 
+        description = f'RTC-S1 {output_radiometry_str} ({pol_list[b]})'
         band_out = raster_out.GetRasterBand(1)
+        band_out.SetDescription(description)
         band_out.WriteArray(band_image)
         band_out.FlushCache()
         del band_out
@@ -261,7 +387,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 lines_per_block_rdr2geo: int=1000,
                                 threshold_geo2rdr: float=1.0e-7,
                                 numiter_geo2rdr: int=25,
-                                memory_mode: str=None):
+                                memory_mode: isce3.core.GeocodeMemoryMode=None):
     '''
     Compute the layover/shadow mask and geocode it
 
@@ -295,6 +421,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         Iteration threshold for geo2rdr
     numiter_geo2rdr: int
         Number of max. iteration for geo2rdr object
+    memory_mode: isce3.core.GeocodeMemoryMode
+        Geocoding memory mode
 
     Returns
     -------
@@ -350,12 +478,16 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                       geogrid_in.width, geogrid_in.length, 1,
                                       gdal.GDT_Byte, output_raster_format)
 
+    geocode_options = {}
+    if memory_mode is not None:
+        geocode_options['memory_mode'] = memory_mode
+
     geo.geocode(radar_grid=radar_grid,
                 input_raster=slantrange_layover_shadow_mask_raster,
                 output_raster=geocoded_layover_shadow_mask_raster,
                 dem_raster=dem_raster,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP,
-                memory_mode=memory_mode)
+                **geocode_options)
 
     return slantrange_layover_shadow_mask_raster
 
@@ -408,6 +540,7 @@ def run_single_job(cfg: RunConfig):
     # RTC-S1 imagery
     save_bursts = cfg.groups.product_group.save_bursts
     save_mosaics = cfg.groups.product_group.save_mosaics
+    save_browse = cfg.groups.product_group.save_browse
 
     if not save_bursts and not save_mosaics:
         err_msg = (f"ERROR either `save_bursts` or `save_mosaics` needs to be"
@@ -420,6 +553,15 @@ def run_single_job(cfg: RunConfig):
         cfg.groups.product_group.output_imagery_compression
     output_imagery_nbits = \
         cfg.groups.product_group.output_imagery_nbits
+
+    browse_image_burst_height = \
+        cfg.groups.processing.browse_image_group.browse_image_burst_height
+    browse_image_burst_width = \
+        cfg.groups.processing.browse_image_group.browse_image_burst_width
+    browse_image_mosaic_height = \
+        cfg.groups.processing.browse_image_group.browse_image_mosaic_height
+    browse_image_mosaic_width = \
+        cfg.groups.processing.browse_image_group.browse_image_mosaic_width
 
     logger.info(f'Identification:')
     logger.info(f'    product ID: {product_id}')
@@ -436,18 +578,25 @@ def run_single_job(cfg: RunConfig):
     logger.info(f'    output dir: {output_dir}')
     logger.info(f'    save bursts: {save_bursts}')
     logger.info(f'    save mosaics: {save_mosaics}')
+    logger.info(f'    save browse: {save_browse}')
     logger.info(f'    output imagery format: {output_imagery_format}')
-    logger.info(f'    output imagery compression: {output_imagery_compression}')
+    logger.info(f'    output imagery compression:'
+                f' {output_imagery_compression}')
     logger.info(f'    output imagery nbits: {output_imagery_nbits}')
+    logger.info(f'Browse images:')
+    logger.info(f'    burst height: {browse_image_burst_height}')
+    logger.info(f'    burst width: {browse_image_burst_width}')
+    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
+    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
 
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
     save_secondary_layers_as_hdf5 = \
         cfg.groups.product_group.save_secondary_layers_as_hdf5
 
-    save_metadata = (cfg.groups.product_group.save_metadata or
-                     save_imagery_as_hdf5 or
-                     save_secondary_layers_as_hdf5)
+    save_hdf5_metadata = (cfg.groups.product_group.save_metadata or
+                          save_imagery_as_hdf5 or
+                          save_secondary_layers_as_hdf5)
 
     if output_imagery_format == 'NETCDF':
         hdf5_file_extension = 'nc'
@@ -571,7 +720,7 @@ def run_single_job(cfg: RunConfig):
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc', output_dir_sec_mosaic_raster,
+        save_rtc_anf, 'rtc_area_normalization_factor', output_dir_sec_mosaic_raster,
         output_metadata_dict, product_prefix, imagery_extension)
 
     mosaic_geogrid_dict = {}
@@ -582,7 +731,7 @@ def run_single_job(cfg: RunConfig):
     vrt_options_mosaic = gdal.BuildVRTOptions(separate=True)
 
     n_bursts = len(cfg.bursts.items())
-    print('Number of bursts to process:', n_bursts)
+    logger.info(f'Number of bursts to process: {n_bursts}')
 
     hdf5_mosaic_obj = None
     output_hdf5_file = os.path.join(output_dir,
@@ -794,14 +943,15 @@ def run_single_job(cfg: RunConfig):
             else:
                 output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
-                output_metadata_dict['layover_shadow_mask'][1].append(
-                    layover_shadow_mask_file)
+                if save_layover_shadow_mask:
+                    output_metadata_dict['layover_shadow_mask'][1].append(
+                        layover_shadow_mask_file)
 
             if not save_layover_shadow_mask:
                 layover_shadow_mask_file = None
 
             if apply_shadow_masking:
-                geocode_new_isce3_kwargs['input_slantrange_layover_shadow_mask_raster'] = \
+                geocode_new_isce3_kwargs['input_layover_shadow_mask_raster'] = \
                     slantrange_layover_shadow_mask_raster
         else:
             layover_shadow_mask_file = None
@@ -907,21 +1057,38 @@ def run_single_job(cfg: RunConfig):
         # will be used for mosaicking
         output_imagery_list.append(geo_burst_filename)
 
+        # Create burst HDF5
+        if (save_hdf5_metadata and save_bursts):
+            hdf5_file_output_dir = os.path.join(output_dir, burst_id)
+            os.makedirs(hdf5_file_output_dir, exist_ok=True)
+            output_hdf5_file_burst = os.path.join(
+                hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
+
         # If burst imagery is not temporary, separate polarization channels
+        output_burst_imagery_list = []
         if not flag_bursts_files_are_temporary:
-            output_burst_imagery_list = []
             for pol in pol_list:
                 geo_burst_pol_filename = \
-                    os.path.join(output_dir, burst_id,
+                    os.path.join(output_dir_bursts,
                                  f'{product_prefix}_{pol}.' +
                                  f'{imagery_extension}')
                 output_burst_imagery_list.append(geo_burst_pol_filename)
 
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
+                                   pol_list, output_radiometry_str,
                                    logger, output_raster_format)
 
             output_file_list += output_burst_imagery_list
+
+
+        else:
+            for pol in pol_list:
+                geo_burst_pol_filename = (f'NETCDF:{output_hdf5_file_burst}:'
+                                          '/science/SENTINEL1/RTC/grids/'
+                                          f'frequencyA/{pol}')
+            output_burst_imagery_list.append(geo_burst_pol_filename)
+
 
         if save_nlooks:
             del out_geo_nlooks_obj
@@ -935,7 +1102,7 @@ def run_single_job(cfg: RunConfig):
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
-            output_metadata_dict['rtc'][1].append(rtc_anf_file)
+            output_metadata_dict['rtc_area_normalization_factor'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
         if flag_call_radar_grid and save_bursts:
@@ -955,11 +1122,8 @@ def run_single_job(cfg: RunConfig):
                 output_file_list += list(radar_grid_file_dict.values())
 
         # Create burst HDF5
-        if ((save_imagery_as_hdf5 or save_metadata) and save_bursts):
+        if (save_hdf5_metadata and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
-            os.makedirs(hdf5_file_output_dir, exist_ok=True)
-            output_hdf5_file_burst = os.path.join(
-                hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
             with create_hdf5_file(output_hdf5_file_burst, orbit, burst, cfg) as hdf5_burst_obj:
                 save_hdf5_file(
                     hdf5_burst_obj, output_hdf5_file_burst, flag_apply_rtc,
@@ -971,8 +1135,18 @@ def run_single_job(cfg: RunConfig):
                     save_secondary_layers=save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
 
+        # save browse image (burst)
+        if save_browse:
+            browse_image_filename = \
+                os.path.join(output_dir_bursts, f'{product_prefix}.png')
+            _save_browse(output_burst_imagery_list, browse_image_filename,
+                         pol_list, browse_image_burst_height,
+                         browse_image_burst_width, temp_files_list,
+                         burst_scratch_path, logger)
+            output_file_list.append(browse_image_filename)
+
         # Create mosaic HDF5
-        if ((save_imagery_as_hdf5 or save_metadata) and save_mosaics
+        if (save_hdf5_metadata and save_mosaics
                 and burst_index == 0):
             hdf5_mosaic_obj = create_hdf5_file(output_hdf5_file, orbit, burst, cfg)
 
@@ -999,7 +1173,7 @@ def run_single_job(cfg: RunConfig):
                        dem_raster, radar_grid_file_dict,
                        mosaic_geogrid_dict,
                        orbit, verbose=not save_imagery_as_hdf5)
-        if save_imagery_as_hdf5:
+        if save_hdf5_metadata:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
         else:
@@ -1018,9 +1192,11 @@ def run_single_job(cfg: RunConfig):
             output_imagery_filename_list.append(geo_pol_filename)
 
         nlooks_list = output_metadata_dict['nlooks'][1]
-        compute_weighted_mosaic_raster_single_band(
-            output_imagery_list, nlooks_list,
-            output_imagery_filename_list, cfg.geogrid, verbose=False)
+
+        if len(output_imagery_list) > 0:
+            compute_weighted_mosaic_raster_single_band(
+                output_imagery_list, nlooks_list,
+                output_imagery_filename_list, cfg.geogrid, verbose=False)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
@@ -1031,6 +1207,8 @@ def run_single_job(cfg: RunConfig):
         for key in output_metadata_dict.keys():
             output_file, input_files = output_metadata_dict[key]
             logger.info(f'mosaicking file: {output_file}')
+            if len(input_files) == 0:
+                continue
             compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
                                            cfg.geogrid, verbose=False)
 
@@ -1045,17 +1223,28 @@ def run_single_job(cfg: RunConfig):
                 output_file_list.append(output_file)
 
 
+        # save browse image (mosaic)
+        if save_browse:
+            browse_image_filename = \
+                os.path.join(output_dir, f'{product_prefix}.png')
+            _save_browse(output_imagery_filename_list, browse_image_filename,
+                            pol_list, browse_image_mosaic_height,
+                            browse_image_mosaic_width, temp_files_list,
+                            scratch_path, logger)
+            output_file_list.append(browse_image_filename)
+
 
 
 
         # Save HDF5
-        if save_imagery_as_hdf5 or save_metadata:
+        if save_hdf5_metadata:
             if save_nlooks:
                 nlooks_mosaic_file = output_metadata_dict['nlooks'][0]
             else:
                 nlooks_mosaic_file = None
             if save_rtc_anf:
-                rtc_anf_mosaic_file = output_metadata_dict['rtc'][0]
+                rtc_anf_mosaic_file = output_metadata_dict[
+                    'rtc_area_normalization_factor'][0]
             else:
                 rtc_anf_mosaic_file = None
             if save_layover_shadow_mask:
@@ -1108,10 +1297,21 @@ def run_single_job(cfg: RunConfig):
         for filename in output_file_list:
             if not filename.endswith('.tif'):
                 continue
+
             logger.info(f'    processing file: {filename}')
+
+            # if file is backscatter, use the 'AVERAGE' mode to create overlays
+            options_save_as_cog = {}
+            gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
+            description = gdal_ds.GetRasterBand(1).GetDescription()
+            if  description and 'backscatter' in description.lower():
+                options_save_as_cog['ovr_resamp_algorithm'] = 'AVERAGE'
+            del gdal_ds
+
             save_as_cog(filename, scratch_path, logger,
                         compression=output_imagery_compression,
-                        nbits=output_imagery_nbits)
+                        nbits=output_imagery_nbits,
+                        **options_save_as_cog)
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:
@@ -1158,7 +1358,7 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_prefix,
         output_obj_list, save_projection_angle, extension)
     rtc_anf_psi_raster = _create_raster_obj(
         output_dir, f'{product_prefix}_rtc_anf_psi',
-        'areaNormalizationFactorPsi', gdal.GDT_Float32, shape,
+        'RTCAreaNormalizationFactorPsi', gdal.GDT_Float32, shape,
         radar_grid_file_dict, output_obj_list,
         save_rtc_anf_psi, extension)
     range_slope_raster = _create_raster_obj(

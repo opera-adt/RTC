@@ -104,7 +104,7 @@ def check_reprojection(geogrid_mosaic,
 
 
 def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
-                     geogrid_in=None, verbose = True):
+                                  geogrid_in=None, verbose = True):
     '''
     Mosaic S-1 geobursts and return the mosaic as dictionary
     paremeters:
@@ -122,6 +122,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
     '''
 
     num_raster = len(list_rtc_images)
+    description_list = []
     num_bands = None
     posting_x = None
     posting_y = None
@@ -132,7 +133,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
     for i, path_rtc in enumerate(list_rtc_images):
         if verbose:
             print(f'loading geocoding info: {i+1} of {num_raster}')
-        
+
         raster_in = gdal.Open(path_rtc, gdal.GA_ReadOnly)
         list_geo_transform[i, :] = raster_in.GetGeoTransform()
         list_dimension[i, :] = (raster_in.RasterYSize, raster_in.RasterXSize)
@@ -140,10 +141,15 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
         # Check if the number of bands are consistent over the input RTC rasters
         if num_bands is None:
             num_bands = raster_in.RasterCount
-            continue
+
         elif num_bands != raster_in.RasterCount:
             raise ValueError(f'Anomaly detected on # of bands from source'
                              f' file: {os.path.basename(path_rtc)}')
+
+        if len(description_list) == 0:
+            for i_band in range(num_bands):
+                description_list.append(
+                    raster_in.GetRasterBand(i_band+1).GetDescription())
 
         raster_in = None
 
@@ -160,8 +166,10 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
         # determine the dimension and the upper left corner of the output mosaic
         xmin_mosaic = list_geo_transform[:, 0].min()
         ymax_mosaic = list_geo_transform[:, 3].max()
-        xmax_mosaic = (list_geo_transform[:, 0] + list_geo_transform[:, 1]*list_dimension[:, 1]).max()
-        ymin_mosaic = (list_geo_transform[:, 3] + list_geo_transform[:, 5]*list_dimension[:, 0]).min()
+        xmax_mosaic = (list_geo_transform[:, 0] +
+                       list_geo_transform[:, 1]*list_dimension[:, 1]).max()
+        ymin_mosaic = (list_geo_transform[:, 3] +
+                       list_geo_transform[:, 5]*list_dimension[:, 0]).min()
 
         dim_mosaic = (int(np.ceil((ymin_mosaic - ymax_mosaic) / posting_y)),
                       int(np.ceil((xmax_mosaic - xmin_mosaic) / posting_x)))
@@ -203,7 +211,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
             raise NotImplementedError
 
         # TODO: if geogrid_in is None, check reprojection
-                           
+
         # calculate the burst RTC's offset wrt. the output mosaic in the image coordinate
         offset_imgx = int((list_geo_transform[i,0] - xmin_mosaic) / posting_x + 0.5)
         offset_imgy = int((list_geo_transform[i,3] - ymax_mosaic) / posting_y + 0.5)
@@ -248,6 +256,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
 
     mosaic_dict = {
         'mosaic_array': arr_numerator,
+        'description_list': description_list,
         'length': dim_mosaic[0],
         'width': dim_mosaic[1],
         'num_bands': num_bands,
@@ -283,6 +292,7 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
                                    geogrid_in=geogrid_in, verbose = verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']
+    description_list = mosaic_dict['description_list']
     length = mosaic_dict['length']
     width = mosaic_dict['width']
     num_bands = mosaic_dict['num_bands']
@@ -304,11 +314,12 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
                                 datatype_mosaic)
 
     raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
-
     raster_out.SetProjection(wkt_projection)
 
     for i_band in range(num_bands):
-        raster_out.GetRasterBand(i_band+1).WriteArray(arr_numerator[i_band])
+        gdal_band = raster_out.GetRasterBand(i_band+1)
+        gdal_band.WriteArray(arr_numerator[i_band])
+        gdal_band.SetDescription(description_list[i_band])
 
 
 

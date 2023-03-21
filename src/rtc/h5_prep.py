@@ -97,7 +97,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
         # save rtc
         if rtc_anf_file:
             save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
-                               yds, xds, 'areaNormalizationFactor',
+                               yds, xds, 'RTCAreaNormalizationFactor',
                                long_name = 'RTC area factor',
                                units = '',
                                valid_min = 0)
@@ -347,7 +347,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         else:
             stats_vector = isce3.math.compute_raster_stats_float32(raster)
 
-    gdal_ds = gdal.Open(ds_filename)
+    gdal_ds = gdal.Open(ds_filename, gdal.GA_ReadOnly)
     nbands = gdal_ds.RasterCount
     for band in range(nbands):
         data = gdal_ds.GetRasterBand(band+1).ReadAsArray()

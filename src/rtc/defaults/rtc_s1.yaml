@@ -49,7 +49,13 @@ runconfig:
 
             # RTC-S1 imagery
             save_bursts: True
+
+            # Save mosaic of RTC-S1 bursts
             save_mosaics: False
+
+            # Save browse image(s)
+            save_browse: True
+
             output_imagery_format: COG
             output_imagery_compression: ZSTD
             output_imagery_nbits: 16
@@ -122,7 +128,7 @@ runconfig:
                 input_terrain_radiometry: beta0
 
                 # OPTIONAL - Minimum RTC area factor in dB
-                rtc_min_value_db: -40
+                rtc_min_value_db: -30
 
                 # RTC DEM upsampling
                 dem_upsampling: 2
@@ -204,3 +210,29 @@ runconfig:
                 bottom_right:
                     x:
                     y:
+
+            browse_image_group:
+
+                # If neither height or width parameters are provided, the browse
+                # image is generated with the same pixel spacing of the RTC-S1 
+                # imagery (burst or mosaic).
+
+                # If the height parameter is provided but the width is not provided,
+                # a new width is assigned in order to keep the aspect ratio
+                # of the RTC-S1 geographic grid.
+
+                # Conversely, if the width parameter is provided but the height is not,
+                # a new height is assigned in order to keep the aspect ratio
+                # of the RTC-S1 geographic grid.
+
+                # Height in pixels for the PNG browse image of RTC-S1 bursts.
+                browse_image_burst_height: 1024
+
+                # Width in pixels for the PNG browse image of RTC-S1 bursts
+                browse_image_burst_width:
+
+                # Height in pixels for the PNG browse image of RTC-S1 mosaics.
+                browse_image_mosaic_height: 1024
+
+                # Width in pixels for the PNG browse image of RTC-S1 mosaics
+                browse_image_mosaic_width:
