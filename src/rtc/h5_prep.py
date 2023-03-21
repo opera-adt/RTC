@@ -221,7 +221,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/missionId':
             [burst_in.platform_id,
              'Mission identifier'],
-        'RTC/grids/instrument': # placeholder for 1.6.2
+        'identification/instrument': # placeholder for 1.6.2
             ['',
              'Instrument name'],
         'RTC/grids//radarBand': # 1.6.4
