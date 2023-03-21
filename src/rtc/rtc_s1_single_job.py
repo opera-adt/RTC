@@ -73,15 +73,15 @@ def update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
 
 
 
-def _save_browse(burst_imagery_list, browse_image_filename,
+def _save_browse(imagery_list, browse_image_filename,
                  pol_list, browse_image_height, browse_image_width,
                  temp_files_list, scratch_dir, logger):
     """Create and save a browse image for the RTC-S1 product
 
        Parameters
        ----------
-       burst_imagery_list : list(str)
-           List of burst imagery files (one file for each polarization channel)
+       imagery_list : list(str)
+           List of imagery files (one file for each polarization channel)
        browse_image_filename : str
            Output browse file
        pol_list : list(str)
@@ -104,7 +104,7 @@ def _save_browse(burst_imagery_list, browse_image_filename,
 
     logger.info(f'creating browse image: {browse_image_filename}')
 
-    n_images = len(burst_imagery_list)
+    n_images = len(imagery_list)
 
     if n_images == 1:
         expected_pol_order = pol_list
@@ -112,13 +112,17 @@ def _save_browse(burst_imagery_list, browse_image_filename,
         expected_pol_order = ['HH', 'HV']
     elif n_images == 2:
         expected_pol_order = ['VV', 'VH']
-    else:
+    elif n_images == 3 or n_images == 4:
         expected_pol_order = ['HH', 'HV', 'VV']
+    else:
+        raise ValueError('Unexpected number of images in the imagery'
+                         f' list {n_images} for generating browse'
+                         'images')
 
     alpha_channel = None
     band_list = [None] * n_images
 
-    for filename, pol in zip(burst_imagery_list, pol_list):
+    for filename, pol in zip(imagery_list, pol_list):
         logger.info(f'    pol: {pol}')
         gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
         image_width = gdal_ds.GetRasterBand(1).XSize
