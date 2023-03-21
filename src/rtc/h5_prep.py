@@ -291,7 +291,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'RTC/grids/azimuthResolution': # placeholder for 1.6.7
             [0,
              'Azimuth time resolution of the source data in seconds'],
-        'RTC/grids/sourceDataRangeResolution': # placeholder for 1.6.7
+        'RTC/grids/slantRangeResolution': # placeholder for 1.6.7
             [0,
              'Slant range resolution of the source data in meters'],
         'RTC/grids/nearRangeIncidenceAngle': # placeholder for 1.6.7
