@@ -214,7 +214,6 @@ def test_workflow():
             save_secondary_layers_as_hdf5, save_metadata, hdf5_file_extension,
             imagery_extension)
 
-
         # Run geocode burst workflow (parallel)
         output_dir_parallel = os.path.join('data', 's1b_los_angeles',
                                         'output_dir_parallel')
