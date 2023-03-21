@@ -318,7 +318,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
              'xmin, ymin, xmax, ymax'],
         'RTC/grids/imageDimensions': # placeholder for 1.7.7
             [np.zeros(2),
-             'Number of lines / samples of the product'],
+             'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
         
         'identification/productPixelCoordinateConvention': # 1.7.8
             ['pixel ULC',
