@@ -270,7 +270,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/productVersion':
             [product_version,
              'Product version'],
-        'identification/DocumentIdentifier':
+        'identification/CEOSDocumentIdentifier':
             ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
              'Product version'],
         'RTC/grids/sourceDataNumberOfAcquisitions': # placeholder
