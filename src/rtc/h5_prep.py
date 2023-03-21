@@ -316,7 +316,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/boundingBox': # placeholder for 1.7.4
             [np.zeros(4),
              'xmin, ymin, xmax, ymax'],
-        'identification/productImageSize': # placeholder for 1.7.7
+        'RTC/grids/imageDimensions': # placeholder for 1.7.7
             [np.zeros(2),
              'Number of lines / samples of the product'],
         
