@@ -233,7 +233,7 @@ def populate_metadata_group(h5py_obj: h5py.File,
         
         'RTC/grids//beamID': # Placholder for 1.6.4
             ['[IW1, IW2, IW3]',
-             'Bean ID'],
+             'Beam identification (Beam ID)'],
             
         'identification/productType':
             ['Normalised Radar Backscatter', 'Product type'], # 1.3
