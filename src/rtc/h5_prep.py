@@ -279,6 +279,9 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'RTC/metadata/sourceDataInformation/dataAccess': # placeholder
             ['',
              'Where the source data can be retrieved'],
+        'RTC/metadata/sourceDataInformation/processingFacility': # 1.6.6
+            ['IPF',
+             'Source data processing facility'],
         'RTC/metadata/sourceDataInformation/processingDate': # placeholder for 1.6.6
             ['0000-00-00T00:00:00.000000',
              'Processing date'],
@@ -288,25 +291,42 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'RTC/metadata/sourceDataInformation/productLevel': # placeholder for 1.6.6
             [1,
              'Product level of the source data'],
+        'RTC/metadata/sourceDataInformation/geometry': # placeholder for 1.6.6
+            ['slant range',
+             'Geometry of the source data'],
         'RTC/grids/azimuthResolution': # placeholder for 1.6.7
             [0,
              'Azimuth time resolution of the source data in seconds'],
         'RTC/grids/slantRangeResolution': # placeholder for 1.6.7
             [0,
              'Slant range resolution of the source data in meters'],
-        'RTC/grids/nearRangeIncidenceAngle': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle': # placeholder for 1.6.7
             [0,
              'Near range incidence angle in meters'],
-        'RTC/grids/farRangeIncidenceAngle': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/farRangeIncidenceAngle': # placeholder for 1.6.7
             [0,
              'Far range incidence angle in meters'],
-        'RTC/metadata/sourceDataInformation/processingFacility': # 1.6.6
-            ['IPF',
-             'Source data processing facility'],
-
+        'RTC/metadata/sourceDataInformation/intensityNoiseLevel': # placeholder for 1.6.9
+            [[],
+             'Noise level indicators for each polarization'],
         'RTC/metadata/processingInformation/processingDate': # placeholder for 1.7.1
             ['0000-00-00T00:00:00',
              'RTC-S1 processing date'],
+
+        'RTC/metadata/processingInformation/noiseRemovalApplied': # placeholder for 3.3
+            [True,
+             'A flag to indicate whether noise removal was applied'],
+
+        'RTC/metadata/processingInformation/noiseRemovalAlgorithmReference': # placeholder for 3.3
+            [('https://sentinels.copernicus.eu/documents/247904/2142675/'
+              'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf/'
+              '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000'),
+             'A reference to the noise removal algorithm applied'],
+
+        'RTC/metadata/processingInformation/rtcAlgorithmReference': # placeholder for 3.4
+            ['https://ieeexplore.ieee.org/document/9695438',
+             'A reference to the RTC algorithm applied'],
+
         'identification/dataAccess': # placeholder for 1.7.1
             ['',
              'URL to access the data'],
@@ -319,7 +339,74 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'RTC/grids/imageDimensions': # placeholder for 1.7.7
             [np.zeros(2),
              'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
+
+        # file format spec. for data mask - for 2.2
+        'RTC/metadata/fileFormatSpecification/dataMask/sampleType':
+            ['Mask',
+             'Sample type of the data mask'],
+        'RTC/metadata/fileFormatSpecification/dataMask/dataFormat':
+            ['',
+             'Data format of the mask image'],
+        'RTC/metadata/fileFormatSpecification/dataMask/dataType':
+            ['',
+             'Data type of the mask image'],
+        'RTC/metadata/fileFormatSpecification/dataMask/bitsPerSample':
+            ['',
+             'Bits per sample of the mask image'],
+        'RTC/metadata/fileFormatSpecification/dataMask/byteOrder':
+            ['',
+             'Byte order of the mask image'],
+        'RTC/metadata/fileFormatSpecification/dataMask/valueRepresentation':
+            [[0,0,0],
+             'pixel DNs that corresponds to valid data, invalid data, and no data'],
+
+        # file format spec. for local inc. angle - for 2.4
+        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/sampleType':
+            ['Angle',
+             'Sample type of the local incidence angle layer'],
+        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/dataFormat':
+            ['',
+             'Data format of the local incidence angle layer'],
+        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/dataType':
+            ['',
+             'Data type of the local incidence angle layer'],
+        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/bitsPerSample':
+            ['',
+             'Bits per sample of the local incidence angle layer'],
+        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/byteOrder':
+            ['',
+             'Byte order of the local incidence angle layer'],
+
+        # file format spec. for backscatter - for 3.1
+        'RTC/metadata/fileFormatSpecification/backScatter/sampleType':
+            ['Gamma-Nought',
+             'measurement type of the backscetter image'],
+        'RTC/metadata/fileFormatSpecification/backScatter/expressionConvention':
+            ['linear amplitude',
+             'Backscatter expression convention - linear ampliture or linear power'],
+        'RTC/metadata/fileFormatSpecification/backScatter/polarization':
+            ['',
+             'Polarization of the backscatter'],
+        'RTC/metadata/fileFormatSpecification/backScatter/dataFormat':
+            ['',
+             'Data format of the backscatter measurement'],
+        'RTC/metadata/fileFormatSpecification/backScatter/dataType':
+            ['',
+             'Data type of the backscatter measurement'],
+        'RTC/metadata/fileFormatSpecification/backScatter/bitsPerSample':
+            ['',
+             'Bits per sample of the backscatter measurement'],
+        'RTC/metadata/fileFormatSpecification/backScatter/byteOrder':
+            ['',
+             'Byte order of the backscatter measurement'],
         
+        'RTC/metadata/fileFormatSpecification/scalingConversion':
+            ['',
+             ('equation to convert from pixel linear amplitude / power to'
+              'logarithmic decibel scale')],
+
+        
+
         # 'identification/productPixelCoordinateConvention': # 1.7.8
         #    ['pixel ULC',
         #     'Product pixel coordinate convention'],
