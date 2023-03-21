@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 LABEL author="OPERA ADT" \
       description="RTC gamma release R3" \
-      version="0.3-beta"
+      version="0.3-gamma"
 
 RUN apt-get -y update &&\
     apt-get -y install curl zip make &&\
