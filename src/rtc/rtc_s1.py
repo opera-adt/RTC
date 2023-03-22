@@ -23,7 +23,8 @@ from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
                                   compute_weighted_mosaic_raster_single_band)
 from rtc.core import create_logger, save_as_cog
 from rtc.version import VERSION as SOFTWARE_VERSION
-from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
+from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
+                         get_metadata_dict, all_metadata_dict_to_geotiff_metadata_dict)
 
 from rtc.runconfig import RunConfig, load_parameters
 
@@ -548,6 +549,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     lookside = None
     wavelength = None
     orbit = None
+    mosaic_geotiff_metadata_dict = None
 
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
@@ -799,6 +801,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             hdf5_mosaic_obj = create_hdf5_file(
                 mosaic_product_id, output_hdf5_file, orbit, burst, cfg,
                 is_mosaic=True)
+
+        if (save_mosaics and burst_index == 0):
+            mosaic_metadata_dict = get_metadata_dict(burst_product_id, burst, cfg,
+                is_mosaic=True)
+            mosaic_geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
+                mosaic_metadata_dict)
 
         t_burst_end = time.time()
         logger.info(

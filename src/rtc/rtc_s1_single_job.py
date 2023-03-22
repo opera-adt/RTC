@@ -163,7 +163,7 @@ def append_metadata_to_geotiff_file(input_file, metadata_dict):
        metadata_dict : dict
            Metadata dictionary
     '''
-    logger.info(f'    appending metadata to file: {input_file}')
+    logger.info(f'    appending metadata to GeoTIFF file: {input_file}')
     gdal_ds = gdal.Open(input_file, gdal.GA_Update)
     gdal_ds.SetMetadata(metadata_dict)
     del gdal_ds
