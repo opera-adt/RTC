@@ -30,50 +30,6 @@ import matplotlib.image as mpimg
 logger = logging.getLogger('rtc_s1')
 
 
-def update_mosaic_boundaries(mosaic_geogrid_dict, geogrid):
-    """Updates mosaic boundaries and check if pixel spacing
-       and EPSG code are consistent between burst
-       and mosaic geogrid
-
-       Parameters
-       ----------
-       mosaic_geogrid_dict: dict
-              Dictionary containing mosaic geogrid parameters
-       geogrid : isce3.product.GeoGridParameters
-              Burst geogrid
-    """
-    xf = geogrid.start_x + geogrid.spacing_x * geogrid.width
-    yf = geogrid.start_y + geogrid.spacing_y * geogrid.length
-    if ('x0' not in mosaic_geogrid_dict.keys() or
-            geogrid.start_x < mosaic_geogrid_dict['x0']):
-        mosaic_geogrid_dict['x0'] = geogrid.start_x
-    if ('xf' not in mosaic_geogrid_dict.keys() or
-            xf > mosaic_geogrid_dict['xf']):
-        mosaic_geogrid_dict['xf'] = xf
-    if ('y0' not in mosaic_geogrid_dict.keys() or
-            geogrid.start_y > mosaic_geogrid_dict['y0']):
-        mosaic_geogrid_dict['y0'] = geogrid.start_y
-    if ('yf' not in mosaic_geogrid_dict.keys() or
-            yf < mosaic_geogrid_dict['yf']):
-        mosaic_geogrid_dict['yf'] = yf
-    if 'dx' not in mosaic_geogrid_dict.keys():
-        mosaic_geogrid_dict['dx'] = geogrid.spacing_x
-    if 'dy' not in mosaic_geogrid_dict.keys():
-        mosaic_geogrid_dict['dy'] = geogrid.spacing_y
-
-
-
-
-
-
-
-    # TODO fix this. The mosaic EPSG should not come from the
-    # first burst
-    if 'epsg' not in mosaic_geogrid_dict.keys():
-        mosaic_geogrid_dict['epsg'] = geogrid.epsg
-
-
-
 
 def _save_browse(imagery_list, browse_image_filename,
                  pol_list, browse_image_height, browse_image_width,
@@ -568,31 +524,6 @@ def run_single_job(cfg: RunConfig):
     browse_image_mosaic_width = \
         cfg.groups.processing.browse_image_group.browse_image_mosaic_width
 
-    logger.info(f'Identification:')
-    logger.info(f'    processing type: {processing_type}')
-    logger.info(f'    product version: {product_version}')
-    if save_mosaics:
-        logger.info(f'    mosaic product ID: {mosaic_product_id}')
-    logger.info(f'Processing parameters:')
-    logger.info(f'    apply RTC: {flag_apply_rtc}')
-    logger.info(f'    apply thermal noise correction:'
-                f' {flag_apply_thermal_noise_correction}')
-    logger.info(f'    apply absolute radiometric correction:'
-                f' {flag_apply_abs_rad_correction}')
-    logger.info(f'    scratch dir: {scratch_path}')
-    logger.info(f'    output dir: {output_dir}')
-    logger.info(f'    save bursts: {save_bursts}')
-    logger.info(f'    save mosaics: {save_mosaics}')
-    logger.info(f'    save browse: {save_browse}')
-    logger.info(f'    output imagery format: {output_imagery_format}')
-    logger.info(f'    output imagery compression:'
-                f' {output_imagery_compression}')
-    logger.info(f'    output imagery nbits: {output_imagery_nbits}')
-    logger.info(f'Browse images:')
-    logger.info(f'    burst height: {browse_image_burst_height}')
-    logger.info(f'    burst width: {browse_image_burst_width}')
-    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
-    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
 
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
@@ -689,6 +620,34 @@ def run_single_job(cfg: RunConfig):
     else:
         output_radiometry_str = 'radar backscatter sigma0'
 
+    logger.info(f'Identification:')
+    logger.info(f'    processing type: {processing_type}')
+    logger.info(f'    product version: {product_version}')
+    if save_mosaics:
+        logger.info(f'    mosaic product ID: {mosaic_product_id}')
+    logger.info(f'Processing parameters:')
+    logger.info(f'    apply RTC: {flag_apply_rtc}')
+    logger.info(f'    apply thermal noise correction:'
+                f' {flag_apply_thermal_noise_correction}')
+    logger.info(f'    apply absolute radiometric correction:'
+                f' {flag_apply_abs_rad_correction}')
+    logger.info(f'    scratch dir: {scratch_path}')
+    logger.info(f'    output dir: {output_dir}')
+    logger.info(f'    save bursts: {save_bursts}')
+    logger.info(f'    save mosaics: {save_mosaics}')
+    logger.info(f'    save browse: {save_browse}')
+    logger.info(f'    output imagery format: {output_imagery_format}')
+    logger.info(f'    output imagery compression:'
+                f' {output_imagery_compression}')
+    logger.info(f'    output imagery nbits: {output_imagery_nbits}')
+    logger.info(f'    save secondary layers as HDF5 files:'
+                f' {save_secondary_layers_as_hdf5}')
+    logger.info(f'Browse images:')
+    logger.info(f'    burst height: {browse_image_burst_height}')
+    logger.info(f'    burst width: {browse_image_burst_width}')
+    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
+    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
+
     # Common initializations
     dem_raster = isce3.io.Raster(cfg.dem)
     ellipsoid = isce3.core.Ellipsoid()
@@ -728,7 +687,6 @@ def run_single_job(cfg: RunConfig):
         save_rtc_anf, 'rtc_area_normalization_factor', output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
 
-    mosaic_geogrid_dict = {}
     temp_files_list = []
 
     os.makedirs(output_dir, exist_ok=True)
@@ -742,6 +700,9 @@ def run_single_job(cfg: RunConfig):
     output_hdf5_file = os.path.join(output_dir,
                                     f'{mosaic_product_id}.{hdf5_file_extension}')
 
+    lookside = None
+    wavelength = None
+    orbit = None
     mosaic_geotiff_metadata_dict = None
 
     # iterate over sub-burts
@@ -789,20 +750,13 @@ def run_single_job(cfg: RunConfig):
         geogrid.start_x = snap_coord(geogrid.start_x, x_snap, np.floor)
         geogrid.start_y = snap_coord(geogrid.start_y, y_snap, np.ceil)
 
-        # update mosaic boundaries
-        update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
-
         logger.info(f'    reading burst SLCs')
         radar_grid = burst.as_isce3_radargrid()
 
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
-        if 'orbit' not in mosaic_geogrid_dict.keys():
-            mosaic_geogrid_dict['orbit'] = orbit
-        if 'wavelength' not in mosaic_geogrid_dict.keys():
-            mosaic_geogrid_dict['wavelength'] = burst.wavelength
-        if 'lookside' not in mosaic_geogrid_dict.keys():
-            mosaic_geogrid_dict['lookside'] = radar_grid.lookside
+        wavelength = burst.wavelength
+        lookside = radar_grid.lookside
 
         input_file_list = []
 
@@ -1131,7 +1085,7 @@ def run_single_job(cfg: RunConfig):
                 save_rtc_anf_psi,
                 save_range_slope, save_dem,
                 dem_raster, radar_grid_file_dict,
-                mosaic_geogrid_dict, orbit,
+                lookside, wavelength, orbit,
                 verbose=not flag_bursts_secondary_files_are_temporary)
             if flag_bursts_secondary_files_are_temporary:
                 # files are temporary
@@ -1177,7 +1131,6 @@ def run_single_job(cfg: RunConfig):
             mosaic_geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
                 mosaic_metadata_dict)
 
-
         t_burst_end = time.time()
         logger.info(
             f'elapsed time (burst): {t_burst_end - t_burst_start}')
@@ -1198,7 +1151,7 @@ def run_single_job(cfg: RunConfig):
                        save_rtc_anf_psi,
                        save_range_slope, save_dem,
                        dem_raster, radar_grid_file_dict,
-                       mosaic_geogrid_dict,
+                       lookside, wavelength,
                        orbit, verbose=not save_imagery_as_hdf5)
         if save_hdf5_metadata:
             # files are temporary
@@ -1369,7 +1322,7 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
                    save_local_inc_angle, save_projection_angle,
                    save_rtc_anf_psi,
                    save_range_slope, save_dem, dem_raster,
-                   radar_grid_file_dict, mosaic_geogrid_dict, orbit,
+                   radar_grid_file_dict, lookside, wavelength, orbit,
                    verbose=True):
     output_obj_list = []
     layers_nbands = 1
@@ -1417,8 +1370,8 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
             range_slope_raster
 
     # call get_radar_grid()
-    isce3.geogrid.get_radar_grid(mosaic_geogrid_dict['lookside'],
-                                 mosaic_geogrid_dict['wavelength'],
+    isce3.geogrid.get_radar_grid(lookside,
+                                 wavelength,
                                  dem_raster,
                                  geogrid,
                                  orbit,

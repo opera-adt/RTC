@@ -332,30 +332,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     browse_image_mosaic_width = \
         cfg.groups.processing.browse_image_group.browse_image_mosaic_width
 
-    logger.info(f'Identification:')
-    logger.info(f'    processing type: {processing_type}')
-    logger.info(f'    product version: {product_version}')
-    if save_mosaics:
-        logger.info(f'    mosaic product ID: {product_id}')
-    logger.info(f'Processing parameters:')
-    logger.info(f'    apply RTC: {flag_apply_rtc}')
-    logger.info(f'    apply thermal noise correction:'
-                f' {flag_apply_thermal_noise_correction}')
-    logger.info(f'    apply absolute radiometric correction:'
-                f' {flag_apply_abs_rad_correction}')
-    logger.info(f'    scratch dir: {scratch_path}')
-    logger.info(f'    output dir: {output_dir}')
-    logger.info(f'    save bursts: {save_bursts}')
-    logger.info(f'    save mosaics: {save_mosaics}')
-    logger.info(f'    save browse: {save_browse}')
-    logger.info(f'    output imagery format: {output_imagery_format}')
-    logger.info(f'    output imagery compression: {output_imagery_compression}')
-    logger.info(f'    output imagery nbits: {output_imagery_nbits}')
-    logger.info(f'Browse images:')
-    logger.info(f'    burst height: {browse_image_burst_height}')
-    logger.info(f'    burst width: {browse_image_burst_width}')
-    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
-    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
+
 
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
@@ -396,10 +373,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
-
-
-
-
     # TODO remove the lines below when the mosaic
     #       does not take in nlooks anymore
     if save_mosaics:
@@ -434,6 +407,33 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         output_radiometry_str = 'radar backscatter beta0'
     else:
         output_radiometry_str = 'radar backscatter sigma0'
+
+    logger.info(f'Identification:')
+    logger.info(f'    processing type: {processing_type}')
+    logger.info(f'    product version: {product_version}')
+    if save_mosaics:
+        logger.info(f'    mosaic product ID: {product_id}')
+    logger.info(f'Processing parameters:')
+    logger.info(f'    apply RTC: {flag_apply_rtc}')
+    logger.info(f'    apply thermal noise correction:'
+                f' {flag_apply_thermal_noise_correction}')
+    logger.info(f'    apply absolute radiometric correction:'
+                f' {flag_apply_abs_rad_correction}')
+    logger.info(f'    scratch dir: {scratch_path}')
+    logger.info(f'    output dir: {output_dir}')
+    logger.info(f'    save bursts: {save_bursts}')
+    logger.info(f'    save mosaics: {save_mosaics}')
+    logger.info(f'    save browse: {save_browse}')
+    logger.info(f'    output imagery format: {output_imagery_format}')
+    logger.info(f'    output imagery compression: {output_imagery_compression}')
+    logger.info(f'    output imagery nbits: {output_imagery_nbits}')
+    logger.info(f'    save secondary layers as HDF5 files:'
+                f' {save_secondary_layers_as_hdf5}')
+    logger.info(f'Browse images:')
+    logger.info(f'    burst height: {browse_image_burst_height}')
+    logger.info(f'    burst width: {browse_image_burst_width}')
+    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
+    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
 
     # Common initializations
     dem_raster = isce3.io.Raster(cfg.dem)
@@ -470,7 +470,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
 
-    mosaic_geogrid_dict = {}
     temp_files_list = []
 
     os.makedirs(output_dir, exist_ok=True)
@@ -546,6 +545,10 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                           f'"{list_burst_id[index_child]}"\n')
         raise RuntimeError(msg_failed_child_proc)
 
+    lookside = None
+    wavelength = None
+    orbit = None
+
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
 
@@ -592,21 +595,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         geogrid.start_x = snap_coord(geogrid.start_x, x_snap, np.floor)
         geogrid.start_y = snap_coord(geogrid.start_y, y_snap, np.ceil)
 
-        # update mosaic boundaries
-        update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
-
         logger.info(f'    reading burst SLCs')
         radar_grid = burst.as_isce3_radargrid()
 
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
-        if 'orbit' not in mosaic_geogrid_dict.keys():
-            mosaic_geogrid_dict['orbit'] = orbit
-        if 'wavelength' not in mosaic_geogrid_dict.keys():
-            mosaic_geogrid_dict['wavelength'] = burst.wavelength
-        if 'lookside' not in mosaic_geogrid_dict.keys():
-            mosaic_geogrid_dict['lookside'] = radar_grid.lookside
-
+        wavelength = burst.wavelength
+        lookside = radar_grid.lookside
         input_file_list = []
 
         for pol, burst_pol in burst_pol_dict.items():
@@ -825,7 +820,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                               save_rtc_anf_psi,
                               save_range_slope, save_dem,
                               dem_raster, radar_grid_file_dict,
-                              mosaic_geogrid_dict,
+                              lookside, wavelength,
                               orbit, verbose=not save_imagery_as_hdf5)
         if save_hdf5_metadata:
             # files are temporary

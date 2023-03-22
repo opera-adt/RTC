@@ -72,7 +72,7 @@ runconfig:
 
             # Optional. Save secondary layers (e.g., inc. angle) within 
             # the HDF5 file
-            save_secondary_layers_as_hdf5: True
+            save_secondary_layers_as_hdf5: False
 
             # Save RTC-S1 metadata in the HDF5 format
             # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or

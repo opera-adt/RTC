@@ -263,14 +263,14 @@ def get_metadata_dict(product_id: str,
              'Track number'],
         # 'identification/missionId':
         #    [mission_id, 'Mission identifier'],
-        'identification/platformId':
-            ['platform_id', platform_id, 'Platform identifier'],
-        'identification/instrumentName':
-            ['instrument_name', platform_id, 'Instrument name'],
+        'identification/platform':
+            ['platform', platform_id, 'Platform name'],
+        'identification/sensor':
+            ['sensor', platform_id, 'Sensor instrument name'],
         'identification/productType':
             ['product_type', 'RTC-S1', 'Product type'],
-        'identification/projectName':
-            ['project_name', 'OPERA', 'Project name'],
+        'identification/project':
+            ['project', 'OPERA', 'Project name'],
         'identification/acquisitionMode':
             ['acquisition_mode', 'Interferometric Wide (IW)',
              'Acquisition mode'],
@@ -328,17 +328,16 @@ def get_metadata_dict(product_id: str,
         f'{FREQ_GRID_SUB_PATH}/slantRangeSpacing':
             ['slant_range_spacing', burst_in.range_pixel_spacing,
              'Slant range spacing of grid. '
-             'Same as difference between consecutive samples in slantRange array'],
+             'Distance in meters between consecutive range samples'],
         f'{FREQ_GRID_SUB_PATH}/zeroDopplerTimeSpacing':
             ['zero_doppler_time_spacing', burst_in.azimuth_time_interval,
-             'Time interval in the along track direction for raster layers. This is same '
-             'as the spacing between consecutive entries in the zeroDopplerTime array'],
-        f'{FREQ_GRID_SUB_PATH}/faradayRotationFlag':
-            ['faraday_rotation_flag', False,
-             'Flag to indicate if Faraday Rotation correction was applied'],
-        f'{FREQ_GRID_SUB_PATH}/polarizationOrientationFlag':
-            ['polarization_orientation_flag', False,
-            'Flag to indicate if Polarization Orientation correction was applied'],
+             'Time interval in the along track direction for raster layers'],
+        # f'{FREQ_GRID_SUB_PATH}/faradayRotationFlag':
+        #    ['faraday_rotation_flag', False,
+        #     'Flag to indicate if Faraday Rotation correction was applied'],
+        # f'{FREQ_GRID_SUB_PATH}/polarizationOrientationFlag':
+        #    ['polarization_orientation_flag', False,
+        #    'Flag to indicate if Polarization Orientation correction was applied'],
 
         'RTC/metadata/processingInformation/algorithms/demInterpolation':
             ['dem_interpolation_algorithm',
@@ -351,16 +350,17 @@ def get_metadata_dict(product_id: str,
              cfg_in.groups.processing.rtc.algorithm_type,
             'Radiometric terrain correction (RTC) algorithm'],
         'RTC/metadata/processingInformation/algorithms/ISCEVersion':
-            ['isce3_version', isce3.__version__, 'ISCE version used for processing'],
+            ['isce3_version', isce3.__version__,
+            'Version of the ISCE3 framework used for processing'],
         # 'RTC/metadata/processingInformation/algorithms/RTCVersion':
         #     [str(SOFTWARE_VERSION), 'RTC-S1 SAS version used for processing'],
         'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
             ['s1_reader_version', release_version,
-             'S1-Reader version used for processing'],
+             'Version of the OPERA s1-reader used for processing'],
 
         'RTC/metadata/processingInformation/inputs/l1SLCGranules':
             ['l1_slc_granules', l1_slc_granules,
-             'List of input L1 RSLC products used'],
+             'List of input L1 SLC products used'],
         'RTC/metadata/processingInformation/inputs/orbitFiles':
             ['orbit_files', orbit_files, 'List of input orbit files used'],
         'RTC/metadata/processingInformation/inputs/auxCalFiles':
@@ -378,7 +378,8 @@ def get_metadata_dict(product_id: str,
 
     metadata_dict['identification/boundingPolygon'] = \
         ['bounding_polygon', get_polygon_wkt(burst_in),
-         'OGR compatible WKT representation of bounding polygon of the image']
+         'OGR compatible WKT representation of the product bounding polygon'
+         ' bounding polygon']
 
     metadata_dict['identification/burstID'] = \
         ['burst_id', str(burst_in.burst_id),
@@ -391,11 +392,11 @@ def get_metadata_dict(product_id: str,
     metadata_dict['identification/zeroDopplerStartTime'] = \
         ['zero_doppler_start_time',
          burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-         'Azimuth start time of product']
+         'Azimuth start time of the product']
     metadata_dict['identification/zeroDopplerEndTime'] = \
         ['zero_doppler_end_time',
          burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-         'Azimuth stop time of product']
+         'Azimuth stop time of the product']
     return metadata_dict
 
 
