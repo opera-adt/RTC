@@ -31,9 +31,9 @@ logger = logging.getLogger('rtc_s1')
 
 
 
-def _save_browse(imagery_list, browse_image_filename,
-                 pol_list, browse_image_height, browse_image_width,
-                 temp_files_list, scratch_dir, logger):
+def save_browse(imagery_list, browse_image_filename,
+                pol_list, browse_image_height, browse_image_width,
+                temp_files_list, scratch_dir, logger):
     """Create and save a browse image for the RTC-S1 product
 
        Parameters
@@ -153,7 +153,7 @@ def _save_browse(imagery_list, browse_image_filename,
     mpimg.imsave(browse_image_filename, image, format='png')
 
 
-def _append_metadata(input_file, metadata_dict):
+def append_metadata_to_geotiff_file(input_file, metadata_dict):
     '''Append metadata to GeoTIFF file
 
        Parameters
@@ -163,7 +163,7 @@ def _append_metadata(input_file, metadata_dict):
        metadata_dict : dict
            Metadata dictionary
     '''
-    logger.info(f'    appending metadata to file: {f}')
+    logger.info(f'    appending metadata to file: {input_file}')
     gdal_ds = gdal.Open(input_file, gdal.GA_Update)
     gdal_ds.SetMetadata(metadata_dict)
     del gdal_ds
@@ -672,6 +672,7 @@ def run_single_job(cfg: RunConfig):
     geo_filename = f'{output_dir}/'f'{mosaic_product_id}.{imagery_extension}'
     output_imagery_list = []
     output_file_list = []
+    mosaic_output_file_list = []
     output_metadata_dict = {}
 
     # output dir (imagery mosaics)
@@ -1119,10 +1120,10 @@ def run_single_job(cfg: RunConfig):
         if save_browse:
             browse_image_filename = \
                 os.path.join(output_dir_bursts, f'{burst_product_id}.png')
-            _save_browse(output_burst_imagery_list, browse_image_filename,
-                         pol_list, browse_image_burst_height,
-                         browse_image_burst_width, temp_files_list,
-                         burst_scratch_path, logger)
+            save_browse(output_burst_imagery_list, browse_image_filename,
+                        pol_list, browse_image_burst_height,
+                        browse_image_burst_width, temp_files_list,
+                        burst_scratch_path, logger)
             output_file_list.append(browse_image_filename)
 
         if (not flag_bursts_files_are_temporary or
@@ -1134,7 +1135,8 @@ def run_single_job(cfg: RunConfig):
             for current_file in output_file_list:
                 if not current_file.endswith('.tif'):
                     continue
-                _append_metadata(current_file, geotiff_metadata_dict)
+                append_metadata_to_geotiff_file(current_file,
+                                                geotiff_metadata_dict)
 
         # Create mosaic HDF5
         if (save_hdf5_metadata and save_mosaics
@@ -1175,6 +1177,7 @@ def run_single_job(cfg: RunConfig):
             temp_files_list += list(radar_grid_file_dict.values())
         else:
             output_file_list += list(radar_grid_file_dict.values())
+            mosaic_output_file_list += list(radar_grid_file_dict.values())
 
     if save_mosaics:
 
@@ -1195,13 +1198,13 @@ def run_single_job(cfg: RunConfig):
             compute_weighted_mosaic_raster_single_band(
                 output_imagery_list, nlooks_list,
                 output_imagery_filename_list, cfg.geogrid,
-                metadata_dict=mosaic_geotiff_metadata_dict,
                 verbose=False)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
         else:
             output_file_list += output_imagery_filename_list
+            mosaic_output_file_list += output_imagery_filename_list
 
         # Mosaic other bands
         for key in output_metadata_dict.keys():
@@ -1211,7 +1214,7 @@ def run_single_job(cfg: RunConfig):
                 continue
             compute_weighted_mosaic_raster(
                 input_files, nlooks_list, output_file, cfg.geogrid,
-                metadata_dict=mosaic_geotiff_metadata_dict, verbose=False)
+                verbose=False)
 
 
             # TODO: Remove nlooks exception below
@@ -1220,17 +1223,20 @@ def run_single_job(cfg: RunConfig):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
+                mosaic_output_file_list.append(output_file)
+                
 
 
         # save browse image (mosaic)
         if save_browse:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
-            _save_browse(output_imagery_filename_list, browse_image_filename,
-                            pol_list, browse_image_mosaic_height,
-                            browse_image_mosaic_width, temp_files_list,
-                            scratch_path, logger)
+            save_browse(output_imagery_filename_list, browse_image_filename,
+                        pol_list, browse_image_mosaic_height,
+                        browse_image_mosaic_width, temp_files_list,
+                        scratch_path, logger)
             output_file_list.append(browse_image_filename)
+            mosaic_output_file_list.append(browse_image_filename)
 
 
 
@@ -1313,6 +1319,13 @@ def run_single_job(cfg: RunConfig):
                         compression=output_imagery_compression,
                         nbits=output_imagery_nbits,
                         **options_save_as_cog)
+
+    if save_mosaics:
+        for current_file in mosaic_output_file_list:
+            if not current_file.endswith('.tif'):
+                continue
+            append_metadata_to_geotiff_file(current_file,
+                                            mosaic_geotiff_metadata_dict)
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:

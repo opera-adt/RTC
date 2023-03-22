@@ -16,7 +16,9 @@ from osgeo import gdal
 from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    snap_coord,
                                    run_single_job,
-                                   get_radar_grid)
+                                   get_radar_grid,
+                                   save_browse,
+                                   append_metadata_to_geotiff_file)
 from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
                                   compute_weighted_mosaic_raster_single_band)
 from rtc.core import create_logger, save_as_cog
@@ -331,8 +333,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     browse_image_mosaic_width = \
         cfg.groups.processing.browse_image_group.browse_image_mosaic_width
 
-
-
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
     save_secondary_layers_as_hdf5 = \
@@ -441,6 +441,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     geo_filename = f'{output_dir}/'f'{mosaic_product_id}.{imagery_extension}'
     output_imagery_list = []
     output_file_list = []
+    mosaic_output_file_list = []
     output_metadata_dict = {}
 
     # output dir (imagery mosaics)
@@ -826,6 +827,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             temp_files_list += list(radar_grid_file_dict.values())
         else:
             output_file_list += list(radar_grid_file_dict.values())
+            mosaic_output_file_list += list(radar_grid_file_dict.values())
 
     if save_mosaics:
 
@@ -845,13 +847,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             compute_weighted_mosaic_raster_single_band(
                 output_imagery_list, nlooks_list,
                 output_imagery_filename_list, cfg.geogrid,
-                metadata_dict=mosaic_geotiff_metadata_dict,
                 verbose=False)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
         else:
             output_file_list += output_imagery_filename_list
+            mosaic_output_file_list += output_imagery_filename_list
 
         # Mosaic other bands
         for key in output_metadata_dict.keys():
@@ -860,8 +862,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if len(input_files) == 0:
                 continue
             compute_weighted_mosaic_raster(
-                input_files, nlooks_list, output_file, cfg.geogrid, 
-                metadata_dict=mosaic_geotiff_metadata_dict, verbose=False)
+                input_files, nlooks_list, output_file, cfg.geogrid, verbose=False)
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
@@ -869,6 +870,21 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
+                mosaic_output_file_list.append(output_file)
+
+
+
+        # save browse image (mosaic)
+        if save_browse:
+            browse_image_filename = \
+                os.path.join(output_dir, f'{mosaic_product_id}.png')
+            save_browse(output_imagery_filename_list, browse_image_filename,
+                        pol_list, browse_image_mosaic_height,
+                        browse_image_mosaic_width, temp_files_list,
+                        scratch_path, logger)
+            output_file_list.append(browse_image_filename)
+            mosaic_output_file_list.append(browse_image_filename)
+
 
         # Save the mosaicked layers as HDF5
         if save_hdf5_metadata:
@@ -947,6 +963,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                         compression=output_imagery_compression,
                         nbits=output_imagery_nbits,
                         **options_save_as_cog)
+
+    if save_mosaics:
+        for current_file in mosaic_output_file_list:
+            if not current_file.endswith('.tif'):
+                continue
+            append_metadata_to_geotiff_file(current_file,
+                                            mosaic_geotiff_metadata_dict)
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:
