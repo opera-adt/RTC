@@ -391,7 +391,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     '''
     Compute the layover/shadow mask and geocode it
 
-    Parameters:
+    Parameters
     -----------
     radar_grid: isce3.product.RadarGridParameters
         Radar grid

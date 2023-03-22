@@ -13,7 +13,7 @@ def check_reprojection(geogrid_mosaic,
     '''
     Check if the reprojection is required to mosaic input raster
 
-    Parameters:
+    Parameters
     -----------
     geogrid_mosaic: isce3.product.GeoGridParameters
         Mosaic geogrid
@@ -22,7 +22,7 @@ def check_reprojection(geogrid_mosaic,
     nlooks_image: str (optional)
         Path to the nlooks raster
 
-    Returns:
+    Returns
     flag_requires_reprojection: bool
         True if reprojection is necessary to mosaic inputs
         False if the images are aligned, so that no reprojection is necessary.
@@ -116,7 +116,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
-    Returns:
+    Returns
         mosaic_dict: dict
             Mosaic dictionary
     '''

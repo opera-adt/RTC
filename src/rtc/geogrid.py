@@ -180,7 +180,7 @@ def snap_coord(val, snap, round_func):
     '''
     Returns the snapped values of the input value
 
-    Parameters:
+    Parameters
     -----------
     val : float
         Input value to snap
