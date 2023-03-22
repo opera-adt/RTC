@@ -21,7 +21,8 @@ from rtc.runconfig import RunConfig
 from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
                                   compute_weighted_mosaic_raster_single_band)
 from rtc.core import create_logger, save_as_cog
-from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
+from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
+                         get_metadata_dict)
 from rtc.version import VERSION as SOFTWARE_VERSION
 import matplotlib.image as mpimg
 
@@ -197,7 +198,8 @@ def _save_browse(imagery_list, browse_image_filename,
 
 def _separate_pol_channels(multi_band_file, output_file_list,
                            pol_list, output_radiometry_str,
-                           logger, output_raster_format):
+                           output_raster_format,
+                           metadata_dict, logger):
     """Save a multi-band raster file as individual single-band files
 
        Parameters
@@ -210,15 +212,18 @@ def _separate_pol_channels(multi_band_file, output_file_list,
            Output radiometry
        output_file_list : list(str)
            Output file list
-       logger : loggin.Logger
-           Logger
        output_raster_format : str
            Output raster format
+       metadata_dict : dict
+           Metadata dictionary
+       logger : loggin.Logger
     """
     gdal_ds = gdal.Open(multi_band_file, gdal.GA_ReadOnly)
     projection = gdal_ds.GetProjectionRef()
     geotransform = gdal_ds.GetGeoTransform()
-    metadata = gdal_ds.GetMetadata()
+    geotiff_metadata_dict = {}
+    for _, (key, value, _) in metadata_dict.items():
+        geotiff_metadata_dict[key.upper()] = value.upper()
 
     num_bands = gdal_ds.RasterCount
     if num_bands != len(output_file_list):
@@ -240,7 +245,7 @@ def _separate_pol_channels(multi_band_file, output_file_list,
 
         raster_out.SetProjection(projection)
         raster_out.SetGeoTransform(geotransform)
-        raster_out.SetMetadata(metadata)
+        raster_out.SetMetadata(geotiff_metadata_dict)
 
         description = f'RTC-S1 {output_radiometry_str} ({pol_list[b]})'
         band_out = raster_out.GetRasterBand(1)
@@ -1081,10 +1086,12 @@ def run_single_job(cfg: RunConfig):
                                  f'{imagery_extension}')
                 output_burst_imagery_list.append(geo_burst_pol_filename)
 
+            metadata_dict = get_metadata_dict(burst_product_id, burst, cfg)
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
                                    pol_list, output_radiometry_str,
-                                   logger, output_raster_format)
+                                   output_raster_format, metadata_dict,
+                                   logger)
 
             output_file_list += output_burst_imagery_list
 

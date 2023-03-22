@@ -4,7 +4,7 @@ import os
 import numpy as np
 import h5py
 import logging
-import datetime
+from datetime import datetime
 from osgeo import gdal
 
 import isce3
@@ -393,7 +393,7 @@ def populate_metadata_group(product_id: str,
 
     for fieldname, (_, data, description) in metadata_dict.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
-        if data[0] is str:
+        if data is str:
             dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data))
         else:
             dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data)
