@@ -10,8 +10,8 @@ RUN yum -y update &&\
 
 RUN mkdir -p /home/rtc_user/OPERA/RTC
 
-RUN chown -R rtc_user:rtc_user /home/rtc_user/OPERA &&\
-    chmod -R 755 /home/rtc_user
+RUN chmod -R 755 /home/rtc_user &&\
+    chown -R rtc_user:rtc_user /home/rtc_user/OPERA
 
 USER rtc_user
 
@@ -30,7 +30,7 @@ RUN ${CONDA_PREFIX}/bin/conda init bash
 COPY --chown=rtc_user:rtc_user . /home/rtc_user/OPERA/RTC
 
 # create CONDA environment
-RUN conda create --name "RTC" --file /home/rtc_user/OPERA/COMPASS/Docker/specfile.txt
+RUN conda create --name "RTC" --file /home/rtc_user/OPERA/RTC/Docker/specfile.txt
 
 SHELL ["conda", "run", "-n", "RTC", "/bin/bash", "-c"]
 
