@@ -26,7 +26,7 @@ RUN curl -sSL https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64
 ENV PATH=${CONDA_PREFIX}/bin:${PATH}
 RUN ${CONDA_PREFIX}/bin/conda init bash
 
-# copy COMPASS and set rtc_user as owner
+# copy RTC source code and set rtc_user as owner
 COPY --chown=rtc_user:rtc_user . /home/rtc_user/OPERA/RTC
 
 # create CONDA environment
