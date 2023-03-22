@@ -310,7 +310,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # RTC-S1 imagery
     save_bursts = cfg.groups.product_group.save_bursts
     save_mosaics = cfg.groups.product_group.save_mosaics
-    save_browse = cfg.groups.product_group.save_browse
+    flag_save_browse = cfg.groups.product_group.save_browse
 
     if not save_bursts and not save_mosaics:
         err_msg = (f"ERROR either `save_bursts` or `save_mosaics` needs to be"
@@ -422,7 +422,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     logger.info(f'    output dir: {output_dir}')
     logger.info(f'    save bursts: {save_bursts}')
     logger.info(f'    save mosaics: {save_mosaics}')
-    logger.info(f'    save browse: {save_browse}')
+    logger.info(f'    save browse: {flag_save_browse}')
     logger.info(f'    output imagery format: {output_imagery_format}')
     logger.info(f'    output imagery compression: {output_imagery_compression}')
     logger.info(f'    output imagery nbits: {output_imagery_nbits}')
@@ -875,7 +875,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
 
         # save browse image (mosaic)
-        if save_browse:
+        if flag_save_browse:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
             save_browse(output_imagery_filename_list, browse_image_filename,
