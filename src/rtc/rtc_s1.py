@@ -16,7 +16,6 @@ from osgeo import gdal
 from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    snap_coord,
                                    run_single_job,
-                                   update_mosaic_boundaries,
                                    get_radar_grid)
 from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
                                   compute_weighted_mosaic_raster_single_band)
@@ -815,13 +814,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         else:
             radar_grid_output_dir = output_dir
         get_radar_grid(cfg.geogrid, dem_interp_method_enum, burst_product_id,
-                              radar_grid_output_dir, imagery_extension, save_incidence_angle,
-                              save_local_inc_angle, save_projection_angle,
-                              save_rtc_anf_psi,
-                              save_range_slope, save_dem,
-                              dem_raster, radar_grid_file_dict,
-                              lookside, wavelength,
-                              orbit, verbose=not save_imagery_as_hdf5)
+                       radar_grid_output_dir, imagery_extension, save_incidence_angle,
+                       save_local_inc_angle, save_projection_angle,
+                       save_rtc_anf_psi,
+                       save_range_slope, save_dem,
+                       dem_raster, radar_grid_file_dict,
+                       lookside, wavelength,
+                       orbit, verbose=not save_imagery_as_hdf5)
         if save_hdf5_metadata:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
@@ -845,7 +844,9 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if len(output_imagery_list) > 0:
             compute_weighted_mosaic_raster_single_band(
                 output_imagery_list, nlooks_list,
-                output_imagery_filename_list, cfg.geogrid, verbose=False)
+                output_imagery_filename_list, cfg.geogrid,
+                metadata_dict=mosaic_geotiff_metadata_dict,
+                verbose=False)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
@@ -858,8 +859,9 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
                 continue
-            compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
-                                           cfg.geogrid, verbose=False)
+            compute_weighted_mosaic_raster(
+                input_files, nlooks_list, output_file, cfg.geogrid, 
+                metadata_dict=mosaic_geotiff_metadata_dict, verbose=False)
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or

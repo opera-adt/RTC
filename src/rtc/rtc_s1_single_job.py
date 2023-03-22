@@ -153,11 +153,25 @@ def _save_browse(imagery_list, browse_image_filename,
     mpimg.imsave(browse_image_filename, image, format='png')
 
 
+def _append_metadata(input_file, metadata_dict):
+    '''Append metadata to GeoTIFF file
+
+       Parameters
+       ----------
+       input_file : str
+           Input GeoTIFF file
+       metadata_dict : dict
+           Metadata dictionary
+    '''
+    logger.info(f'    appending metadata to file: {f}')
+    gdal_ds = gdal.Open(input_file, gdal.GA_Update)
+    gdal_ds.SetMetadata(metadata_dict)
+    del gdal_ds
+
 
 def _separate_pol_channels(multi_band_file, output_file_list,
                            pol_list, output_radiometry_str,
-                           output_raster_format,
-                           metadata_dict, logger):
+                           output_raster_format, logger):
     """Save a multi-band raster file as individual single-band files
 
        Parameters
@@ -172,8 +186,6 @@ def _separate_pol_channels(multi_band_file, output_file_list,
            Output file list
        output_raster_format : str
            Output raster format
-       metadata_dict : dict
-           Metadata dictionary
        logger : loggin.Logger
     """
     gdal_ds = gdal.Open(multi_band_file, gdal.GA_ReadOnly)
@@ -200,7 +212,6 @@ def _separate_pol_channels(multi_band_file, output_file_list,
 
         raster_out.SetProjection(projection)
         raster_out.SetGeoTransform(geotransform)
-        raster_out.SetMetadata(metadata_dict)
 
         description = f'RTC-S1 {output_radiometry_str} ({pol_list[b]})'
         band_out = raster_out.GetRasterBand(1)
@@ -1041,15 +1052,10 @@ def run_single_job(cfg: RunConfig):
                                  f'{imagery_extension}')
                 output_burst_imagery_list.append(geo_burst_pol_filename)
 
-            metadata_dict = get_metadata_dict(burst_product_id, burst, cfg,
-                                              is_mosaic=False)
-            geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
-                metadata_dict)
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
                                    pol_list, output_radiometry_str,
-                                   output_raster_format, geotiff_metadata_dict,
-                                   logger)
+                                   output_raster_format, logger)
 
             output_file_list += output_burst_imagery_list
 
@@ -1118,6 +1124,17 @@ def run_single_job(cfg: RunConfig):
                          browse_image_burst_width, temp_files_list,
                          burst_scratch_path, logger)
             output_file_list.append(browse_image_filename)
+
+        if (not flag_bursts_files_are_temporary or
+                save_secondary_layers_as_hdf5):
+            metadata_dict = get_metadata_dict(burst_product_id, burst, cfg,
+                                              is_mosaic=False)
+            geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
+                metadata_dict)
+            for current_file in output_file_list:
+                if not current_file.endswith('.tif'):
+                    continue
+                _append_metadata(current_file, geotiff_metadata_dict)
 
         # Create mosaic HDF5
         if (save_hdf5_metadata and save_mosaics
@@ -1192,10 +1209,9 @@ def run_single_job(cfg: RunConfig):
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
                 continue
-            compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
-                                           cfg.geogrid, verbose=False)
-
-
+            compute_weighted_mosaic_raster(
+                input_files, nlooks_list, output_file, cfg.geogrid,
+                metadata_dict=mosaic_geotiff_metadata_dict, verbose=False)
 
 
             # TODO: Remove nlooks exception below

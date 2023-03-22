@@ -104,7 +104,7 @@ def check_reprojection(geogrid_mosaic,
 
 
 def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
-                                  geogrid_in=None, verbose = True):
+                                  geogrid_in=None, verbose=True):
     '''
     Mosaic S-1 geobursts and return the mosaic as dictionary
     paremeters:
@@ -272,7 +272,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
 
 
 def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
-                    geogrid_in=None, verbose = True):
+                                   geogrid_in=None, metadata_dict=None, verbose=True):
     '''
     Mosaic the snapped S1 geobursts
     paremeters:
@@ -286,10 +286,14 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
-
+        metadata_dict : dict
+            Metadata dictionary
+        verbose : bool
+            Flag to enable/disable the verbose mode
     '''
-    mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
-                                   geogrid_in=geogrid_in, verbose = verbose)
+    mosaic_dict = compute_weighted_mosaic_array(
+        list_rtc_images, list_nlooks, geogrid_in=geogrid_in,
+        verbose=verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']
     description_list = mosaic_dict['description_list']
@@ -313,6 +317,9 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
                                 width, length, num_bands,
                                 datatype_mosaic)
 
+    if metadata_dict is not None:
+        raster_out.SetMetadata(metadata_dict)
+
     raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
     raster_out.SetProjection(wkt_projection)
 
@@ -323,10 +330,9 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
 
 
 
-def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
-                                output_file_list, geogrid_in=None,
-                                metadata_dict=None,
-                                verbose = True):
+def compute_weighted_mosaic_raster_single_band(
+        list_rtc_images, list_nlooks, output_file_list, geogrid_in=None,
+        metadata_dict=None, verbose=True):
     '''
     Mosaic the snapped S1 geobursts
     paremeters:
@@ -342,7 +348,8 @@ def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
             The geogrid of the output mosaic will automatically determined when it is None
         metadata_dict : dict
             Metadata dictionary
-
+        verbose : bool
+            Flag to enable/disable the verbose mode
     '''
     mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
                                      geogrid_in=geogrid_in, verbose = verbose)
