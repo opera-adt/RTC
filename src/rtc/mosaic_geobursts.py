@@ -324,8 +324,9 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
 
 
 def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
-                                output_file_list,
-                                geogrid_in=None, verbose = True):
+                                output_file_list, geogrid_in=None,
+                                metadata_dict=None,
+                                verbose = True):
     '''
     Mosaic the snapped S1 geobursts
     paremeters:
@@ -339,6 +340,8 @@ def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
+        metadata_dict : dict
+            Metadata dictionary
 
     '''
     mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
@@ -373,6 +376,9 @@ def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
         raster_out = drv_out.Create(output_file,
                                     width, length, nbands,
                                     datatype_mosaic)
+
+        if metadata_dict is not None:
+            raster_out.SetMetadata(metadata_dict)
 
         raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
 

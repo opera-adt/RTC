@@ -118,7 +118,26 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     logger.info(f'file saved: {output_hdf5_file}')
 
 
-def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg):
+def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic):
+    '''Create HDF5 file
+
+    Parameters
+    -----------
+    product_id: str
+        Product ID
+    output_hdf5_file: h5py.File
+        HDF5 object into which write the metadata
+    orbit: isce3.core.Orbit
+        Orbit file
+    burst: Sentinel1BurstCls
+        Source burst of the RTC
+    cfg: RunConfig
+        A class that contains the information defined in runconfig
+    is_mosaic: bool
+        Flag to indicate whether the RTC-S1 product is a mosaic (True)
+        or burst (False) product
+    '''
+
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
     hdf5_obj.attrs["contact"] = np.string_("operaops@jpl.nasa.gov")
@@ -127,7 +146,8 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg):
     hdf5_obj.attrs["reference_document"] = np.string_("TBD")
     hdf5_obj.attrs["title"] = np.string_("OPERA L2 RTC-S1 Product")
 
-    populate_metadata_group(product_id, hdf5_obj, burst, cfg)
+    populate_metadata_group(product_id, hdf5_obj, burst, cfg, BASE_HDF5_DATASET,
+                            is_mosaic)
 
     # save orbit
     orbit_group = hdf5_obj.require_group(
@@ -161,7 +181,8 @@ def save_orbit(orbit, orbit_group):
 
 def get_metadata_dict(product_id: str,
                       burst_in: Sentinel1BurstSlc,
-                      cfg_in: RunConfig):
+                      cfg_in: RunConfig,
+                      is_mosaic: bool):
     '''Create RTC-S1 metadata dictionary
 
     Parameters
@@ -172,6 +193,9 @@ def get_metadata_dict(product_id: str,
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
+    is_mosaic: bool
+        Flag to indicate whether the RTC-S1 product is a mosaic (True)
+        or burst (False) product
 
     Returns
     -------
@@ -222,7 +246,6 @@ def get_metadata_dict(product_id: str,
         raise NotImplementedError(error_msg)
 
     # mission_id = 'Sentinel'
-    beam_id = str(burst_in.burst_id)[-3:]
 
     # Manifests the field names, corresponding values from RTC workflow, and the description.
     # To extend this, add the lines with the format below:
@@ -238,12 +261,6 @@ def get_metadata_dict(product_id: str,
         'identification/trackNumber':
             ['track_number', burst_in.burst_id.track_number,
              'Track number'],
-        'identification/burstID':
-            ['burst_id', str(burst_in.burst_id),
-             'Burst identification (burst ID)'],
-        'identification/boundingPolygon':
-            ['bounding_polygon', get_polygon_wkt(burst_in),
-            'OGR compatible WKT representation of bounding polygon of the image'],
         # 'identification/missionId':
         #    [mission_id, 'Mission identifier'],
         'identification/platformId':
@@ -256,23 +273,14 @@ def get_metadata_dict(product_id: str,
             ['project_name', 'OPERA', 'Project name'],
         'identification/acquisitionMode':
             ['acquisition_mode', 'Interferometric Wide (IW)',
-            'Acquisition mode'],
-        'identification/beamID':
-            ['beam_id', beam_id, 'Beam identification (Beam ID)'],
+             'Acquisition mode'],
         'identification/lookDirection':
             ['look_direction', 'right', 'Look direction can be left or right'],
         'identification/orbitPassDirection':
             ['orbit_pass_direction', burst_in.orbit_direction.lower(),
             'Orbit direction can be ascending or descending'],
         # NOTE: using the same date format as `s1_reader.as_datetime()`
-        'identification/zeroDopplerStartTime':
-            ['zero_doppler_start_time',
-             burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-             'Azimuth start time of product'],
-        'identification/zeroDopplerEndTime':
-            ['zero_doppler_end_time',
-             burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            'Azimuth stop time of product'],
+
         'identification/listOfFrequencies':
              [None, ['A'],
              'List of frequency layers available in the product'],  # TBC
@@ -365,14 +373,68 @@ def get_metadata_dict(product_id: str,
         'RTC/metadata/processingInformation/inputs/demSource':
             ['dem_source', dem_description, 'DEM source description']
     }
+    if is_mosaic:
+        return metadata_dict
+
+    metadata_dict['identification/boundingPolygon'] = \
+        ['bounding_polygon', get_polygon_wkt(burst_in),
+         'OGR compatible WKT representation of bounding polygon of the image']
+
+    metadata_dict['identification/burstID'] = \
+        ['burst_id', str(burst_in.burst_id),
+         'Burst identification (burst ID)']
+
+    beam_id = str(burst_in.burst_id)[-3:]
+    metadata_dict['identification/beamID'] = \
+        ['beam_id', beam_id, 'Beam identification (Beam ID)']
+
+    metadata_dict['identification/zeroDopplerStartTime'] = \
+        ['zero_doppler_start_time',
+         burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+         'Azimuth start time of product']
+    metadata_dict['identification/zeroDopplerEndTime'] = \
+        ['zero_doppler_end_time',
+         burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+         'Azimuth stop time of product']
     return metadata_dict
+
+
+def all_metadata_dict_to_geotiff_metadata_dict(metadata_dict):
+    '''
+    Convert all metadata dict to GeoTIFF metadata dict
+    Parameters
+    ----------
+    metadata_dict : dict
+        Metadata dict organized as follows:
+        - Dictionary item key: HDF5 dataset key;
+        - Dictionary item value: list of 
+            [GeoTIFF metadata key,
+             metadata value,
+             metadata description]
+        The value `None` for the GeoTIFF metadata key indicates that
+        the field is not saved on the GeoTIFF file
+    Returns
+    -------
+    geotiff_metadata_dict : dict
+        Metadata dict to be saved onto the RTC-S1 product GeoTIFF file
+    '''
+    geotiff_metadata_dict = {}
+    for _, (key, value, _) in metadata_dict.items():
+        if key is None:
+            continue
+        if isinstance(value, str):
+            geotiff_metadata_dict[key.upper()] = str(value).upper()
+            continue
+        geotiff_metadata_dict[key.upper()] = value
+    return geotiff_metadata_dict
 
 
 def populate_metadata_group(product_id: str,
                             h5py_obj: h5py.File,
                             burst_in: Sentinel1BurstSlc,
                             cfg_in: RunConfig,
-                            root_path: str = BASE_HDF5_DATASET):
+                            root_path: str,
+                            is_mosaic: bool):
     '''Populate RTC metadata based on Sentinel1BurstSlc and RunConfig
 
     Parameters
@@ -387,13 +449,16 @@ def populate_metadata_group(product_id: str,
         A class that contains the information defined in runconfig
     root_path: str
         Root path inside the HDF5 object on which the metadata will be placed
+    is_mosaic: bool
+        Flag to indicate if the RTC-S1 product is a mosaic (True)
+        or burst (False) product
     '''
 
-    metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in)
+    metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in,  is_mosaic)
 
     for fieldname, (_, data, description) in metadata_dict.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
-        if data is str:
+        if isinstance(data, str):
             dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data))
         else:
             dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data)

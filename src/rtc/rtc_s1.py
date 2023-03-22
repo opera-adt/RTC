@@ -802,7 +802,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if (save_hdf5_metadata and save_mosaics
                 and burst_index == 0):
             hdf5_mosaic_obj = create_hdf5_file(
-                mosaic_product_id, output_hdf5_file, orbit, burst, cfg)
+                mosaic_product_id, output_hdf5_file, orbit, burst, cfg,
+                is_mosaic=True)
 
         t_burst_end = time.time()
         logger.info(
@@ -905,8 +906,10 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
             sensing_start_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
             sensing_end_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
-            del hdf5_mosaic_obj[sensing_start_ds]
-            del hdf5_mosaic_obj[sensing_end_ds]
+            if sensing_start_ds in hdf5_mosaic_obj:
+                del hdf5_mosaic_obj[sensing_start_ds]
+            if sensing_end_ds in hdf5_mosaic_obj:
+                del hdf5_mosaic_obj[sensing_end_ds]
             hdf5_mosaic_obj[sensing_start_ds] = \
                 sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f')
             hdf5_mosaic_obj[sensing_end_ds] = \

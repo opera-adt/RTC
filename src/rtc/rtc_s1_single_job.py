@@ -22,7 +22,8 @@ from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
                                   compute_weighted_mosaic_raster_single_band)
 from rtc.core import create_logger, save_as_cog
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
-                         get_metadata_dict)
+                         get_metadata_dict,
+                         all_metadata_dict_to_geotiff_metadata_dict)
 from rtc.version import VERSION as SOFTWARE_VERSION
 import matplotlib.image as mpimg
 
@@ -196,6 +197,7 @@ def _save_browse(imagery_list, browse_image_filename,
     mpimg.imsave(browse_image_filename, image, format='png')
 
 
+
 def _separate_pol_channels(multi_band_file, output_file_list,
                            pol_list, output_radiometry_str,
                            output_raster_format,
@@ -221,9 +223,6 @@ def _separate_pol_channels(multi_band_file, output_file_list,
     gdal_ds = gdal.Open(multi_band_file, gdal.GA_ReadOnly)
     projection = gdal_ds.GetProjectionRef()
     geotransform = gdal_ds.GetGeoTransform()
-    geotiff_metadata_dict = {}
-    for _, (key, value, _) in metadata_dict.items():
-        geotiff_metadata_dict[key.upper()] = value.upper()
 
     num_bands = gdal_ds.RasterCount
     if num_bands != len(output_file_list):
@@ -245,7 +244,7 @@ def _separate_pol_channels(multi_band_file, output_file_list,
 
         raster_out.SetProjection(projection)
         raster_out.SetGeoTransform(geotransform)
-        raster_out.SetMetadata(geotiff_metadata_dict)
+        raster_out.SetMetadata(metadata_dict)
 
         description = f'RTC-S1 {output_radiometry_str} ({pol_list[b]})'
         band_out = raster_out.GetRasterBand(1)
@@ -743,6 +742,8 @@ def run_single_job(cfg: RunConfig):
     output_hdf5_file = os.path.join(output_dir,
                                     f'{mosaic_product_id}.{hdf5_file_extension}')
 
+    mosaic_geotiff_metadata_dict = None
+
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
 
@@ -1086,11 +1087,14 @@ def run_single_job(cfg: RunConfig):
                                  f'{imagery_extension}')
                 output_burst_imagery_list.append(geo_burst_pol_filename)
 
-            metadata_dict = get_metadata_dict(burst_product_id, burst, cfg)
+            metadata_dict = get_metadata_dict(burst_product_id, burst, cfg,
+                                              is_mosaic=False)
+            geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
+                metadata_dict)
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
                                    pol_list, output_radiometry_str,
-                                   output_raster_format, metadata_dict,
+                                   output_raster_format, geotiff_metadata_dict,
                                    logger)
 
             output_file_list += output_burst_imagery_list
@@ -1139,7 +1143,8 @@ def run_single_job(cfg: RunConfig):
         if (save_hdf5_metadata and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             with create_hdf5_file(burst_product_id,
-                    output_hdf5_file_burst, orbit, burst, cfg) as hdf5_burst_obj:
+                    output_hdf5_file_burst, orbit, burst, cfg,
+                    is_mosaic=False) as hdf5_burst_obj:
                 save_hdf5_file(
                     hdf5_burst_obj, output_hdf5_file_burst, flag_apply_rtc,
                     clip_max, clip_min, output_radiometry_str,
@@ -1164,7 +1169,13 @@ def run_single_job(cfg: RunConfig):
         if (save_hdf5_metadata and save_mosaics
                 and burst_index == 0):
             hdf5_mosaic_obj = create_hdf5_file(mosaic_product_id,
-                output_hdf5_file, orbit, burst, cfg)
+                output_hdf5_file, orbit, burst, cfg, is_mosaic=True)
+        
+        if (save_mosaics and burst_index == 0):
+            mosaic_metadata_dict = get_metadata_dict(burst_product_id, burst, cfg,
+                is_mosaic=True)
+            mosaic_geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
+                mosaic_metadata_dict)
 
 
         t_burst_end = time.time()
@@ -1210,9 +1221,12 @@ def run_single_job(cfg: RunConfig):
         nlooks_list = output_metadata_dict['nlooks'][1]
 
         if len(output_imagery_list) > 0:
+
             compute_weighted_mosaic_raster_single_band(
                 output_imagery_list, nlooks_list,
-                output_imagery_filename_list, cfg.geogrid, verbose=False)
+                output_imagery_filename_list, cfg.geogrid,
+                metadata_dict=mosaic_geotiff_metadata_dict,
+                verbose=False)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
@@ -1285,8 +1299,10 @@ def run_single_job(cfg: RunConfig):
 
             sensing_start_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
             sensing_end_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
-            del hdf5_mosaic_obj[sensing_start_ds]
-            del hdf5_mosaic_obj[sensing_end_ds]
+            if sensing_start_ds in hdf5_mosaic_obj:
+                del hdf5_mosaic_obj[sensing_start_ds]
+            if sensing_end_ds in hdf5_mosaic_obj:
+                del hdf5_mosaic_obj[sensing_end_ds]
             hdf5_mosaic_obj[sensing_start_ds] = \
                 sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f')
             hdf5_mosaic_obj[sensing_end_ds] = \
