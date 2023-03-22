@@ -284,9 +284,9 @@ def populate_metadata_group(product_id: str,
             [product_version, 'Product version'],
         'identification/softwareVersion':
             [str(SOFTWARE_VERSION), 'Software version'],
-        'identification/CEOSDocumentIdentifier':
-            ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
-             'CEOS document identifier'],
+        # 'identification/CEOSDocumentIdentifier':
+        #     ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
+        #      'CEOS document identifier'],
         # 'identification/frameNumber':  # TBD
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
