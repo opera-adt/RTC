@@ -43,7 +43,7 @@ RUN curl -sSL https://github.com/opera-adt/s1-reader/archive/refs/tags/v0.1.6.ta
     rm s1_reader_src.tar.gz &&\
     python -m pip install ./s1-reader
 
-# installing OPERA COMPASS
+# installing OPERA RTC
 RUN python -m pip install ./RTC &&\
     echo "conda activate RTC" >> /home/rtc_user/.bashrc
 
