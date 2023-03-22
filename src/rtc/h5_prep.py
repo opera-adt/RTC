@@ -4,6 +4,7 @@ import os
 import numpy as np
 import h5py
 import logging
+import datetime
 from osgeo import gdal
 
 import isce3
@@ -117,7 +118,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     logger.info(f'file saved: {output_hdf5_file}')
 
 
-def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
+def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg):
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
     hdf5_obj.attrs["contact"] = np.string_("operaops@jpl.nasa.gov")
@@ -126,7 +127,7 @@ def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
     hdf5_obj.attrs["reference_document"] = np.string_("TBD")
     hdf5_obj.attrs["title"] = np.string_("OPERA L2 RTC-S1 Product")
 
-    populate_metadata_group(hdf5_obj, burst, cfg)
+    populate_metadata_group(product_id, hdf5_obj, burst, cfg)
 
     # save orbit
     orbit_group = hdf5_obj.require_group(
@@ -158,7 +159,8 @@ def save_orbit(orbit, orbit_group):
                                         " (or) Custom")
 
 
-def populate_metadata_group(h5py_obj: h5py.File,
+def populate_metadata_group(product_id: str,
+                            h5py_obj: h5py.File,
                             burst_in: Sentinel1BurstSlc,
                             cfg_in: RunConfig,
                             root_path: str = BASE_HDF5_DATASET):
@@ -166,6 +168,8 @@ def populate_metadata_group(h5py_obj: h5py.File,
 
     Parameters:
     -----------
+    product_id: str
+        Product ID
     h5py_obj: h5py.File
         HDF5 object into which write the metadata
     burst_in: Sentinel1BurstCls
@@ -199,6 +203,21 @@ def populate_metadata_group(h5py_obj: h5py.File,
         # If the DEM description is not provided, use DEM source
         dem_description = os.path.basename(cfg_in.dem)
 
+    if burst_in.platform_id == 'S1A':
+        platform_id = 'Sentinel-1A'
+    elif burst_in.platform_id == 'S1B':
+        platform_id = 'Sentinel-1B'
+    elif burst_in.platform_id == 'S1C':
+        platform_id = 'Sentinel-1C'
+    elif burst_in.platform_id == 'S1D':
+        platform_id = 'Sentinel-1D'
+    else:
+        error_msg = f'ERROR Not recognized platform ID: {burst_in.platform_id}'
+        raise NotImplementedError(error_msg)
+
+    # mission_id = 'Sentinel'
+    beam_id = str(burst_in.burst_id)[-3:]
+
     # Manifests the field names, corresponding values from RTC workflow, and the description.
     # To extend this, add the lines with the format below:
     # 'field_name': [corresponding_variables_in_workflow, description]
@@ -215,36 +234,60 @@ def populate_metadata_group(h5py_obj: h5py.File,
         'identification/boundingPolygon':
             [get_polygon_wkt(burst_in),
             'OGR compatible WKT representation of bounding polygon of the image'],
-        'identification/missionId':
-            [burst_in.platform_id, 'Mission identifier'],
+        # 'identification/missionId':
+        #    [mission_id, 'Mission identifier'],
+        'identification/platformId':
+            [platform_id, 'Platform identifier'],
+        'identification/instrumentName':
+            [platform_id, 'Instrument name'],
         'identification/productType':
             ['RTC-S1', 'Product type'],
-        # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
+        'identification/projectName':
+            ['OPERA', 'Project name'],
+        'identification/acquisitionMode':
+            ['Interferometric Wide (IW)', 'Acquisition mode'],
+        'identification/beamID':
+            [beam_id, 'Beam identification (Beam ID)'],
         'identification/lookDirection':
-            ['Right', 'Look direction can be left or right'],
+            ['right', 'Look direction can be left or right'],
         'identification/orbitPassDirection':
-            [burst_in.orbit_direction, 'Orbit direction can be ascending or descending'],
+            [burst_in.orbit_direction.lower(),
+            'Orbit direction can be ascending or descending'],
         # NOTE: using the same date format as `s1_reader.as_datetime()`
         'identification/zeroDopplerStartTime':
-            [burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'),
+            [burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
              'Azimuth start time of product'],
         'identification/zeroDopplerEndTime':
-            [burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'),
+            [burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             'Azimuth stop time of product'],
         'identification/listOfFrequencies':
              [['A'], 'List of frequency layers available in the product'],  # TBC
         'identification/isGeocoded':
             [True, 'Flag to indicate radar geometry or geocoded product'],
+        'identification/productLevel':
+            ['L2', 'Product level'],
+        'identification/productID':
+            [product_id, 'Product identificator'],
+        # 'identification/productSource':
+            # [platform_id, 'Product source'],
         'identification/isUrgentObservation':
             [False, 'List of booleans indicating if datatakes are nominal or urgent'],
         'identification/diagnosticModeFlag':
             [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
         'identification/processingType':
             [processing_type, 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+        # datetime format 'YYYY-MM-DD HH:MM:SS'
+        'identification/processingDateTime':
+            [datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            'Processing date and time'],
         'identification/productVersion':
             [product_version, 'Product version'],
+        'identification/softwareVersion':
+            [str(SOFTWARE_VERSION), 'Software version'],
+        'identification/CEOSDocumentIdentifier':
+            ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
+             'CEOS document identifier'],
         # 'identification/frameNumber':  # TBD
-        # 'identification/productVersion': # Defined by RTC SAS
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
 
@@ -275,8 +318,8 @@ def populate_metadata_group(h5py_obj: h5py.File,
             'Radiometric terrain correction (RTC) algorithm'],
         'RTC/metadata/processingInformation/algorithms/ISCEVersion':
             [isce3.__version__, 'ISCE version used for processing'],
-        'RTC/metadata/processingInformation/algorithms/RTCVersion':
-            [str(SOFTWARE_VERSION), 'RTC-S1 SAS version used for processing'],
+        # 'RTC/metadata/processingInformation/algorithms/RTCVersion':
+        #     [str(SOFTWARE_VERSION), 'RTC-S1 SAS version used for processing'],
         'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
             [release_version, 'S1-Reader version used for processing'],
 
