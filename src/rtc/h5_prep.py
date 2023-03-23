@@ -363,8 +363,8 @@ def get_metadata_dict(product_id: str,
              'List of input L1 SLC products used'],
         'RTC/metadata/processingInformation/inputs/orbitFiles':
             ['orbit_files', orbit_files, 'List of input orbit files used'],
-        'RTC/metadata/processingInformation/inputs/auxCalFiles':
-            ['aux_cal_files', [burst_in.burst_calibration.basename_cads,
+        'RTC/metadata/processingInformation/inputs/annotationFiles':
+            ['annotation_files', [burst_in.burst_calibration.basename_cads,
              burst_in.burst_noise.basename_nads],
              'List of input calibration files used'],
         'RTC/metadata/processingInformation/inputs/configFiles':

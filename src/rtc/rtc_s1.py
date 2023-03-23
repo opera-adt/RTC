@@ -412,7 +412,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     logger.info(f'    processing type: {processing_type}')
     logger.info(f'    product version: {product_version}')
     if save_mosaics:
-        logger.info(f'    mosaic product ID: {product_id}')
+        logger.info(f'    mosaic product ID: {mosaic_product_id}')
     logger.info(f'Processing parameters:')
     logger.info(f'    apply RTC: {flag_apply_rtc}')
     logger.info(f'    apply thermal noise correction:'
@@ -822,7 +822,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             radar_grid_output_dir = scratch_path
         else:
             radar_grid_output_dir = output_dir
-        get_radar_grid(cfg.geogrid, dem_interp_method_enum, burst_product_id,
+        get_radar_grid(cfg.geogrid, dem_interp_method_enum, mosaic_product_id,
                        radar_grid_output_dir, imagery_extension, save_incidence_angle,
                        save_local_inc_angle, save_projection_angle,
                        save_rtc_anf_psi,
