@@ -13,7 +13,7 @@ def check_reprojection(geogrid_mosaic,
     '''
     Check if the reprojection is required to mosaic input raster
 
-    Parameters:
+    Parameters
     -----------
     geogrid_mosaic: isce3.product.GeoGridParameters
         Mosaic geogrid
@@ -22,7 +22,7 @@ def check_reprojection(geogrid_mosaic,
     nlooks_image: str (optional)
         Path to the nlooks raster
 
-    Returns:
+    Returns
     flag_requires_reprojection: bool
         True if reprojection is necessary to mosaic inputs
         False if the images are aligned, so that no reprojection is necessary.
@@ -104,7 +104,7 @@ def check_reprojection(geogrid_mosaic,
 
 
 def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
-                                  geogrid_in=None, verbose = True):
+                                  geogrid_in=None, verbose=True):
     '''
     Mosaic S-1 geobursts and return the mosaic as dictionary
     paremeters:
@@ -116,7 +116,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
-    Returns:
+    Returns
         mosaic_dict: dict
             Mosaic dictionary
     '''
@@ -272,7 +272,7 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
 
 
 def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
-                    geogrid_in=None, verbose = True):
+                                   geogrid_in=None, verbose=True):
     '''
     Mosaic the snapped S1 geobursts
     paremeters:
@@ -286,10 +286,12 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
-
+        verbose : bool
+            Flag to enable/disable the verbose mode
     '''
-    mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
-                                   geogrid_in=geogrid_in, verbose = verbose)
+    mosaic_dict = compute_weighted_mosaic_array(
+        list_rtc_images, list_nlooks, geogrid_in=geogrid_in,
+        verbose=verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']
     description_list = mosaic_dict['description_list']
@@ -323,9 +325,9 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
 
 
 
-def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
-                                output_file_list,
-                                geogrid_in=None, verbose = True):
+def compute_weighted_mosaic_raster_single_band(
+        list_rtc_images, list_nlooks, output_file_list, geogrid_in=None,
+        verbose=True):
     '''
     Mosaic the snapped S1 geobursts
     paremeters:
@@ -339,7 +341,8 @@ def compute_weighted_mosaic_raster_single_band(list_rtc_images, list_nlooks,
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
-
+        verbose : bool
+            Flag to enable/disable the verbose mode
     '''
     mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
                                      geogrid_in=geogrid_in, verbose = verbose)

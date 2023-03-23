@@ -16,55 +16,21 @@ from osgeo import gdal
 from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    snap_coord,
                                    run_single_job,
-                                   update_mosaic_boundaries,
-                                   get_radar_grid)
+                                   get_radar_grid,
+                                   save_browse,
+                                   append_metadata_to_geotiff_file)
 from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
                                   compute_weighted_mosaic_raster_single_band)
 from rtc.core import create_logger, save_as_cog
 from rtc.version import VERSION as SOFTWARE_VERSION
-from rtc.h5_prep import save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET
+from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
+                         get_metadata_dict, all_metadata_dict_to_geotiff_metadata_dict)
 
 from rtc.runconfig import RunConfig, load_parameters
 
 
 logger = logging.getLogger('rtc_s1')
 
-
-def _populate_radar_grid_file_dict(radar_grid_file_dict: dict,
-                                   key_layer: str, save_as_hdf5: bool,
-                                   output_dir: str, product_prefix: str,
-                                   layer_postfix: str, imagery_extension: str,
-                                   burst_hdf5_in_output: str):
-    '''
-    Helper function to populate `radar_grid_file_dict` in the parent process
-
-    Parameters
-    ----------
-    radar_grid_file_dict: dict
-        Radar grid dict to populate
-    key_layer: str
-        Key of the layer in `radar_grid_file_dict`
-    save_as_hdf5: bool
-        Flag whether to save the radargrid layers as HDF5
-    output_dir: str
-        Output directory
-    product_prefix: str
-        Prefix string for the radar grid file
-    layer_postfix: str
-        Postfix for the radar grid file to specify the layer
-    imagery_extension: str
-        Image extension
-    burst_hdf5_in_output: str
-        Path to the output burst HDF5
-    '''
-    if save_as_hdf5:
-        radar_grid_file_dict[key_layer] = (f'NETCDF:{burst_hdf5_in_output}:'
-                                           '/science/SENTINEL1/RTC/grids/'
-                                           f'frequencyA/{key_layer}')
-    else:
-        radar_grid_file_dict[key_layer] =\
-            os.path.join(output_dir,
-                         f'{product_prefix}_{layer_postfix}.', imagery_extension)
 
 
 def split_runconfig(cfg_in,
@@ -238,7 +204,9 @@ def process_child_runconfig(path_runconfig_burst,
     result_child_process: int
         0 when the child process has completed succesfully
     '''
+
     os.environ['OMP_NUM_THREADS'] = "1"
+
     list_arg_subprocess = ['rtc_s1_single_job.py', path_runconfig_burst]
 
     if path_burst_logfile is not None: 
@@ -295,10 +263,11 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         processing_namespace.apply_absolute_radiometric_correction
 
     # read product path group / output format
-    product_id = cfg.groups.product_group.product_id
-    if product_id is None:
-        product_id = 'rtc_product'
-    product_prefix = f'{product_id}_v{product_version}'
+    runconfig_product_id = cfg.groups.product_group.product_id
+    if runconfig_product_id is None:
+        runconfig_product_id = 'OPERA_L2_RTC-S1_{burst_id}'
+    product_id = f'{runconfig_product_id}_v{product_version}'
+    mosaic_product_id = product_id.replace('_{burst_id}', '')
 
     scratch_path = os.path.join(
         cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
@@ -308,7 +277,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # RTC-S1 imagery
     save_bursts = cfg.groups.product_group.save_bursts
     save_mosaics = cfg.groups.product_group.save_mosaics
-    save_browse = cfg.groups.product_group.save_browse
+    flag_save_browse = cfg.groups.product_group.save_browse
 
     if not save_bursts and not save_mosaics:
         err_msg = (f"ERROR either `save_bursts` or `save_mosaics` needs to be"
@@ -330,31 +299,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         cfg.groups.processing.browse_image_group.browse_image_mosaic_height
     browse_image_mosaic_width = \
         cfg.groups.processing.browse_image_group.browse_image_mosaic_width
-
-    logger.info(f'Identification:')
-    logger.info(f'    product ID: {product_id}')
-    logger.info(f'    processing type: {processing_type}')
-    logger.info(f'    product version: {product_version}')
-    logger.info(f'    product prefix: {product_prefix}')
-    logger.info(f'Processing parameters:')
-    logger.info(f'    apply RTC: {flag_apply_rtc}')
-    logger.info(f'    apply thermal noise correction:'
-                f' {flag_apply_thermal_noise_correction}')
-    logger.info(f'    apply absolute radiometric correction:'
-                f' {flag_apply_abs_rad_correction}')
-    logger.info(f'    scratch dir: {scratch_path}')
-    logger.info(f'    output dir: {output_dir}')
-    logger.info(f'    save bursts: {save_bursts}')
-    logger.info(f'    save mosaics: {save_mosaics}')
-    logger.info(f'    save browse: {save_browse}')
-    logger.info(f'    output imagery format: {output_imagery_format}')
-    logger.info(f'    output imagery compression: {output_imagery_compression}')
-    logger.info(f'    output imagery nbits: {output_imagery_nbits}')
-    logger.info(f'Browse images:')
-    logger.info(f'    burst height: {browse_image_burst_height}')
-    logger.info(f'    burst width: {browse_image_burst_width}')
-    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
-    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
 
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
@@ -395,10 +339,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
-
-
-
-
     # TODO remove the lines below when the mosaic
     #       does not take in nlooks anymore
     if save_mosaics:
@@ -434,13 +374,41 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     else:
         output_radiometry_str = 'radar backscatter sigma0'
 
+    logger.info(f'Identification:')
+    logger.info(f'    processing type: {processing_type}')
+    logger.info(f'    product version: {product_version}')
+    if save_mosaics:
+        logger.info(f'    mosaic product ID: {mosaic_product_id}')
+    logger.info(f'Processing parameters:')
+    logger.info(f'    apply RTC: {flag_apply_rtc}')
+    logger.info(f'    apply thermal noise correction:'
+                f' {flag_apply_thermal_noise_correction}')
+    logger.info(f'    apply absolute radiometric correction:'
+                f' {flag_apply_abs_rad_correction}')
+    logger.info(f'    scratch dir: {scratch_path}')
+    logger.info(f'    output dir: {output_dir}')
+    logger.info(f'    save bursts: {save_bursts}')
+    logger.info(f'    save mosaics: {save_mosaics}')
+    logger.info(f'    save browse: {flag_save_browse}')
+    logger.info(f'    output imagery format: {output_imagery_format}')
+    logger.info(f'    output imagery compression: {output_imagery_compression}')
+    logger.info(f'    output imagery nbits: {output_imagery_nbits}')
+    logger.info(f'    save secondary layers as HDF5 files:'
+                f' {save_secondary_layers_as_hdf5}')
+    logger.info(f'Browse images:')
+    logger.info(f'    burst height: {browse_image_burst_height}')
+    logger.info(f'    burst width: {browse_image_burst_width}')
+    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
+    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
+
     # Common initializations
     dem_raster = isce3.io.Raster(cfg.dem)
 
     # output mosaics variables
-    geo_filename = f'{output_dir}/'f'{product_prefix}.{imagery_extension}'
+    geo_filename = f'{output_dir}/'f'{mosaic_product_id}.{imagery_extension}'
     output_imagery_list = []
     output_file_list = []
+    mosaic_output_file_list = []
     output_metadata_dict = {}
 
     # output dir (imagery mosaics)
@@ -460,16 +428,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     add_output_to_output_metadata_dict(
         save_layover_shadow_mask, 'layover_shadow_mask',
         output_dir_sec_mosaic_raster,
-        output_metadata_dict, product_prefix, imagery_extension)
+        output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
-        output_metadata_dict, product_prefix, imagery_extension)
+        output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
         save_rtc_anf, 'rtc_area_normalization_factor',
         output_dir_sec_mosaic_raster,
-        output_metadata_dict, product_prefix, imagery_extension)
+        output_metadata_dict, mosaic_product_id, imagery_extension)
 
-    mosaic_geogrid_dict = {}
     temp_files_list = []
 
     os.makedirs(output_dir, exist_ok=True)
@@ -481,7 +448,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     hdf5_mosaic_obj = None
     output_hdf5_file = os.path.join(output_dir,
-                                    f'{product_prefix}.{hdf5_file_extension}')
+                                    f'{mosaic_product_id}.{hdf5_file_extension}')
 
     # ------ Start parallelized burst processing ------
     t_start_parallel = time.time()
@@ -545,6 +512,11 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                           f'"{list_burst_id[index_child]}"\n')
         raise RuntimeError(msg_failed_child_proc)
 
+    lookside = None
+    wavelength = None
+    orbit = None
+    mosaic_geotiff_metadata_dict = None
+
     # iterate over sub-burts
     for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
 
@@ -554,6 +526,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         t_burst_start = time.time()
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
+
+        burst_id_file_name = burst_id[1:].upper().replace('_', '-')
+        print('burst ID name:', burst_id_file_name)    
+        burst_product_id = \
+            product_id.replace('{burst_id}', burst_id_file_name)
+
+        logger.info(f'    product ID: {burst_product_id}')
 
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
@@ -584,48 +563,20 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         geogrid.start_x = snap_coord(geogrid.start_x, x_snap, np.floor)
         geogrid.start_y = snap_coord(geogrid.start_y, y_snap, np.ceil)
 
-        # update mosaic boundaries
-        update_mosaic_boundaries(mosaic_geogrid_dict, geogrid)
-
         logger.info(f'    reading burst SLCs')
         radar_grid = burst.as_isce3_radargrid()
 
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
-        if 'orbit' not in mosaic_geogrid_dict.keys():
-            mosaic_geogrid_dict['orbit'] = orbit
-        if 'wavelength' not in mosaic_geogrid_dict.keys():
-            mosaic_geogrid_dict['wavelength'] = burst.wavelength
-        if 'lookside' not in mosaic_geogrid_dict.keys():
-            mosaic_geogrid_dict['lookside'] = radar_grid.lookside
-
-        input_file_list = []
-
-        for pol, burst_pol in burst_pol_dict.items():
-            temp_slc_path = \
-                f'{burst_scratch_path}/rslc_{pol}.vrt'
-            temp_slc_corrected_path = (
-                f'{burst_scratch_path}/rslc_{pol}_corrected.{imagery_extension}')
-
-            if (flag_apply_thermal_noise_correction or
-                    flag_apply_abs_rad_correction):
-                input_burst_filename = temp_slc_corrected_path
-                temp_files_list.append(temp_slc_corrected_path)
-            else:
-                input_burst_filename = temp_slc_path
-
-            temp_files_list.append(temp_slc_path)
-            input_file_list.append(input_burst_filename)
-
-        # At this point, burst imagery files are always temporary
-        geo_burst_filename = \
-            f'{burst_scratch_path}/{product_prefix}.{imagery_extension}'
-        temp_files_list.append(geo_burst_filename)
+        wavelength = burst.wavelength
+        lookside = radar_grid.lookside
 
         # Generate output geocoded burst raster
+        geo_burst_filename = \
+            f'{burst_scratch_path}/{burst_product_id}.{imagery_extension}'
         burst_hdf5_in_output = os.path.join(output_path_child,
                                             burst_id,
-                                            f'{product_prefix}.{hdf5_file_extension}')
+                                            f'{burst_product_id}.{hdf5_file_extension}')
         if not save_bursts:
             temp_files_list.append(burst_hdf5_in_output)
 
@@ -635,7 +586,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                '/science/SENTINEL1/RTC/grids/frequencyA/'
                                'numberOfLooks')
             else:
-                nlooks_file = (f'{output_dir_sec_bursts}/{product_prefix}'
+                nlooks_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
                                f'_nlooks.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
@@ -651,7 +602,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                 '/science/SENTINEL1/RTC/grids/frequencyA/'
                                 'RTCAreaNormalizationFactor')
             else:
-                rtc_anf_file = (f'{output_dir_sec_bursts}/{product_prefix}'
+                rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
                                 f'_rtc_anf.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
@@ -671,12 +622,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if flag_layover_shadow_mask_is_temporary:
                 # layover/shadow mask is temporary
                 layover_shadow_mask_file = \
-                    (f'{burst_scratch_path}/{product_prefix}'
+                    (f'{burst_scratch_path}/{burst_product_id}'
                      f'_layover_shadow_mask.{imagery_extension}')
             else:
                 # layover/shadow mask is saved in `output_dir_sec_bursts`
                 layover_shadow_mask_file = \
-                    (f'{output_dir_sec_bursts}/{product_prefix}'
+                    (f'{output_dir_sec_bursts}/{burst_product_id}'
                      f'_layover_shadow_mask.{imagery_extension}')
 
             if flag_layover_shadow_mask_is_temporary:
@@ -713,7 +664,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             else:
                 geo_burst_pol_filename = \
                     os.path.join(output_path_child, burst_id,
-                                 f'{product_prefix}_{pol}.' +
+                                 f'{burst_product_id}_{pol}.' +
                                  f'{imagery_extension}')
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
@@ -739,62 +690,47 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_metadata_dict['rtc_area_normalization_factor'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
-        if flag_call_radar_grid and save_bursts:
-            if save_incidence_angle:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'incidenceAngle',
-                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
-                    'incidence_angle', imagery_extension, burst_hdf5_in_output)
 
-            if save_local_inc_angle:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'localIncidenceAngle',
-                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
-                    'local_incidence_angle', imagery_extension, burst_hdf5_in_output)
+        # radar-grid layers
+        if flag_call_radar_grid:
+            radar_grid_layer_dict = {
+                'incidence_angle': save_incidence_angle,
+                'local_incidence_angle': save_local_inc_angle,
+                'projection_angle': save_projection_angle,
+                'rtc_anf_psi': save_rtc_anf_psi,
+                'range_slope': save_range_slope,
+                'interpolated_dem': save_dem}
 
-            if save_projection_angle:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'projectionAngle',
-                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
-                    'projection_angle', imagery_extension, burst_hdf5_in_output)
-            if save_rtc_anf_psi:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'RTCAreaNormalizationFactorPsi',
-                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
-                    'rtc_anf_psi', imagery_extension, burst_hdf5_in_output)
-
-            if save_range_slope:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'rangeSlope',
-                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
-                    'range_slope', imagery_extension, burst_hdf5_in_output)
-
-            if save_dem:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'interpolatedDem',
-                    save_secondary_layers_as_hdf5, output_dir, product_prefix,
-                    'interpolated_dem', imagery_extension, burst_hdf5_in_output)
-
-
-            if flag_bursts_secondary_files_are_temporary:
-                # files are temporary
-                temp_files_list += list(radar_grid_file_dict.values())
-            else:
-                output_file_list += list(radar_grid_file_dict.values())
+            for layer_name, flag_save in radar_grid_layer_dict.items():
+                if not flag_save:
+                    continue
+                current_file = os.path.join(output_dir, burst_id,
+                    f'{burst_product_id}_{layer_name}.{imagery_extension}')
+                if flag_bursts_secondary_files_are_temporary:
+                    temp_files_list.append(current_file)
+                else:
+                    output_file_list.append(current_file)
 
         # Create burst HDF5
         if (save_hdf5_metadata and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
             output_hdf5_file_burst = os.path.join(
-                hdf5_file_output_dir, f'{product_prefix}.{hdf5_file_extension}')
+                hdf5_file_output_dir, f'{burst_product_id}.{hdf5_file_extension}')
             output_file_list.append(output_hdf5_file_burst)
 
         # Create mosaic HDF5
         if (save_hdf5_metadata and save_mosaics
                 and burst_index == 0):
             hdf5_mosaic_obj = create_hdf5_file(
-                output_hdf5_file, orbit, burst, cfg)
+                mosaic_product_id, output_hdf5_file, orbit, burst, cfg,
+                is_mosaic=True)
+
+        if (save_mosaics and burst_index == 0):
+            mosaic_metadata_dict = get_metadata_dict(mosaic_product_id, burst, cfg,
+                is_mosaic=True)
+            mosaic_geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
+                mosaic_metadata_dict)
 
         t_burst_end = time.time()
         logger.info(
@@ -810,19 +746,20 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             radar_grid_output_dir = scratch_path
         else:
             radar_grid_output_dir = output_dir
-        get_radar_grid(cfg.geogrid, dem_interp_method_enum, product_prefix,
-                              radar_grid_output_dir, imagery_extension, save_incidence_angle,
-                              save_local_inc_angle, save_projection_angle,
-                              save_rtc_anf_psi,
-                              save_range_slope, save_dem,
-                              dem_raster, radar_grid_file_dict,
-                              mosaic_geogrid_dict,
-                              orbit, verbose=not save_imagery_as_hdf5)
-        if save_hdf5_metadata:
+        get_radar_grid(cfg.geogrid, dem_interp_method_enum, mosaic_product_id,
+                       radar_grid_output_dir, imagery_extension, save_incidence_angle,
+                       save_local_inc_angle, save_projection_angle,
+                       save_rtc_anf_psi,
+                       save_range_slope, save_dem,
+                       dem_raster, radar_grid_file_dict,
+                       lookside, wavelength,
+                       orbit, verbose=not save_secondary_layers_as_hdf5)
+        if save_secondary_layers_as_hdf5:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
         else:
             output_file_list += list(radar_grid_file_dict.values())
+            mosaic_output_file_list += list(radar_grid_file_dict.values())
 
     if save_mosaics:
 
@@ -831,7 +768,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         output_imagery_filename_list = []
         for pol in pol_list:
             geo_pol_filename = \
-                (f'{output_dir_mosaic_raster}/{product_prefix}_{pol}.'
+                (f'{output_dir_mosaic_raster}/{mosaic_product_id}_{pol}.'
                  f'{imagery_extension}')
             logger.info(f'    {geo_pol_filename}')
             output_imagery_filename_list.append(geo_pol_filename)
@@ -841,12 +778,14 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if len(output_imagery_list) > 0:
             compute_weighted_mosaic_raster_single_band(
                 output_imagery_list, nlooks_list,
-                output_imagery_filename_list, cfg.geogrid, verbose=False)
+                output_imagery_filename_list, cfg.geogrid,
+                verbose=False)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
         else:
             output_file_list += output_imagery_filename_list
+            mosaic_output_file_list += output_imagery_filename_list
 
         # Mosaic other bands
         for key in output_metadata_dict.keys():
@@ -854,8 +793,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
                 continue
-            compute_weighted_mosaic_raster(input_files, nlooks_list, output_file,
-                                           cfg.geogrid, verbose=False)
+            compute_weighted_mosaic_raster(
+                input_files, nlooks_list, output_file, cfg.geogrid, verbose=False)
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
@@ -863,6 +802,21 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
+                mosaic_output_file_list.append(output_file)
+
+
+
+        # save browse image (mosaic)
+        if flag_save_browse:
+            browse_image_filename = \
+                os.path.join(output_dir, f'{mosaic_product_id}.png')
+            save_browse(output_imagery_filename_list, browse_image_filename,
+                        pol_list, browse_image_mosaic_height,
+                        browse_image_mosaic_width, temp_files_list,
+                        scratch_path, logger)
+            output_file_list.append(browse_image_filename)
+            mosaic_output_file_list.append(browse_image_filename)
+
 
         # Save the mosaicked layers as HDF5
         if save_hdf5_metadata:
@@ -897,8 +851,10 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
             sensing_start_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
             sensing_end_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
-            del hdf5_mosaic_obj[sensing_start_ds]
-            del hdf5_mosaic_obj[sensing_end_ds]
+            if sensing_start_ds in hdf5_mosaic_obj:
+                del hdf5_mosaic_obj[sensing_start_ds]
+            if sensing_end_ds in hdf5_mosaic_obj:
+                del hdf5_mosaic_obj[sensing_end_ds]
             hdf5_mosaic_obj[sensing_start_ds] = \
                 sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f')
             hdf5_mosaic_obj[sensing_end_ds] = \
@@ -920,6 +876,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             hdf5_mosaic_obj.close()
             output_file_list.append(output_hdf5_file)
 
+    if save_mosaics:
+        for current_file in mosaic_output_file_list:
+            if not current_file.endswith('.tif'):
+                continue
+            append_metadata_to_geotiff_file(current_file,
+                                            mosaic_geotiff_metadata_dict)
+
     if output_imagery_format == 'COG':
         logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
         for filename in output_file_list:
@@ -939,6 +902,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                         compression=output_imagery_compression,
                         nbits=output_imagery_nbits,
                         **options_save_as_cog)
+
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:

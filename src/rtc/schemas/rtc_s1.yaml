@@ -43,8 +43,18 @@ runconfig:
             #     {output_dir}/{burst_id}/{product_id}_v{product_version}{suffix}.{ext}
             # If option `save_mosaics` is set, output mosaics are saved to:
             #     {output_dir}/{product_id}_v{product_version}{suffix}.{ext}
-            # If the field `product_id`` is left empty, the prefix "rtc_product"
-            # will be used instead.
+            #
+            # If the `product_id` contains the substring "_{burst_id}", the
+            # substring will be substituted by either:
+            #     - "_" followed by the burst ID, if the product is a burst; or
+            #     - An empty string, if the product is a mosaic.
+            #
+            # For example, the `product_id` = `RTC-S1_{burst_id}_S1B` will become
+            # `RTC-S1_069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
+            # will become `RTC-S1_S1B` for the mosaic product.
+            #
+            # If the field `product_id`` is left empty, the prefix
+            # "OPERA_L2_RTC-S1_{burst_id}"  will be used instead.
             # `suffix` is only used when there are multiple output files.
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir: str()

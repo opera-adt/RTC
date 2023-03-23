@@ -27,7 +27,7 @@ runconfig:
 
         product_group:
 
-            processing_type: UNDEFINED
+            processing_type: NOMINAL
 
             product_version:
 
@@ -40,8 +40,18 @@ runconfig:
             #     {output_dir}/{burst_id}/{product_id}_v{product_version}{suffix}.{ext}
             # If option `save_mosaics` is set, output mosaics are saved to:
             #     {output_dir}/{product_id}_v{product_version}{suffix}.{ext}
-            # If the field `product_id`` is left empty, the prefix "rtc_product"
-            # will be used instead.
+            #
+            # If the `product_id` contains the substring "_{burst_id}", the
+            # substring will be substituted by either:
+            #     - "_" followed by the burst ID, if the product is a burst; or
+            #     - An empty string, if the product is a mosaic.
+            #
+            # For example, the `product_id` = `RTC-S1_{burst_id}_S1B` will become
+            # `RTC-S1_069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
+            # will become `RTC-S1_S1B` for the mosaic product.
+            #
+            # If the field `product_id`` is left empty, the prefix
+            # "OPERA_L2_RTC-S1_{burst_id}"  will be used instead.
             # `suffix` is only used when there are multiple output files.
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir:
@@ -62,7 +72,7 @@ runconfig:
 
             # Optional. Save secondary layers (e.g., inc. angle) within 
             # the HDF5 file
-            save_secondary_layers_as_hdf5: True
+            save_secondary_layers_as_hdf5: False
 
             # Save RTC-S1 metadata in the HDF5 format
             # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
@@ -159,10 +169,10 @@ runconfig:
                 geogrid_upsampling: 1
 
                 # Save the incidence angle
-                save_incidence_angle: False
+                save_incidence_angle: True
 
                 # Save the local-incidence angle
-                save_local_inc_angle: False
+                save_local_inc_angle: True
 
                 # Save the projection angle
                 save_projection_angle: False
@@ -175,11 +185,11 @@ runconfig:
                 save_range_slope: False
 
                 # Save the number of looks used to generate the RTC product
-                save_nlooks: False
+                save_nlooks: True
               
                 # Save the RTC area normalization factor (ANF) used to generate
                 # the RTC product
-                save_rtc_anf: False
+                save_rtc_anf: True
 
                 # Save the interpolated DEM used to generate the RTC product
                 save_dem: False

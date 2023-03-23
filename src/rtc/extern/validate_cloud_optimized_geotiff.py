@@ -123,7 +123,7 @@ def validate(ds, check_tiled=True, full_check=False):
       check_tiled: Set to False to ignore missing tiling.
       full_check: Set to TRUe to check tile/strip leader/trailer bytes. Might be slow on remote files
 
-    Returns:
+    Returns
       A tuple, whose first element is an array of error messages
       (empty if there is no error), and the second element, a dictionary
       with the structure of the GeoTIFF file.

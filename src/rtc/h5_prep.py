@@ -4,6 +4,7 @@ import os
 import numpy as np
 import h5py
 import logging
+from datetime import datetime
 from osgeo import gdal
 
 import isce3
@@ -30,7 +31,7 @@ def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
     It returns "MULTIPOLYGON" when
     there is more than one polygon that defines the burst's border
 
-    Parameters:
+    Parameters
     -----------
     burst_in: Sentinel1BurstSlc
         Input burst
@@ -117,7 +118,26 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     logger.info(f'file saved: {output_hdf5_file}')
 
 
-def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
+def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic):
+    '''Create HDF5 file
+
+    Parameters
+    -----------
+    product_id: str
+        Product ID
+    output_hdf5_file: h5py.File
+        HDF5 object into which write the metadata
+    orbit: isce3.core.Orbit
+        Orbit file
+    burst: Sentinel1BurstCls
+        Source burst of the RTC
+    cfg: RunConfig
+        A class that contains the information defined in runconfig
+    is_mosaic: bool
+        Flag to indicate whether the RTC-S1 product is a mosaic (True)
+        or burst (False) product
+    '''
+
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
     hdf5_obj.attrs["contact"] = np.string_("operaops@jpl.nasa.gov")
@@ -126,7 +146,8 @@ def create_hdf5_file(output_hdf5_file, orbit, burst, cfg):
     hdf5_obj.attrs["reference_document"] = np.string_("TBD")
     hdf5_obj.attrs["title"] = np.string_("OPERA L2 RTC-S1 Product")
 
-    populate_metadata_group(hdf5_obj, burst, cfg)
+    populate_metadata_group(product_id, hdf5_obj, burst, cfg, BASE_HDF5_DATASET,
+                            is_mosaic)
 
     # save orbit
     orbit_group = hdf5_obj.require_group(
@@ -158,22 +179,35 @@ def save_orbit(orbit, orbit_group):
                                         " (or) Custom")
 
 
-def populate_metadata_group(h5py_obj: h5py.File,
-                            burst_in: Sentinel1BurstSlc,
-                            cfg_in: RunConfig,
-                            root_path: str = BASE_HDF5_DATASET):
-    '''Populate RTC metadata based on Sentinel1BurstSlc and RunConfig
+def get_metadata_dict(product_id: str,
+                      burst_in: Sentinel1BurstSlc,
+                      cfg_in: RunConfig,
+                      is_mosaic: bool):
+    '''Create RTC-S1 metadata dictionary
 
-    Parameters:
+    Parameters
     -----------
-    h5py_obj: h5py.File
-        HDF5 object into which write the metadata
+    product_id: str
+        Product ID
     burst_in: Sentinel1BurstCls
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
-    root_path: str
-        Root path inside the HDF5 object on which the metadata will be placed
+    is_mosaic: bool
+        Flag to indicate whether the RTC-S1 product is a mosaic (True)
+        or burst (False) product
+
+    Returns
+    -------
+    metadata_dict : dict
+        Metadata dict organized as follows:
+        - Dictionary item key: HDF5 dataset key;
+        - Dictionary item value: list of 
+            [GeoTIFF metadata key,
+             metadata value,
+             metadata description]
+        The value `None` for the GeoTIFF metadata key indicates that
+        the field is not saved on the GeoTIFF file
     '''
 
     # orbit files
@@ -199,107 +233,238 @@ def populate_metadata_group(h5py_obj: h5py.File,
         # If the DEM description is not provided, use DEM source
         dem_description = os.path.basename(cfg_in.dem)
 
+    if burst_in.platform_id == 'S1A':
+        platform_id = 'Sentinel-1A'
+    elif burst_in.platform_id == 'S1B':
+        platform_id = 'Sentinel-1B'
+    elif burst_in.platform_id == 'S1C':
+        platform_id = 'Sentinel-1C'
+    elif burst_in.platform_id == 'S1D':
+        platform_id = 'Sentinel-1D'
+    else:
+        error_msg = f'ERROR Not recognized platform ID: {burst_in.platform_id}'
+        raise NotImplementedError(error_msg)
+
+    # mission_id = 'Sentinel'
+
     # Manifests the field names, corresponding values from RTC workflow, and the description.
     # To extend this, add the lines with the format below:
     # 'field_name': [corresponding_variables_in_workflow, description]
-    dict_field_and_data = {
+    metadata_dict = {
         'identification/absoluteOrbitNumber':
-            [burst_in.abs_orbit_number, 'Absolute orbit number'],
+            ['absolute_orbit_number', 
+             burst_in.abs_orbit_number,
+             'Absolute orbit number'],
         # NOTE: The field below does not exist on opera_rtc.xml
         # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
-            [burst_in.burst_id.track_number, 'Track number'],
-        'identification/burstID':
-            [str(burst_in.burst_id), 'Burst identification (burst ID)'],
-        'identification/boundingPolygon':
-            [get_polygon_wkt(burst_in),
-            'OGR compatible WKT representation of bounding polygon of the image'],
-        'identification/missionId':
-            [burst_in.platform_id, 'Mission identifier'],
+            ['track_number', burst_in.burst_id.track_number,
+             'Track number'],
+        # 'identification/missionId':
+        #    [mission_id, 'Mission identifier'],
+        'identification/platform':
+            ['platform', platform_id, 'Platform name'],
+        'identification/sensor':
+            ['sensor', platform_id, 'Sensor instrument name'],
         'identification/productType':
-            ['RTC-S1', 'Product type'],
-        # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
+            ['product_type', 'RTC-S1', 'Product type'],
+        'identification/project':
+            ['project', 'OPERA', 'Project name'],
+        'identification/acquisitionMode':
+            ['acquisition_mode', 'Interferometric Wide (IW)',
+             'Acquisition mode'],
         'identification/lookDirection':
-            ['Right', 'Look direction can be left or right'],
+            ['look_direction', 'right', 'Look direction can be left or right'],
         'identification/orbitPassDirection':
-            [burst_in.orbit_direction, 'Orbit direction can be ascending or descending'],
+            ['orbit_pass_direction', burst_in.orbit_direction.lower(),
+            'Orbit direction can be ascending or descending'],
         # NOTE: using the same date format as `s1_reader.as_datetime()`
-        'identification/zeroDopplerStartTime':
-            [burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%f'),
-             'Azimuth start time of product'],
-        'identification/zeroDopplerEndTime':
-            [burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%f'),
-            'Azimuth stop time of product'],
+
         'identification/listOfFrequencies':
-             [['A'], 'List of frequency layers available in the product'],  # TBC
+             [None, ['A'],
+             'List of frequency layers available in the product'],  # TBC
         'identification/isGeocoded':
-            [True, 'Flag to indicate radar geometry or geocoded product'],
+            [None, True,
+            'Flag to indicate radar geometry or geocoded product'],
+        'identification/productLevel':
+            ['product_level', 'L2', 'Product level'],
+        'identification/productID':
+            ['product_id', product_id, 'Product identificator'],
+        # 'identification/productSource':
+        # [platform_id, 'Product source'],
         'identification/isUrgentObservation':
-            [False, 'List of booleans indicating if datatakes are nominal or urgent'],
+            ['is_urgent_observation', False,
+             'List of booleans indicating if datatakes are nominal or urgent'],
         'identification/diagnosticModeFlag':
-            [False, 'Indicates if the radar mode is a diagnostic mode or not: True or False'],
+            ['diagnostic_mode_flag', False,
+             'Indicates if the radar mode is a diagnostic mode or not: True or False'],
         'identification/processingType':
-            [processing_type, 'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+            ['processing_type', processing_type,
+             'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+        # datetime format 'YYYY-MM-DD HH:MM:SS'
+        'identification/processingDateTime':
+            ['processing_data_time',
+             datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+             'Processing date and time'],
         'identification/productVersion':
-            [product_version, 'Product version'],
+            ['product_version', product_version, 'Product version'],
+        'identification/softwareVersion':
+            ['software_version', str(SOFTWARE_VERSION), 'Software version'],
+        # 'identification/CEOSDocumentIdentifier':
+        #     ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
+        #      'CEOS document identifier'],
         # 'identification/frameNumber':  # TBD
-        # 'identification/productVersion': # Defined by RTC SAS
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
 
         f'{FREQ_GRID_SUB_PATH}/rangeBandwidth':
-            [burst_in.range_bandwidth, 'Processed range bandwidth in Hz'],
+            ['range_bandwidth', burst_in.range_bandwidth,
+             'Processed range bandwidth in Hz'],
         # 'frequencyA/azimuthBandwidth':
         f'{FREQ_GRID_SUB_PATH}/centerFrequency':
-            [burst_in.radar_center_frequency, 'Center frequency of the processed image in Hz'],
+            ['center_frequency', burst_in.radar_center_frequency,
+             'Center frequency of the processed image in Hz'],
         f'{FREQ_GRID_SUB_PATH}/slantRangeSpacing':
-            [burst_in.range_pixel_spacing,
+            ['slant_range_spacing', burst_in.range_pixel_spacing,
              'Slant range spacing of grid. '
-             'Same as difference between consecutive samples in slantRange array'],
+             'Distance in meters between consecutive range samples'],
         f'{FREQ_GRID_SUB_PATH}/zeroDopplerTimeSpacing':
-            [burst_in.azimuth_time_interval,
-             'Time interval in the along track direction for raster layers. This is same '
-             'as the spacing between consecutive entries in the zeroDopplerTime array'],
-        f'{FREQ_GRID_SUB_PATH}/faradayRotationFlag':
-            [False, 'Flag to indicate if Faraday Rotation correction was applied'],
-        f'{FREQ_GRID_SUB_PATH}/polarizationOrientationFlag':
-            [False, 'Flag to indicate if Polarization Orientation correction was applied'],
+            ['zero_doppler_time_spacing', burst_in.azimuth_time_interval,
+             'Time interval in the along track direction for raster layers'],
+        # f'{FREQ_GRID_SUB_PATH}/faradayRotationFlag':
+        #    ['faraday_rotation_flag', False,
+        #     'Flag to indicate if Faraday Rotation correction was applied'],
+        # f'{FREQ_GRID_SUB_PATH}/polarizationOrientationFlag':
+        #    ['polarization_orientation_flag', False,
+        #    'Flag to indicate if Polarization Orientation correction was applied'],
 
         'RTC/metadata/processingInformation/algorithms/demInterpolation':
-            [cfg_in.groups.processing.dem_interpolation_method, 'DEM interpolation method'],
+            ['dem_interpolation_algorithm',
+             cfg_in.groups.processing.dem_interpolation_method, 'DEM interpolation method'],
         'RTC/metadata/processingInformation/algorithms/geocoding':
-            [cfg_in.groups.processing.geocoding.algorithm_type, 'Geocoding algorithm'],
+            ['geocoding_algorithm', cfg_in.groups.processing.geocoding.algorithm_type,
+             'Geocoding algorithm'],
         'RTC/metadata/processingInformation/algorithms/radiometricTerrainCorrection':
-            [cfg_in.groups.processing.rtc.algorithm_type,
+            ['radiometric_terrain_correction_algorithm',
+             cfg_in.groups.processing.rtc.algorithm_type,
             'Radiometric terrain correction (RTC) algorithm'],
         'RTC/metadata/processingInformation/algorithms/ISCEVersion':
-            [isce3.__version__, 'ISCE version used for processing'],
-        'RTC/metadata/processingInformation/algorithms/RTCVersion':
-            [str(SOFTWARE_VERSION), 'RTC-S1 SAS version used for processing'],
+            ['isce3_version', isce3.__version__,
+            'Version of the ISCE3 framework used for processing'],
+        # 'RTC/metadata/processingInformation/algorithms/RTCVersion':
+        #     [str(SOFTWARE_VERSION), 'RTC-S1 SAS version used for processing'],
         'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
-            [release_version, 'S1-Reader version used for processing'],
+            ['s1_reader_version', release_version,
+             'Version of the OPERA s1-reader used for processing'],
 
-        'RTC/metadata/processingInformation/inputs/l1SlcGranules':
-            [l1_slc_granules, 'List of input L1 RSLC products used'],
+        'RTC/metadata/processingInformation/inputs/l1SLCGranules':
+            ['l1_slc_granules', l1_slc_granules,
+             'List of input L1 SLC products used'],
         'RTC/metadata/processingInformation/inputs/orbitFiles':
-            [orbit_files, 'List of input orbit files used'],
-        'RTC/metadata/processingInformation/inputs/auxcalFiles':
-            [[burst_in.burst_calibration.basename_cads, burst_in.burst_noise.basename_nads],
+            ['orbit_files', orbit_files, 'List of input orbit files used'],
+        'RTC/metadata/processingInformation/inputs/annotationFiles':
+            ['annotation_files', [burst_in.burst_calibration.basename_cads,
+             burst_in.burst_noise.basename_nads],
              'List of input calibration files used'],
         'RTC/metadata/processingInformation/inputs/configFiles':
-            [cfg_in.run_config_path, 'List of input config files used'],
+            ['config_files', cfg_in.run_config_path,
+             'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demSource':
-            [dem_description, 'DEM source description']
+            ['dem_source', dem_description, 'DEM source description']
     }
-    for fieldname, data in dict_field_and_data.items():
-        path_dataset_in_h5 = os.path.join(root_path, fieldname)
-        if data[0] is str:
-            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data[0]))
-        else:
-            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data[0])
+    if is_mosaic:
+        return metadata_dict
 
-        dset.attrs['description'] = np.string_(data[1])
+    metadata_dict['identification/boundingPolygon'] = \
+        ['bounding_polygon', get_polygon_wkt(burst_in),
+         'OGR compatible WKT representation of the product bounding polygon'
+         ' bounding polygon']
+
+    metadata_dict['identification/burstID'] = \
+        ['burst_id', str(burst_in.burst_id),
+         'Burst identification (burst ID)']
+
+    beam_id = str(burst_in.burst_id)[-3:]
+    metadata_dict['identification/beamID'] = \
+        ['beam_id', beam_id, 'Beam identification (Beam ID)']
+
+    metadata_dict['identification/zeroDopplerStartTime'] = \
+        ['zero_doppler_start_time',
+         burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+         'Azimuth start time of the product']
+    metadata_dict['identification/zeroDopplerEndTime'] = \
+        ['zero_doppler_end_time',
+         burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+         'Azimuth stop time of the product']
+    return metadata_dict
+
+
+def all_metadata_dict_to_geotiff_metadata_dict(metadata_dict):
+    '''
+    Convert all metadata dict to GeoTIFF metadata dict
+    Parameters
+    ----------
+    metadata_dict : dict
+        Metadata dict organized as follows:
+        - Dictionary item key: HDF5 dataset key;
+        - Dictionary item value: list of 
+            [GeoTIFF metadata key,
+             metadata value,
+             metadata description]
+        The value `None` for the GeoTIFF metadata key indicates that
+        the field is not saved on the GeoTIFF file
+    Returns
+    -------
+    geotiff_metadata_dict : dict
+        Metadata dict to be saved onto the RTC-S1 product GeoTIFF file
+    '''
+    geotiff_metadata_dict = {}
+    for _, (key, value, _) in metadata_dict.items():
+        if key is None:
+            continue
+        if isinstance(value, str):
+            geotiff_metadata_dict[key.upper()] = str(value).upper()
+            continue
+        geotiff_metadata_dict[key.upper()] = value
+    return geotiff_metadata_dict
+
+
+def populate_metadata_group(product_id: str,
+                            h5py_obj: h5py.File,
+                            burst_in: Sentinel1BurstSlc,
+                            cfg_in: RunConfig,
+                            root_path: str,
+                            is_mosaic: bool):
+    '''Populate RTC metadata based on Sentinel1BurstSlc and RunConfig
+
+    Parameters
+    -----------
+    product_id: str
+        Product ID
+    h5py_obj: h5py.File
+        HDF5 object into which write the metadata
+    burst_in: Sentinel1BurstCls
+        Source burst of the RTC
+    cfg_in: RunConfig
+        A class that contains the information defined in runconfig
+    root_path: str
+        Root path inside the HDF5 object on which the metadata will be placed
+    is_mosaic: bool
+        Flag to indicate if the RTC-S1 product is a mosaic (True)
+        or burst (False) product
+    '''
+
+    metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in,  is_mosaic)
+
+    for fieldname, (_, data, description) in metadata_dict.items():
+        path_dataset_in_h5 = os.path.join(root_path, fieldname)
+        if isinstance(data, str):
+            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data))
+        else:
+            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data)
+
+        dset.attrs['description'] = np.string_(description)
 
 
 def save_hdf5_dataset(ds_filename, h5py_obj, root_path,

@@ -15,7 +15,7 @@ RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
 
 LIST_EXCLUDE_COMPARISON = \
     ['//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/ISCEVersion',
-     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/auxcalFiles',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/annotationFiles',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/configFiles',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/demFiles',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/orbitFiles']
@@ -71,7 +71,7 @@ def print_data_difference(val_1, val_2, indent=4):
     '''
     Print out the difference of the data whose dimension is >= 1
 
-    Parameters:
+    Parameters
     -----------
     val_1, val_2: np.array
         Data that has difference to each other
@@ -150,7 +150,7 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
     In case of attributes, the path and the attribute keys are
     separated by newline character ('\n')
 
-    Parameters:
+    Parameters
     ----------
     hdf_obj_1: h5py.Group
         HDF5 object to retrieve the dataset and the attribute list
@@ -204,7 +204,7 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     NOTE: For attributes, the path and the key are
     separated by newline character ('\n')
 
-    Parameters:
+    Parameters
     -----------
     hdf5_obj_1: h5py.Group
         The 1st HDF5 object to compare
@@ -389,7 +389,7 @@ def compare_rtc_hdf5_files(file_1: str, file_2: str,
     Compare the two RTC products (in HDF5) if they are equivalent
     within acceptable difference
 
-    Parameters:
+    Parameters
     -----------
     file_1, file_2: str
         Path to the RTC products (in HDF5)
@@ -555,7 +555,7 @@ def _get_prefix_str(flag_same, flag_all_ok):
     Returns the prefix string for a comparison test, either the contents
     of PASSED_STR or the FAILED_STR.
 
-    Parameters:
+    Parameters
     -----------
     flag_same: bool
         Result of the comparison test
