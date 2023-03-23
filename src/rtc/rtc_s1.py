@@ -265,7 +265,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # read product path group / output format
     runconfig_product_id = cfg.groups.product_group.product_id
     if runconfig_product_id is None:
-        runconfig_product_id = 'rtc_product'
+        runconfig_product_id = 'OPERA_L2_RTC-S1_{burst_id}'
     product_id = f'{runconfig_product_id}_v{product_version}'
     mosaic_product_id = product_id.replace('_{burst_id}', '')
 

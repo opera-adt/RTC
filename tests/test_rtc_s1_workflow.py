@@ -30,7 +30,7 @@ def _load_cfg_parameters(cfg):
     output_dir = cfg.groups.product_group.output_dir
     product_id = cfg.groups.product_group.product_id
     if product_id is None:
-        product_id = 'rtc_product'
+        product_id = 'OPERA_L2_RTC-S1_{burst_id}'
     product_prefix = f'{product_id}_v{product_version}'
 
     output_imagery_format = \
