@@ -165,7 +165,9 @@ def append_metadata_to_geotiff_file(input_file, metadata_dict):
     '''
     logger.info(f'    appending metadata to GeoTIFF file: {input_file}')
     gdal_ds = gdal.Open(input_file, gdal.GA_Update)
-    gdal_ds.SetMetadata(metadata_dict)
+    existing_metadata = gdal_ds.GetMetadata()
+    existing_metadata.update(metadata_dict)
+    gdal_ds.SetMetadata(existing_metadata)
     del gdal_ds
 
 
@@ -1300,6 +1302,13 @@ def run_single_job(cfg: RunConfig):
             hdf5_mosaic_obj.close()
             output_file_list.append(output_hdf5_file)
 
+    if save_mosaics:
+        for current_file in mosaic_output_file_list:
+            if not current_file.endswith('.tif'):
+                continue
+            append_metadata_to_geotiff_file(current_file,
+                                            mosaic_geotiff_metadata_dict)
+
     if output_imagery_format == 'COG':
         logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
         for filename in output_file_list:
@@ -1320,13 +1329,6 @@ def run_single_job(cfg: RunConfig):
                         compression=output_imagery_compression,
                         nbits=output_imagery_nbits,
                         **options_save_as_cog)
-
-    if save_mosaics:
-        for current_file in mosaic_output_file_list:
-            if not current_file.endswith('.tif'):
-                continue
-            append_metadata_to_geotiff_file(current_file,
-                                            mosaic_geotiff_metadata_dict)
 
     logger.info('removing temporary files:')
     for filename in temp_files_list:
