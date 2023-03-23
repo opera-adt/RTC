@@ -15,10 +15,14 @@ RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
 
 LIST_EXCLUDE_COMPARISON = \
     ['//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/ISCEVersion',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/S1ReaderVersion',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/annotationFiles',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/auxcalFiles',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/configFiles',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/demFiles',
-     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/orbitFiles']
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/orbitFiles',
+     '//science/SENTINEL1/identification/processingDateTime',
+     ]
 
 
 def _get_parser():
