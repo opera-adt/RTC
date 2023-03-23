@@ -1072,14 +1072,14 @@ def run_single_job(cfg: RunConfig):
         if save_nlooks:
             del out_geo_nlooks_obj
 
-            if not save_secondary_layers_as_hdf5:
+            if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
 
         if save_rtc_anf:
             del out_geo_rtc_obj
 
-            if not save_secondary_layers_as_hdf5:
+            if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
             output_metadata_dict['rtc_area_normalization_factor'][1].append(rtc_anf_file)
 
@@ -1094,8 +1094,8 @@ def run_single_job(cfg: RunConfig):
                 save_range_slope, save_dem,
                 dem_raster, radar_grid_file_dict,
                 lookside, wavelength, orbit,
-                verbose=not save_secondary_layers_as_hdf5)
-            if save_secondary_layers_as_hdf5:
+                verbose=not flag_bursts_secondary_files_are_temporary)
+            if flag_bursts_secondary_files_are_temporary:
                 # files are temporary
                 temp_files_list += list(radar_grid_file_dict.values())
             else:
@@ -1172,8 +1172,8 @@ def run_single_job(cfg: RunConfig):
                        save_range_slope, save_dem,
                        dem_raster, radar_grid_file_dict,
                        lookside, wavelength,
-                       orbit, verbose=not save_imagery_as_hdf5)
-        if save_hdf5_metadata:
+                       orbit, verbose=not flag_bursts_secondary_files_are_temporary)
+        if flag_bursts_secondary_files_are_temporary:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
         else:
