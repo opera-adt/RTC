@@ -1,5 +1,5 @@
 # RTC
-OPERA Radiometric Terrain-Corrected (RTC) SAR backscatter from Sentinel-1 (RTC-S1) Science Application Software (SAS)
+Observational Products for End-Users from Remote Sensing Analysis (OPERA) Radiometric Terrain-Corrected (RTC) SAR backscatter from Sentinel-1 (RTC-S1) Science Application Software (SAS) developed by the OPERA Algoritm Development Team.
 
 # License
 Copyright (c) 2021 California Institute of Technology (“Caltech”). U.S. Government sponsorship acknowledged.
