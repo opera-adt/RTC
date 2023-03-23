@@ -700,8 +700,9 @@ def _compare_rtc_s1_metadata(metadata_1, metadata_2):
                     ' but it is not present in input 2')
                 break
             # Exclude metadata fields that are not required to be the same
-            if k1 in ['PROCESSING_DATETIME', 'DEM_SOURCE', 'LANDCOVER_SOURCE',
-                      'WORLDCOVER_SOURCE']:
+            if k1 in ['PROCESSING_DATE_TIME', 'DEM_SOURCE', 'ISCE3_VERSION',
+                      'ANNOTATION_FILES', 'CONFIG_FILES', 'DEM_FILES',
+                      'ORBIT_FILES']:
                 continue
             if metadata_2[k1] != v1:
                 flag_same_metadata = False
