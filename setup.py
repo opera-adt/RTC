@@ -56,7 +56,7 @@ setup(
     include_package_data = True,
     package_data = package_data_dict,
     classifiers = ['Programming Language :: Python',],
-    scripts = ['app/rtc_s1.py'],
+    scripts = ['app/rtc_s1.py', 'app/rtc_s1_single_job.py', 'app/rtc_compare.py'],
     install_requires = ['argparse', 'numpy', 'yamale',
                        'scipy', 'pytest', 'requests',
                        'pyproj', 'shapely', 'matplotlib'],
