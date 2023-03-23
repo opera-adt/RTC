@@ -304,7 +304,7 @@ def get_metadata_dict(product_id: str,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
         # datetime format 'YYYY-MM-DD HH:MM:SS'
         'identification/processingDateTime':
-            ['PROCESSING_DATE_TIME',
+            ['processing_date_time',
              datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
              'Processing date and time'],
         'identification/productVersion':
