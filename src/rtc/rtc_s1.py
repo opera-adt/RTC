@@ -32,42 +32,6 @@ from rtc.runconfig import RunConfig, load_parameters
 logger = logging.getLogger('rtc_s1')
 
 
-def _populate_radar_grid_file_dict(radar_grid_file_dict: dict,
-                                   key_layer: str, save_as_hdf5: bool,
-                                   output_dir: str, product_id: str,
-                                   layer_postfix: str, imagery_extension: str,
-                                   burst_hdf5_in_output: str):
-    '''
-    Helper function to populate `radar_grid_file_dict` in the parent process
-
-    Parameters
-    ----------
-    radar_grid_file_dict: dict
-        Radar grid dict to populate
-    key_layer: str
-        Key of the layer in `radar_grid_file_dict`
-    save_as_hdf5: bool
-        Flag whether to save the radargrid layers as HDF5
-    output_dir: str
-        Output directory
-    product_id: str
-        Prefix string for the radar grid file
-    layer_postfix: str
-        Postfix for the radar grid file to specify the layer
-    imagery_extension: str
-        Image extension
-    burst_hdf5_in_output: str
-        Path to the output burst HDF5
-    '''
-    if save_as_hdf5:
-        radar_grid_file_dict[key_layer] = (f'NETCDF:{burst_hdf5_in_output}:'
-                                           '/science/SENTINEL1/RTC/grids/'
-                                           f'frequencyA/{key_layer}')
-    else:
-        radar_grid_file_dict[key_layer] =\
-            os.path.join(output_dir,
-                         f'{product_id}_{layer_postfix}.', imagery_extension)
-
 
 def split_runconfig(cfg_in,
                     output_dir_child,
@@ -240,7 +204,29 @@ def process_child_runconfig(path_runconfig_burst,
     result_child_process: int
         0 when the child process has completed succesfully
     '''
-    os.environ['OMP_NUM_THREADS'] = "1"
+
+
+
+
+
+
+
+
+
+
+    # os.environ['OMP_NUM_THREADS'] = "1"
+
+
+
+
+
+
+
+
+
+
+
+
     list_arg_subprocess = ['rtc_s1_single_job.py', path_runconfig_burst]
 
     if path_burst_logfile is not None: 
@@ -604,30 +590,10 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         orbit = burst.orbit
         wavelength = burst.wavelength
         lookside = radar_grid.lookside
-        input_file_list = []
-
-        for pol, burst_pol in burst_pol_dict.items():
-            temp_slc_path = \
-                f'{burst_scratch_path}/rslc_{pol}.vrt'
-            temp_slc_corrected_path = (
-                f'{burst_scratch_path}/rslc_{pol}_corrected.{imagery_extension}')
-
-            if (flag_apply_thermal_noise_correction or
-                    flag_apply_abs_rad_correction):
-                input_burst_filename = temp_slc_corrected_path
-                temp_files_list.append(temp_slc_corrected_path)
-            else:
-                input_burst_filename = temp_slc_path
-
-            temp_files_list.append(temp_slc_path)
-            input_file_list.append(input_burst_filename)
-
-        # At this point, burst imagery files are always temporary
-        geo_burst_filename = \
-            f'{burst_scratch_path}/{burst_product_id}.{imagery_extension}'
-        temp_files_list.append(geo_burst_filename)
 
         # Generate output geocoded burst raster
+        geo_burst_filename = \
+            f'{burst_scratch_path}/{burst_product_id}.{imagery_extension}'
         burst_hdf5_in_output = os.path.join(output_path_child,
                                             burst_id,
                                             f'{burst_product_id}.{hdf5_file_extension}')
@@ -744,48 +710,26 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_metadata_dict['rtc_area_normalization_factor'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
-        if flag_call_radar_grid and save_bursts:
-            if save_incidence_angle:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'incidenceAngle',
-                    save_secondary_layers_as_hdf5, output_dir, burst_product_id,
-                    'incidence_angle', imagery_extension, burst_hdf5_in_output)
 
-            if save_local_inc_angle:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'localIncidenceAngle',
-                    save_secondary_layers_as_hdf5, output_dir, burst_product_id,
-                    'local_incidence_angle', imagery_extension, burst_hdf5_in_output)
+        # radar-grid layers
+        if flag_call_radar_grid:
+            radar_grid_layer_dict = {
+                'incidence_angle': save_incidence_angle,
+                'local_incidence_angle': save_local_inc_angle,
+                'projection_angle': save_projection_angle,
+                'rtc_anf_psi': save_rtc_anf_psi,
+                'range_slope': save_range_slope,
+                'interpolated_dem': save_dem}
 
-            if save_projection_angle:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'projectionAngle',
-                    save_secondary_layers_as_hdf5, output_dir, burst_product_id,
-                    'projection_angle', imagery_extension, burst_hdf5_in_output)
-            if save_rtc_anf_psi:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'RTCAreaNormalizationFactorPsi',
-                    save_secondary_layers_as_hdf5, output_dir, burst_product_id,
-                    'rtc_anf_psi', imagery_extension, burst_hdf5_in_output)
-
-            if save_range_slope:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'rangeSlope',
-                    save_secondary_layers_as_hdf5, output_dir, burst_product_id,
-                    'range_slope', imagery_extension, burst_hdf5_in_output)
-
-            if save_dem:
-                _populate_radar_grid_file_dict(
-                    radar_grid_file_dict, 'interpolatedDem',
-                    save_secondary_layers_as_hdf5, output_dir, burst_product_id,
-                    'interpolated_dem', imagery_extension, burst_hdf5_in_output)
-
-
-            if flag_bursts_secondary_files_are_temporary:
-                # files are temporary
-                temp_files_list += list(radar_grid_file_dict.values())
-            else:
-                output_file_list += list(radar_grid_file_dict.values())
+            for layer_name, flag_save in radar_grid_layer_dict.items():
+                if not flag_save:
+                    continue
+                current_file = os.path.join(output_dir, burst_id,
+                    f'{burst_product_id}_{layer_name}.{imagery_extension}')
+                if flag_bursts_secondary_files_are_temporary:
+                    temp_files_list.append(current_file)
+                else:
+                    output_file_list.append(current_file)
 
         # Create burst HDF5
         if (save_hdf5_metadata and save_bursts):
@@ -803,7 +747,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 is_mosaic=True)
 
         if (save_mosaics and burst_index == 0):
-            mosaic_metadata_dict = get_metadata_dict(burst_product_id, burst, cfg,
+            mosaic_metadata_dict = get_metadata_dict(mosaic_product_id, burst, cfg,
                 is_mosaic=True)
             mosaic_geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
                 mosaic_metadata_dict)
@@ -829,8 +773,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                        save_range_slope, save_dem,
                        dem_raster, radar_grid_file_dict,
                        lookside, wavelength,
-                       orbit, verbose=not save_imagery_as_hdf5)
-        if save_hdf5_metadata:
+                       orbit, verbose=not save_secondary_layers_as_hdf5)
+        if save_secondary_layers_as_hdf5:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
         else:

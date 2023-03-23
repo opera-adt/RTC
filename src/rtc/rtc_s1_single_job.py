@@ -1072,18 +1072,19 @@ def run_single_job(cfg: RunConfig):
         if save_nlooks:
             del out_geo_nlooks_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
+            if not save_secondary_layers_as_hdf5:
                 logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict['nlooks'][1].append(nlooks_file)
 
         if save_rtc_anf:
             del out_geo_rtc_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
+            if not save_secondary_layers_as_hdf5:
                 logger.info(f'file saved: {rtc_anf_file}')
             output_metadata_dict['rtc_area_normalization_factor'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
+
         if flag_call_radar_grid and save_bursts:
             get_radar_grid(
                 geogrid, dem_interp_method_enum, burst_product_id,
@@ -1093,8 +1094,8 @@ def run_single_job(cfg: RunConfig):
                 save_range_slope, save_dem,
                 dem_raster, radar_grid_file_dict,
                 lookside, wavelength, orbit,
-                verbose=not flag_bursts_secondary_files_are_temporary)
-            if flag_bursts_secondary_files_are_temporary:
+                verbose=not save_secondary_layers_as_hdf5)
+            if save_secondary_layers_as_hdf5:
                 # files are temporary
                 temp_files_list += list(radar_grid_file_dict.values())
             else:
@@ -1145,7 +1146,7 @@ def run_single_job(cfg: RunConfig):
                 output_hdf5_file, orbit, burst, cfg, is_mosaic=True)
         
         if (save_mosaics and burst_index == 0):
-            mosaic_metadata_dict = get_metadata_dict(burst_product_id, burst, cfg,
+            mosaic_metadata_dict = get_metadata_dict(mosaic_product_id, burst, cfg,
                 is_mosaic=True)
             mosaic_geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
                 mosaic_metadata_dict)
