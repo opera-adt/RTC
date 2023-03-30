@@ -333,12 +333,6 @@ def get_metadata_dict(product_id: str,
         'RTC/grids/sourceDataProductLevel': # placeholder for 1.6.6
             [1,
              'Product level of the source data'],
-        'RTC/grids/sourceDataAzimuthSpacing': # placeholder for 1.6.7
-            [0,
-             'Azimuth time spacing of the source data in seconds'],
-        'RTC/grids/sourceDataRangeSpacing': # placeholder for 1.6.7
-            [0,
-             'Slant range spacing of the source data in meters'],
         'RTC/grids/sourceDataAzimuthResolution': # placeholder for 1.6.7
             [0,
              'Azimuth time resolution of the source data in seconds'],
