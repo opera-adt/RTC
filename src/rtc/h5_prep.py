@@ -352,6 +352,28 @@ def get_metadata_dict(product_id: str,
             ['IPF',
              'Source data processing facility'],
 
+        'identification/processingDate': # placeholder for 1.7.1
+            ['0000-00-00T00:00:00',
+             'RTC-S1 processing date'],
+        'identification/dataAccess': # placeholder for 1.7.1
+            ['',
+             'URL to access the data'],
+        'identification/productFiltering': # placeholder for 1.7.4
+            [False,
+             'Flag if filter has been applied'],
+        'identification/productBoundingBox': # placeholder for 1.7.4
+            [np.zeros(4),
+             'xmin, ymin, xmax, ymax'],
+        'identification/productImageSize': # placeholder for 1.7.7
+            [np.zeros(2),
+             'Number of lines / samples of the product'],
+        
+        'identification/productPixelCoordinateConvention': # 1.7.8
+            ['pixel ULC',
+             'Product pixel coordinate convention'],
+
+
+
         # 'identification/frameNumber':  # TBD
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
