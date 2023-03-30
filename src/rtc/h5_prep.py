@@ -349,7 +349,7 @@ def get_metadata_dict(product_id: str,
             ['IPF',
              'Source data processing facility'],
 
-        'identification/processingDate': # placeholder for 1.7.1
+        'RTC/metadata/processingInformation/processingDate': # placeholder for 1.7.1
             ['0000-00-00T00:00:00',
              'RTC-S1 processing date'],
         'identification/dataAccess': # placeholder for 1.7.1
