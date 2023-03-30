@@ -318,19 +318,19 @@ def get_metadata_dict(product_id: str,
         'identification/CEOSDocumentIdentifier':
             ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
              'Product version'],
-        'RTC/grids/sourceDataNumberOfAcquisitions': # placeholder
+        'RTC/metadata/sourceDataInformation/numberOfAcquisitions': # placeholder
             [0,
              'Number of source data acquisitions'],
-        'RTC/grids/sourceDataAccess': # placeholder
+        'RTC/metadata/sourceDataInformation/dataAccess': # placeholder
             ['',
              'Where the source data can be retrieved'],
-        'RTC/grids/sourceDataProcessingDate': # placeholder for 1.6.6
+        'RTC/metadata/sourceDataInformation/processingDate': # placeholder for 1.6.6
             ['0000-00-00T00:00:00.000000',
              'Processing date'],
-        'RTC/grids/sourceDataProcessingSoftwareVersion': # placeholder for 1.6.6
+        'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # placeholder for 1.6.6
             [str(burst_in.ipf_version),
              'IPF version of the source data'],
-        'RTC/grids/sourceDataProductLevel': # placeholder for 1.6.6
+        'RTC/metadata/sourceDataInformation/productLevel': # placeholder for 1.6.6
             [1,
              'Product level of the source data'],
         'RTC/grids/azimuthResolution': # placeholder for 1.6.7
@@ -345,7 +345,7 @@ def get_metadata_dict(product_id: str,
         'RTC/grids/farRangeIncidenceAngle': # placeholder for 1.6.7
             [0,
              'Far range incidence angle in meters'],
-        'RTC/grids/sourceDataProcessingFacility': # 1.6.6
+        'RTC/metadata/sourceDataInformation/processingFacility': # 1.6.6
             ['IPF',
              'Source data processing facility'],
 
