@@ -646,30 +646,41 @@ def populate_rfi_info(h5py_obj, burst, rfi_root_path):
     '''
     #is_empty_rfi_info = burst.burst_rfi_info is None
     #dset = h5py_obj.create_dataset(f'{rfi_root_path}/isRfiInfoAvailable',
-    #                                                          data=not is_empty_rfi_info)
+    #                               data=not is_empty_rfi_info)
     #dset.attrs['description'] = 'Whether RFI information is available'
     #
     #if is_empty_rfi_info:
     #    return
     dset = h5py_obj.create_dataset(f'{rfi_root_path}/isRfiInfoAvailable',
-                                                              data=True)
+                                   data=True)
     dset.attrs['description'] = 'Whether RFI information is available'
 
     # Create group for RFI info
     subpath_data_dict = {
-        #'rfiMitigationPerformed':[burst.burst_rfi_info.rfi_mitigation_performed, 'Whether or not the RFI mitigation step was performed'],
-        #'rfiMitigationDomain':[burst.burst_rfi_info.rfi_mitigation_domain, 'Whether or not the RFI mitigation step was performed'],
-        #'rfiBurstReport':[[], 'Burst RFI report']
-        'rfiMitigationPerformed':['', 'Whether or not the RFI mitigation step was performed'],
-        'rfiMitigationDomain':['', 'Whether or not the RFI mitigation step was performed'],
-        'rfiBurstReport':[[], 'Burst RFI report']
+        #'rfiMitigationPerformed':
+        #   [burst.burst_rfi_info.rfi_mitigation_performed,
+        #    'Whether or not the RFI mitigation step was performed'],
+        #'rfiMitigationDomain':
+        #   [burst.burst_rfi_info.rfi_mitigation_domain,
+        #    'Whether or not the RFI mitigation step was performed'],
+        #'rfiBurstReport':
+        #   [[],
+        #    'Burst RFI report']
+        'rfiMitigationPerformed':
+            ['', 'Whether or not the RFI mitigation step was performed'],
+        'rfiMitigationDomain':
+            ['', 'in what domain the RFI mitigation step was performed'],
+        'rfiBurstReport':
+            [[], 'Burst RFI report']
     }
 
     for fieldname, data in subpath_data_dict.items():
             path_dataset_in_h5 = os.path.join(rfi_root_path, fieldname)
             if data[0] is str:
-                dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data[0]))
+                dset = h5py_obj.create_dataset(path_dataset_in_h5,
+                                               data=np.string_(data[0]))
             else:
-                dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data[0])
+                dset = h5py_obj.create_dataset(path_dataset_in_h5,
+                                               data=data[0])
 
             dset.attrs['description'] = np.string_(data[1])
