@@ -444,13 +444,30 @@ def get_metadata_dict(product_id: str,
         'RTC/metadata/fileFormatSpecification/backScatter/byteOrder':
             ['',
              'Byte order of the backscatter measurement'],
-        
+
         'RTC/metadata/fileFormatSpecification/scalingConversion':
             ['',
              ('equation to convert from pixel linear amplitude / power to'
               'logarithmic decibel scale')],
 
-        
+        'RTC/metadata/processingInformation/demReference': # placeholder for 4.2
+            ['',
+             'Reference to DEM used for geometric terrain correction'],
+            
+        'RTC/metadata/processingInformation/geoidReference': # placeholder for 4.2
+            ['',
+             ('reference to Earth Gravitational Model (EGM) '
+             'used for Geometric Correction')],
+
+        'RTC/grids/processingInformation/absoluteAccuracyNorthing': # placeholder for 4.3
+            [[0, 0],
+             ('An estimate of the absolute localisation error in north direction'
+              'provided as bias and standard deviation')],
+
+        'RTC/grids/processingInformation/absoluteAccuracyEasting': # placeholder for 4.3
+            [[0, 0],
+             ('An estimate of the absolute localisation error in east direction'
+              'provided as bias and standard deviation')],
 
         # 'identification/productPixelCoordinateConvention': # 1.7.8
         #    ['pixel ULC',
