@@ -365,9 +365,9 @@ def get_metadata_dict(product_id: str,
             [np.zeros(2),
              'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
         
-        'identification/productPixelCoordinateConvention': # 1.7.8
-            ['pixel ULC',
-             'Product pixel coordinate convention'],
+        # 'identification/productPixelCoordinateConvention': # 1.7.8
+        #    ['pixel ULC',
+        #     'Product pixel coordinate convention'],
 
 
 
