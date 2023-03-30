@@ -355,7 +355,7 @@ def get_metadata_dict(product_id: str,
         'identification/dataAccess': # placeholder for 1.7.1
             ['',
              'URL to access the data'],
-        'identification/productFiltering': # placeholder for 1.7.4
+        'RTC/metadata/processingInformation/parameters/productFiltering': # placeholder for 1.7.4
             [False,
              'Flag if filter has been applied'],
         'identification/productBoundingBox': # placeholder for 1.7.4
