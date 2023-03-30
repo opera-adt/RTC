@@ -152,6 +152,9 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
     populate_rfi_info(hdf5_obj, burst,
                       f'{BASE_HDF5_DATASET}/RTC/grids/RFI_information')
 
+    populate_rfi_info(hdf5_obj, burst,
+                      f'{BASE_HDF5_DATASET}/RTC/grids/RFI_information')
+
     # save orbit
     orbit_group = hdf5_obj.require_group(
         f'{BASE_HDF5_DATASET}/RTC/metadata/orbit')
