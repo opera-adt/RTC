@@ -259,61 +259,99 @@ def get_metadata_dict(product_id: str,
         # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
-            ['track_number', burst_in.burst_id.track_number,
-             'Track number'],
-        # 'identification/missionId':
-        #    [mission_id, 'Mission identifier'],
-        'identification/platform':
-            ['platform', platform_id, 'Platform name'],
-        'identification/sensor':
-            ['sensor', platform_id, 'Sensor instrument name'],
-        'identification/productType':
-            ['product_type', 'RTC-S1', 'Product type'],
-        'identification/project':
-            ['project', 'OPERA', 'Project name'],
-        'identification/acquisitionMode':
-            ['acquisition_mode', 'Interferometric Wide (IW)',
+            [burst_in.burst_id.track_number, 'Track number'],
+        'identification/burstID':
+            [str(burst_in.burst_id), 'Burst identification (burst ID)'],
+        'identification/boundingPolygon':
+            [get_polygon_wkt(burst_in),
+            'OGR compatible WKT representation of bounding polygon of the image'],
+        'identification/missionId':
+            [burst_in.platform_id,
+             'Mission identifier'],
+        'identification/instrument': # placeholder for 1.6.2
+            ['',
+             'Instrument name'],
+        'identification/radarBand': # 1.6.4
+            ['C',
+             'Radar band'],
+        'identification/acquisitionMode': # 1.6.4
+            ['IW',
              'Acquisition mode'],
+        
+        'identification/beamID': # Placholder for 1.6.4
+            ['[IW1, IW2, IW3]',
+             'Bean ID'],
+            
+        'identification/productType':
+            ['Normalised Radar Backscatter', 'Product type'], # 1.3
+
+        # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'identification/lookDirection':
-            ['look_direction', 'right', 'Look direction can be left or right'],
+            ['Right',
+             'Look direction can be left or right'],
         'identification/orbitPassDirection':
-            ['orbit_pass_direction', burst_in.orbit_direction.lower(),
-            'Orbit direction can be ascending or descending'],
+            [burst_in.orbit_direction,
+             'Orbit direction can be ascending or descending'],
         # NOTE: using the same date format as `s1_reader.as_datetime()`
 
         'identification/listOfFrequencies':
-             [None, ['A'],
+            [['A'],
              'List of frequency layers available in the product'],  # TBC
         'identification/isGeocoded':
-            [None, True,
-            'Flag to indicate radar geometry or geocoded product'],
-        'identification/productLevel':
-            ['product_level', 'L2', 'Product level'],
-        'identification/productID':
-            ['product_id', product_id, 'Product identificator'],
-        # 'identification/productSource':
-        # [platform_id, 'Product source'],
+            [True,
+             'Flag to indicate radar geometry or geocoded product'],
         'identification/isUrgentObservation':
-            ['is_urgent_observation', False,
+            [False,
              'List of booleans indicating if datatakes are nominal or urgent'],
         'identification/diagnosticModeFlag':
-            ['diagnostic_mode_flag', False,
+            [False,
              'Indicates if the radar mode is a diagnostic mode or not: True or False'],
         'identification/processingType':
-            ['processing_type', processing_type,
+            [processing_type,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
-        # datetime format 'YYYY-MM-DD HH:MM:SS'
-        'identification/processingDateTime':
-            ['processing_date_time',
-             datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-             'Processing date and time'],
         'identification/productVersion':
-            ['product_version', product_version, 'Product version'],
-        'identification/softwareVersion':
-            ['software_version', str(SOFTWARE_VERSION), 'Software version'],
-        # 'identification/CEOSDocumentIdentifier':
-        #     ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
-        #      'CEOS document identifier'],
+            [product_version,
+             'Product version'],
+        'identification/DocumentIdentifier':
+            ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
+             'Product version'],
+        'identification/numberOfAcquisitions': # placeholder
+            [0,
+             'Number of source data acquisitions'],
+        'identification/sourceDataAccess': # placeholder
+            ['',
+             'Where the source data can be retrieved'],
+        'identification/sourceDataProcessingDate': # placeholder for 1.6.6
+            ['0000-00-00T00:00:00.000000',
+             'Processing date'],
+        'identification/sourceDataProcessingSoftwareVersion': # placeholder for 1.6.6
+            [str(burst_in.ipf_version),
+             'IPF version of the source data'],
+        'identification/sourceDataProductLevel': # placeholder for 1.6.6
+            [1,
+             'Product level of the source data'],
+        'identification/sourceDataAzimuthSpacing': # placeholder for 1.6.7
+            [0,
+             'Azimuth time spacing of the source data in seconds'],
+        'identification/sourceDataRangeSpacing': # placeholder for 1.6.7
+            [0,
+             'Slant range spacing of the source data in meters'],
+        'identification/sourceDataAzimuthResolution': # placeholder for 1.6.7
+            [0,
+             'Azimuth time resolution of the source data in seconds'],
+        'identification/sourceDataRangeResolution': # placeholder for 1.6.7
+            [0,
+             'Slant range resolution of the source data in meters'],
+        'identification/nearRangeIncidenceAngle': # placeholder for 1.6.7
+            [0,
+             'Near range incidence angle in meters'],
+        'identification/farRangeIncidenceAngle': # placeholder for 1.6.7
+            [0,
+             'Far range incidence angle in meters'],
+        'identification/sourceDataProcessingFacility': # 1.6.6
+            ['IPF',
+             'Source data processing facility'],
+
         # 'identification/frameNumber':  # TBD
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
