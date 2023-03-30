@@ -333,7 +333,7 @@ def get_metadata_dict(product_id: str,
         'RTC/grids/sourceDataProductLevel': # placeholder for 1.6.6
             [1,
              'Product level of the source data'],
-        'RTC/grids/sourceDataAzimuthResolution': # placeholder for 1.6.7
+        'RTC/grids/azimuthResolution': # placeholder for 1.6.7
             [0,
              'Azimuth time resolution of the source data in seconds'],
         'RTC/grids/sourceDataRangeResolution': # placeholder for 1.6.7
