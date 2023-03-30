@@ -152,9 +152,6 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
     populate_rfi_info(hdf5_obj, burst,
                       f'{BASE_HDF5_DATASET}/RTC/grids/RFI_information')
 
-    populate_rfi_info(hdf5_obj, burst,
-                      f'{BASE_HDF5_DATASET}/RTC/grids/RFI_information')
-
     # save orbit
     orbit_group = hdf5_obj.require_group(
         f'{BASE_HDF5_DATASET}/RTC/metadata/orbit')
@@ -265,62 +262,67 @@ def get_metadata_dict(product_id: str,
         # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
-            [burst_in.burst_id.track_number, 'Track number'],
-        'identification/burstID':
-            [str(burst_in.burst_id), 'Burst identification (burst ID)'],
-        'identification/boundingPolygon':
-            [get_polygon_wkt(burst_in),
-            'OGR compatible WKT representation of bounding polygon of the image'],
-        'identification/missionId':
-            [burst_in.platform_id,
-             'Mission identifier'],
-        'identification/instrument': # placeholder for 1.6.2
-            ['',
-             'Instrument name'],
-        'RTC/grids//radarBand': # 1.6.4
+            ['track_number', burst_in.burst_id.track_number,
+             'Track number'],
+        # 'identification/missionId':
+        #    [mission_id, 'Mission identifier'],
+        'identification/platform':
+            ['platform', platform_id, 'Platform name'],
+         'identification/sensor':
+            ['sensor', 'C-SAR', 'Sensor instrument name'], # https://sentinel.esa.int/web/sentinel/missions/sentinel-1/satellite-description
+         'identification/productType':
+            ['product_type', 'RTC-S1', 'Product type'],
+         'identification/project':
+            ['project', 'OPERA', 'Project name'],
+         'identification/acquisitionMode':
+            ['acquisition_mode', 'Interferometric Wide (IW)', 'Acquisition mode'],
+        'RTC/grids/radarBand': # 1.6.4
             ['C',
              'Radar band'],
-        'RTC/grids//acquisitionMode': # 1.6.4
-            ['IW',
-             'Acquisition mode'],
-        
-        'RTC/grids//beamID': # Placholder for 1.6.4
-            ['[IW1, IW2, IW3]',
-             'Beam identification (Beam ID)'],
-            
-        'identification/productType':
-            ['Normalised Radar Backscatter', 'Product type'], # 1.3
+        'identification/card4lProductType':
+            ['Normalised Radar Backscatter', 'CARD4L Product type'], # 1.3
 
         # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'identification/lookDirection':
-            ['Right',
-             'Look direction can be left or right'],
+             ['look_direction', 'right', 'Look direction can be left or right'],
         'identification/orbitPassDirection':
-            [burst_in.orbit_direction,
+            ['orbit_pass_direction', burst_in.orbit_direction.lower(),
              'Orbit direction can be ascending or descending'],
         # NOTE: using the same date format as `s1_reader.as_datetime()`
 
         'identification/listOfFrequencies':
-            [['A'],
+             [None, ['A'],
              'List of frequency layers available in the product'],  # TBC
         'identification/isGeocoded':
-            [True,
+            [None, True,
              'Flag to indicate radar geometry or geocoded product'],
+        'identification/productLevel':
+             ['product_level', 'L2', 'Product level'],
+         'identification/productID':
+             ['product_id', product_id, 'Product identificator'],
+        # 'identification/productSource':
+        # [platform_id, 'Product source'],
         'identification/isUrgentObservation':
-            [False,
+            ['is_urgent_observation', False,
              'List of booleans indicating if datatakes are nominal or urgent'],
         'identification/diagnosticModeFlag':
-            [False,
+            ['diagnostic_mode_flag', False,
              'Indicates if the radar mode is a diagnostic mode or not: True or False'],
         'identification/processingType':
-            [processing_type,
+             ['processing_type', processing_type,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+        # datetime format 'YYYY-MM-DD HH:MM:SS'
+         'identification/processingDateTime':
+             ['processing_date_time',
+              datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+              'Processing date and time'],
         'identification/productVersion':
-            [product_version,
-             'Product version'],
-        'identification/CEOSDocumentIdentifier':
-            ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
-             'Product version'],
+            ['product_version', product_version, 'Product version'],
+        'identification/softwareVersion':
+             ['software_version', str(SOFTWARE_VERSION), 'Software version'],
+        #'identification/CEOSDocumentIdentifier':
+        #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
+        #     'Product version'],
         'RTC/metadata/sourceDataInformation/numberOfAcquisitions': # placeholder
             [0,
              'Number of source data acquisitions'],
@@ -540,6 +542,7 @@ def get_metadata_dict(product_id: str,
     if is_mosaic:
         return metadata_dict
 
+    # Metadata for burst product
     metadata_dict['identification/boundingPolygon'] = \
         ['bounding_polygon', get_polygon_wkt(burst_in),
          'OGR compatible WKT representation of the product bounding polygon'
