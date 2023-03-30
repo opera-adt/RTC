@@ -271,7 +271,7 @@ def get_metadata_dict(product_id: str,
         'identification/missionId':
             [burst_in.platform_id,
              'Mission identifier'],
-        'RTC/grids/instrument': # placeholder for 1.6.2
+        'identification/instrument': # placeholder for 1.6.2
             ['',
              'Instrument name'],
         'RTC/grids//radarBand': # 1.6.4
