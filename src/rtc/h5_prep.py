@@ -269,13 +269,13 @@ def get_metadata_dict(product_id: str,
         'identification/platform':
             ['platform', platform_id, 'Platform name'],
         # https://sentinel.esa.int/web/sentinel/missions/sentinel-1/satellite-description
-         'identification/sensor':
+        'identification/sensor':
             ['sensor', 'C-SAR', 'Sensor instrument name'],
-         'identification/productType':
+        'identification/productType':
             ['product_type', 'RTC-S1', 'Product type'],
-         'identification/project':
+        'identification/project':
             ['project', 'OPERA', 'Project name'],
-         'identification/acquisitionMode':
+        'identification/acquisitionMode':
             ['acquisition_mode', 'Interferometric Wide (IW)',
              'Acquisition mode'],
         'identification/card4lProductType':
@@ -298,7 +298,7 @@ def get_metadata_dict(product_id: str,
              'Flag to indicate radar geometry or geocoded product'],
         'identification/productLevel':
              ['product_level', 'L2', 'Product level'],
-         'identification/productID':
+        'identification/productID':
              ['product_id', product_id, 'Product identificator'],
         # 'identification/productSource':
         # [platform_id, 'Product source'],
@@ -311,7 +311,7 @@ def get_metadata_dict(product_id: str,
         'identification/processingType':
              ['processing_type', processing_type,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
-         'identification/processingDateTime':
+        'identification/processingDateTime':
              ['processing_date_time',
               datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
               'Processing date and time'],
