@@ -337,7 +337,7 @@ def get_metadata_dict(product_id: str,
              'Source data processing facility'],
         'RTC/metadata/sourceDataInformation/processingDate': # 1.6.6
             ['source_processing_date',
-             burst_in.misc_metadata.processing_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+             burst_in.burst_misc_metadata.processing_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
              'Processing date of the source data'],
         'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # 1.6.6
             ['source_processing_sw_version',
@@ -346,11 +346,11 @@ def get_metadata_dict(product_id: str,
         
         'RTC/metadata/sourceDataInformation/azimuthLooks': # 1.6.6
             ['source_azimuth_looks',
-             burst_in.misc_metadata.azimuth_looks,
+             burst_in.burst_misc_metadata.azimuth_looks,
              'Azimuth number of looks'],
         'RTC/metadata/sourceDataInformation/slantRangeLooks': # 1.6.6
             ['source_slant_range_looks',
-             burst_in.misc_metadata.slant_range_looks,
+             burst_in.burst_misc_metadata.slant_range_looks,
              'Slant range number of looks'],
 
         'RTC/metadata/sourceDataInformation/productLevel': # 1.6.6
@@ -381,11 +381,11 @@ def get_metadata_dict(product_id: str,
 
         'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle': # 1.6.7
             ['near_range_incidence_angle',
-             burst_in.misc_metadata.inc_angle_near_range,
+             burst_in.burst_misc_metadata.inc_angle_near_range,
              'Near range incidence angle in meters'],
         'RTC/metadata/sourceDataInformation/farRangeIncidenceAngle': # 1.6.7
             ['far_range_incidence_angle',
-             burst_in.misc_metadata.inc_angle_far_range,
+             burst_in.burst_misc_metadata.inc_angle_far_range,
              'Far range incidence angle in meters'],
         'RTC/metadata/sourceDataInformation/intensityNoiseLevel': # placeholder for 1.6.9
             ['intensity_noise_level',
