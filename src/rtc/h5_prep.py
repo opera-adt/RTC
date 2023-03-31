@@ -310,7 +310,6 @@ def get_metadata_dict(product_id: str,
         'identification/processingType':
              ['processing_type', processing_type,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
-        # datetime format 'YYYY-MM-DD HH:MM:SS'
          'identification/processingDateTime':
              ['processing_date_time',
               datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
@@ -323,131 +322,148 @@ def get_metadata_dict(product_id: str,
         #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
         #     'Product version'],
         'RTC/metadata/sourceDataInformation/numberOfAcquisitions': # placeholder
-            [0,
+            ['number_of_acquisitions',
+             0,
              'Number of source data acquisitions'],
         'RTC/metadata/sourceDataInformation/dataAccess': # location from where the source data "can" be retrieved,
-            ['https://search.asf.alaska.edu/',
+            ['data_access',
+             'https://search.asf.alaska.edu/',
              'Where the source data can be retrieved'],
         'RTC/metadata/sourceDataInformation/radarBand': # 1.6.4
             ['radar_band', 'C', 'Radar band'],
         'RTC/metadata/sourceDataInformation/processingFacility': # 1.6.6
-            ['Sentinel-1 Instrument Processing Facility (IPF)',
+            ['source_processing_facility',
+             'Sentinel-1 Instrument Processing Facility (IPF)',
              'Source data processing facility'],
         'RTC/metadata/sourceDataInformation/processingDate': # placeholder for 1.6.6
-            ['0000-00-00T00:00:00.000000',
+            ['source_processing_date',
+             '0000-00-00T00:00:00.000000',
              'Processing date'], # TODO parse from manifest - <safe:processing name="SLC Post Processing" start="2023-01-08T15:42:40.765967" stop="2023-01-08T15:52:25.000000">
         'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # placeholder for 1.6.6
-            [str(burst_in.ipf_version),
+            ['source_processing_sw_version',
+             str(burst_in.ipf_version),
              'IPF version of the source data'],
         'RTC/metadata/sourceDataInformation/productID': # 1.6.6
-            [burst_in.safe_filename,
+            ['source_product_id',
+             burst_in.safe_filename,
              'Product ID of the source data'],
 
         'RTC/metadata/sourceDataInformation/azimuthLooks': # placeholder for 1.6.6
-            [1,
+            ['source_azimuth_looks',
+             1,
              'Azimuth number of looks'], #TODO parse from product annotation.             <numberOfLooks>1</numberOfLooks>
         'RTC/metadata/sourceDataInformation/rangeLooks': # placeholder for 1.6.6
-            [1,
+            ['source_range_looks',
+             1,
              'Range number of looks'],
 
         'RTC/metadata/sourceDataInformation/productLevel': # 1.6.6
-            ['L1',
+            ['source_product_level',
+             'L1',
              'Product level of the source data'],
         'RTC/metadata/sourceDataInformation/geometry': # 1.6.7
-            ['slant range',
+            ['source_geometry',
+             'slant range',
              'Geometry of the source data'],
         'RTC/metadata/sourceDataInformation/azimuthSpacing': # placeholder for 1.6.7
-            [0,
+            ['source_azimuth_spacing',
+             0,
              'Azimuth spacing of the source data in seconds'], #TODO: check the unit; parse from LADS
         'RTC/metadata/sourceDataInformation/slantRangeSpacing': # placeholder for 1.6.7
-            [0,
+            ['source_slant_rangespacing',
+             0,
              'Slant range spacing of the source data in meters'], #TODO: check the unit; parse from LADS
 
         'RTC/metadata/sourceDataInformation/azimuthResolution': # placeholder for 1.6.7
-            [0,
+            ['source_azimuth_resolution',
+             0,
              'Azimuth time resolution of the source data in seconds'], #TODO extract from the radargrid of `burst_in`
         'RTC/metadata/sourceDataInformation/slantRangeResolution': # placeholder for 1.6.7
-            [0,
+            ['source_slant_range_resolution',
+             0,
              'Slant range resolution of the source data in meters'], #TODO extract from the radargrid of `burst_in`
 
         'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle': # placeholder for 1.6.7
-            [0,
+            ['near_range_incidence_angle',
+             0,
              'Near range incidence angle in meters'], #TODO extract from incidence angle layer
         'RTC/metadata/sourceDataInformation/farRangeIncidenceAngle': # placeholder for 1.6.7
-            [0,
+            ['far_range_incidence_angle',
+             0,
              'Far range incidence angle in meters'],  #TODO extract from incidence angle layer
         'RTC/metadata/sourceDataInformation/intensityNoiseLevel': # placeholder for 1.6.9
-            [[],
-             'Noise level indicators for each polarization'],#TODO extract from burstNoise
-
-        'RTC/metadata/processingInformation/rtcAlgorithmReference': # placeholder for 3.4
-            ['https://ieeexplore.ieee.org/document/9695438',
-             'A reference to the RTC algorithm applied'],
+            ['intensity_noise_level',
+             [],
+             'Noise level indicators for each polarization'],#TODO see if it can be extracted from burstNoise
 
         'RTC/metadata/processingInformation/dataAccess': # placeholder for 1.7.1
-            ['TBD',
+            ['product_data_access',
+             'TBD',
              'URL to access the product data'],
-        'RTC/metadata/processingInformation/parameters/productFilteringApplied': # 1.7.4
-            [False,
+        'RTC/metadata/processingInformation/parameters/FilteringApplied': # 1.7.4
+            ['filtering_applied',
+            False,
              'Flag if filter has been applied'],
         'RTC/grids/imageDimensions': # 1.7.7
-            [np.array([cfg_in.geogrids[str(burst_in.burst_id)].length,
+            ['product_image_dimensions',
+             np.array([cfg_in.geogrids[str(burst_in.burst_id)].length,
                        cfg_in.geogrids[str(burst_in.burst_id)].width]),
              'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
 
         # file format spec. for data mask - for 2.2
         'RTC/metadata/fileFormatSpecification/dataMask/sampleType': # 2.2
-            ['sample_type', 'Mask', 'Sample type of the mask'], 
+            ['mask_sample_type', 'Mask', 'Sample type of the mask'], 
         'RTC/metadata/fileFormatSpecification/dataMask/dataFormat':
-            ['data_format', cfg_in.groups.product_group.output_imagery_format,
+            ['mask_data_format', cfg_in.groups.product_group.output_imagery_format,
              'data format of the image mask'],
         'RTC/metadata/fileFormatSpecification/dataMask/dataType':
-            ['data_type', 'bytes',
+            ['mask_data_type', 'bytes',
              'data type of the image mask'],
         'RTC/metadata/fileFormatSpecification/dataMask/bitsPerSample':
-            ['bits_per_sample', 8,
+            ['mask_bits_per_sample', 8,
              'Bytes per pixel'],
         'RTC/metadata/fileFormatSpecification/dataMask//byteOrder':
-            ['byte_order', sys.byteorder, # assuming that the byte order follows the native setting.
+            ['mask_byte_order', sys.byteorder, # assuming that the byte order follows the native setting.
              'Byte order of the data'],
         'RTC/metadata/fileFormatSpecification/dataMask//bitValueRepresentation':
-            ['bit_value_representation', 'no data = NaN, 0 = valid data, 1= ???, 2=???, 3=???', # TODO populate the string
+            ['mask_bit_value_representation',
+             'no data = NaN, 0 = valid data, 1= ???, 2=???, 3=???', # TODO populate the string
              'Description of the pixel values in the mask'],
 
         # file format spec. for local inc. angle - for 2.4
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/sampleType': # 2.4
-            ['sample_type', 'Angle', 'Sample type of the data'],
+            ['local_inc_sample_type', 'Angle', 'Sample type of the data'],
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/dataFormat':
-            ['data_format', cfg_in.groups.product_group.output_imagery_format,
+            ['local_inc_data_format', cfg_in.groups.product_group.output_imagery_format,
              'data format of the data'],
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/dataType':
-            ['data_type', 'Float',
+            ['local_inc_data_type', 'Float',
              'data type of the data'],
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/bitsPerSample':
-            ['bits_per_sample', 32,
+            ['local_inc_bits_per_sample', 32,
              'Bytes per pixel'],
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/byteOrder':
-            ['byte_order', sys.byteorder,
+            ['local_inc_byte_order', sys.byteorder,
              'Byte order of the data'],
 
         # file format spec. for backscatter - for 3.1
         'RTC/metadata/fileFormatSpecification/backScatter/measurementType': # 3.1
             ['measurement_type', 'Gamma-nought', 'Sample type of the data'],
         'RTC/metadata/fileFormatSpecification/backScatter/expressionConvention':  # 3.1
-            ['expression_convention', 'Linear amplitude', #TODO Confirm
+            ['measurement_expression_convention', 'Linear amplitude', #TODO Confirm
              'Backscatter expression convention'],
         # NOTE: polarization is provided in 'listOfPolarizations'
         'RTC/metadata/fileFormatSpecification/backScatter/dataFormat':
-            ['data_format', cfg_in.groups.product_group.output_imagery_format,
+            ['measurement_data_format', cfg_in.groups.product_group.output_imagery_format,
              'data format of the measurement'],
         'RTC/metadata/fileFormatSpecification/backScatter/dataType':
-            ['data_type', 'Float',
+            ['measurement_data_type', 'Float',
              'data type of the measurement'],
         'RTC/metadata/fileFormatSpecification/backScatter/bitsPerSample':
-            ['bits_per_sample', 32,
+            ['measurement_bits_per_sample', 32,
              'Bytes per sample in the measurement'],
         'RTC/metadata/fileFormatSpecification/backScatter/byteOrder':
-            ['byte_order', sys.byteorder,
+            ['measurement_byte_order', sys.byteorder,
              'Byte order of the measurement'],
 
         # The field below to be populated only when using power in dB scale
@@ -457,27 +473,32 @@ def get_metadata_dict(product_id: str,
         #      'logarithmic decibel scale')],
 
         'RTC/metadata/processingInformation/noiseRemovalApplied': # 3.3
-            [cfg_in.groups.processing.apply_thermal_noise_correction,
+            ['noise_removal_applied',
+             cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
 
         'RTC/metadata/processingInformation/demReference': # 4.2
-            ['dem_source_description', 'Copernicus DEM', 'DEM source description'], #TODO confirm, might need to be populated via runconfig
+            ['dem_source_description', 'Copernicus DEM',
+             'DEM source description'], #TODO confirm, might need to be populated via runconfig
             
         'RTC/metadata/processingInformation/geoidReference': # for 4.2
-            ['geoid_description', 'EGM2008', 'Geoid source description'],  #TODO confirm, might need to be populated via runconfig
+            ['geoid_source_description', 'EGM2008', 'Geoid source description'],  #TODO confirm, might need to be populated via runconfig
 
         'RTC/grids/processingInformation/absoluteAccuracyNorthing': # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
-            [[0, 0],
+            ['absolute_accuracy_northing'
+             [0.0, 0.0],
              ('An estimate of the absolute localisation error in north direction'
               'provided as bias and standard deviation')],
 
         'RTC/grids/processingInformation/absoluteAccuracyEasting': # placeholder for 4.3
-            [[0, 0],
+            ['absolute_accuracy_easting',
+             [0.0, 0.0],
              ('An estimate of the absolute localisation error in east direction'
               'provided as bias and standard deviation')],
 
          'identification/productPixelCoordinateConvention': # 1.7.8
-            ['Area',
+            ['product_pixel_coordinate_convention'
+             'Area',
              'Product pixel coordinate convention'],
 
         # 'identification/frameNumber':  # TBD
