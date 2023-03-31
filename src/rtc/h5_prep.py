@@ -379,10 +379,6 @@ def get_metadata_dict(product_id: str,
             [[],
              'Noise level indicators for each polarization'],#TODO extract from burstNoise
 
-        'RTC/metadata/processingInformation/noiseRemovalApplied': # for 3.3
-            [cfg_in.groups.processing.apply_thermal_noise_correction,
-             'A flag to indicate whether noise removal was applied'],
-
         'RTC/metadata/processingInformation/rtcAlgorithmReference': # placeholder for 3.4
             ['https://ieeexplore.ieee.org/document/9695438',
              'A reference to the RTC algorithm applied'],
@@ -436,7 +432,7 @@ def get_metadata_dict(product_id: str,
         # file format spec. for backscatter - for 3.1
         'RTC/metadata/fileFormatSpecification/backScatter/measurementType': # 3.1
             ['measurement_type', 'Gamma-nought', 'Sample type of the data'],
-        'RTC/metadata/fileFormatSpecification/backScatter/expressionConvention':
+        'RTC/metadata/fileFormatSpecification/backScatter/expressionConvention':  # 3.1
             ['expression_convention', 'Linear amplitude', #TODO Confirm
              'Backscatter expression convention'],
         # NOTE: polarization is provided in 'listOfPolarizations'
@@ -454,10 +450,15 @@ def get_metadata_dict(product_id: str,
              'Byte order of the measurement'],
 
         # The field below to be populated only when using power in dB scale
-        #'RTC/metadata/fileFormatSpecification/scalingConversion':
+        #'RTC/metadata/fileFormatSpecification/scalingConversion': # 3.2
         #    ['',
         #     ('equation to convert from pixel linear amplitude / power to'
         #      'logarithmic decibel scale')],
+
+
+        'RTC/metadata/processingInformation/noiseRemovalApplied': # 3.3
+            [cfg_in.groups.processing.apply_thermal_noise_correction,
+             'A flag to indicate whether noise removal was applied'],
 
         'RTC/metadata/processingInformation/demReference': # 4.2
             ['dem_source_description', 'Copernicus DEM', 'DEM source description'], #TODO confirm, might need to be populated via runconfig
