@@ -335,23 +335,23 @@ def get_metadata_dict(product_id: str,
             ['source_processing_facility',
              'Sentinel-1 Instrument Processing Facility (IPF)',
              'Source data processing facility'],
-        'RTC/metadata/sourceDataInformation/processingDate': # placeholder for 1.6.6
+        'RTC/metadata/sourceDataInformation/processingDate': # 1.6.6
             ['source_processing_date',
-             '0000-00-00T00:00:00.000000',
-             'Processing date'], # TODO parse from manifest - <safe:processing name="SLC Post Processing" start="2023-01-08T15:42:40.765967" stop="2023-01-08T15:52:25.000000">
-        'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # placeholder for 1.6.6
+             burst_in.misc_metadata.processing_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+             'Processing date of the source data'],
+        'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # 1.6.6
             ['source_processing_sw_version',
              str(burst_in.ipf_version),
              'IPF version of the source data'],
         
-        'RTC/metadata/sourceDataInformation/azimuthLooks': # placeholder for 1.6.6
+        'RTC/metadata/sourceDataInformation/azimuthLooks': # 1.6.6
             ['source_azimuth_looks',
-             1,
-             'Azimuth number of looks'], #TODO parse from product annotation.             <numberOfLooks>1</numberOfLooks>
-        'RTC/metadata/sourceDataInformation/rangeLooks': # placeholder for 1.6.6
-            ['source_range_looks',
-             1,
-             'Range number of looks'],
+             burst_in.misc_metadata.azimuth_looks,
+             'Azimuth number of looks'],
+        'RTC/metadata/sourceDataInformation/slantRangeLooks': # 1.6.6
+            ['source_slant_range_looks',
+             burst_in.misc_metadata.slant_range_looks,
+             'Slant range number of looks'],
 
         'RTC/metadata/sourceDataInformation/productLevel': # 1.6.6
             ['source_product_level',
@@ -361,23 +361,23 @@ def get_metadata_dict(product_id: str,
             ['source_geometry',
              'slant range',
              'Geometry of the source data'],
-        'RTC/metadata/sourceDataInformation/azimuthSpacing': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/azimuthSpacing': # 1.6.7
             ['source_azimuth_spacing',
-             0,
-             'Azimuth spacing of the source data in seconds'], #TODO: check the unit; parse from LADS
-        'RTC/metadata/sourceDataInformation/slantRangeSpacing': # placeholder for 1.6.7
-            ['source_slant_rangespacing',
-             0,
-             'Slant range spacing of the source data in meters'], #TODO: check the unit; parse from LADS
+             burst_in.azimuth_time_interval,
+             'Azimuth spacing of the source data in seconds'], 
+        'RTC/metadata/sourceDataInformation/slantRangeSpacing': # 1.6.7
+            ['source_slant_range_spacing',
+             burst_in.range_pixel_spacing,
+             'Slant range spacing of the source data in meters'], 
 
-        'RTC/metadata/sourceDataInformation/azimuthResolution': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/azimuthResolution': # 1.6.7
             ['source_azimuth_resolution',
-             0,
-             'Azimuth time resolution of the source data in seconds'], #TODO extract from the radargrid of `burst_in`
-        'RTC/metadata/sourceDataInformation/slantRangeResolution': # placeholder for 1.6.7
+             burst_in.azimuth_time_interval,
+             'Azimuth time resolution of the source data in seconds'],
+        'RTC/metadata/sourceDataInformation/slantRangeResolution': # 1.6.7
             ['source_slant_range_resolution',
-             0,
-             'Slant range resolution of the source data in meters'], #TODO extract from the radargrid of `burst_in`
+             burst_in.range_pixel_spacing,
+             'Slant range resolution of the source data in meters'],
 
         'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle': # placeholder for 1.6.7
             ['near_range_incidence_angle',
