@@ -327,7 +327,7 @@ def get_metadata_dict(product_id: str,
         'RTC/metadata/sourceDataInformation/dataAccess': # location from where the source data "can" be retrieved,
             ['https://search.asf.alaska.edu/',
              'Where the source data can be retrieved'],
-        'RTC/sourceDataInformation/radarBand': # 1.6.4
+        'RTC/metadata/sourceDataInformation/radarBand': # 1.6.4
             ['radar_band', 'C', 'Radar band'],
         'RTC/metadata/sourceDataInformation/processingFacility': # 1.6.6
             ['Sentinel-1 Instrument Processing Facility (IPF)',
@@ -338,7 +338,7 @@ def get_metadata_dict(product_id: str,
         'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # placeholder for 1.6.6
             [str(burst_in.ipf_version),
              'IPF version of the source data'],
-        'RTC/metadata/sourceDataInformation/productID': # placeholder for 1.6.6
+        'RTC/metadata/sourceDataInformation/productID': # 1.6.6
             [burst_in.safe_filename,
              'Product ID of the source data'],
 
@@ -349,23 +349,23 @@ def get_metadata_dict(product_id: str,
             [1,
              'Range number of looks'],
 
-        'RTC/metadata/sourceDataInformation/productLevel': # placeholder for 1.6.6
+        'RTC/metadata/sourceDataInformation/productLevel': # 1.6.6
             ['L1',
              'Product level of the source data'],
-        'RTC/metadata/sourceDataInformation/geometry': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/geometry': # 1.6.7
             ['slant range',
              'Geometry of the source data'],
-        'RTC/grids/azimuthSpacing': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/azimuthSpacing': # placeholder for 1.6.7
             [0,
              'Azimuth spacing of the source data in seconds'], #TODO: check the unit; parse from LADS
-        'RTC/grids/slantRangeSpacing': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/slantRangeSpacing': # placeholder for 1.6.7
             [0,
              'Slant range spacing of the source data in meters'], #TODO: check the unit; parse from LADS
 
-        'RTC/grids/azimuthResolution': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/azimuthResolution': # placeholder for 1.6.7
             [0,
              'Azimuth time resolution of the source data in seconds'], #TODO extract from the radargrid of `burst_in`
-        'RTC/grids/slantRangeResolution': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/slantRangeResolution': # placeholder for 1.6.7
             [0,
              'Slant range resolution of the source data in meters'], #TODO extract from the radargrid of `burst_in`
 
@@ -378,9 +378,6 @@ def get_metadata_dict(product_id: str,
         'RTC/metadata/sourceDataInformation/intensityNoiseLevel': # placeholder for 1.6.9
             [[],
              'Noise level indicators for each polarization'],#TODO extract from burstNoise
-        'RTC/metadata/processingInformation/processingDate': # placeholder for 1.7.1
-            ['0000-00-00T00:00:00',
-             'RTC-S1 processing date'],
 
         'RTC/metadata/processingInformation/noiseRemovalApplied': # for 3.3
             [cfg_in.groups.processing.apply_thermal_noise_correction,
@@ -390,9 +387,9 @@ def get_metadata_dict(product_id: str,
             ['https://ieeexplore.ieee.org/document/9695438',
              'A reference to the RTC algorithm applied'],
 
-        'identification/dataAccess': # placeholder for 1.7.1
+        'RTC/metadata/processingInformation/dataAccess': # placeholder for 1.7.1
             ['TBD',
-             'URL to access the data'],
+             'URL to access the product data'],
         'RTC/metadata/processingInformation/parameters/productFilteringApplied': # 1.7.4
             [False,
              'Flag if filter has been applied'],
@@ -400,9 +397,6 @@ def get_metadata_dict(product_id: str,
             [np.array([cfg_in.geogrids[str(burst_in.burst_id)].length,
                        cfg_in.geogrids[str(burst_in.burst_id)].width]),
              'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
-
-
-
 
         # file format spec. for data mask - for 2.2
         'RTC/metadata/fileFormatSpecification/dataMask/sampleType': # 2.2
@@ -423,7 +417,6 @@ def get_metadata_dict(product_id: str,
             ['bit_value_representation', 'no data = NaN, 0 = valid data, 1= ???, 2=???, 3=???', # TODO populate the string
              'Description of the pixel values in the mask'],
 
-
         # file format spec. for local inc. angle - for 2.4
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/sampleType': # 2.4
             ['sample_type', 'Angle', 'Sample type of the data'],
@@ -439,17 +432,6 @@ def get_metadata_dict(product_id: str,
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/byteOrder':
             ['byte_order', sys.byteorder,
              'Byte order of the data'],
-
-
-
-
-        
-
-
-
-
-
-
 
         # file format spec. for backscatter - for 3.1
         'RTC/metadata/fileFormatSpecification/backScatter/measurementType': # 3.1
@@ -555,8 +537,6 @@ def get_metadata_dict(product_id: str,
              'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demSource':
             ['dem_source', dem_description, 'DEM file name'],
-            
-        
     }
 
     # Add reference to the thermal noise correction algorithm when the correction is applied
