@@ -401,81 +401,89 @@ def get_metadata_dict(product_id: str,
                        cfg_in.geogrids[str(burst_in.burst_id)].width]),
              'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
 
+
+
+
         # file format spec. for data mask - for 2.2
-        'RTC/metadata/fileFormatSpecification/dataMask/sampleType':
-            ['Mask',
-             'Sample type of the data mask'],
+        'RTC/metadata/fileFormatSpecification/dataMask/sampleType': # 2.2
+            ['sample_type', 'Mask', 'Sample type of the mask'], 
         'RTC/metadata/fileFormatSpecification/dataMask/dataFormat':
-            ['',
-             'Data format of the mask image'],
+            ['data_format', cfg_in.groups.product_group.output_imagery_format,
+             'data format of the image mask'],
         'RTC/metadata/fileFormatSpecification/dataMask/dataType':
-            ['',
-             'Data type of the mask image'],
+            ['data_type', 'bytes',
+             'data type of the image mask'],
         'RTC/metadata/fileFormatSpecification/dataMask/bitsPerSample':
-            ['',
-             'Bits per sample of the mask image'],
-        'RTC/metadata/fileFormatSpecification/dataMask/byteOrder':
-            ['',
-             'Byte order of the mask image'],
-        'RTC/metadata/fileFormatSpecification/dataMask/valueRepresentation':
-            [[0,0,0],
-             'pixel DNs that corresponds to valid data, invalid data, and no data'],
+            ['bits_per_sample', 8,
+             'Bytes per pixel'],
+        'RTC/metadata/fileFormatSpecification/dataMask//byteOrder':
+            ['byte_order', sys.byteorder, # assuming that the byte order follows the native setting.
+             'Byte order of the data'],
+        'RTC/metadata/fileFormatSpecification/dataMask//bitValueRepresentation':
+            ['bit_value_representation', 'no data = NaN, 0 = valid data, 1= ???, 2=???, 3=???', # TODO populate the string
+             'Description of the pixel values in the mask'],
+
 
         # file format spec. for local inc. angle - for 2.4
-        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/sampleType':
-            ['Angle',
-             'Sample type of the local incidence angle layer'],
+        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/sampleType': # 2.4
+            ['sample_type', 'Angle', 'Sample type of the data'],
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/dataFormat':
-            ['',
-             'Data format of the local incidence angle layer'],
+            ['data_format', cfg_in.groups.product_group.output_imagery_format,
+             'data format of the data'],
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/dataType':
-            ['',
-             'Data type of the local incidence angle layer'],
+            ['data_type', 'Float',
+             'data type of the data'],
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/bitsPerSample':
-            ['',
-             'Bits per sample of the local incidence angle layer'],
+            ['bits_per_sample', 32,
+             'Bytes per pixel'],
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/byteOrder':
-            ['',
-             'Byte order of the local incidence angle layer'],
+            ['byte_order', sys.byteorder,
+             'Byte order of the data'],
+
+
+
+
+        
+
+
+
+
+
+
 
         # file format spec. for backscatter - for 3.1
-        'RTC/metadata/fileFormatSpecification/backScatter/sampleType':
-            ['Gamma-Nought',
-             'measurement type of the backscetter image'],
+        'RTC/metadata/fileFormatSpecification/backScatter/measurementType': # 3.1
+            ['measurement_type', 'Gamma-nought', 'Sample type of the data'],
         'RTC/metadata/fileFormatSpecification/backScatter/expressionConvention':
-            ['linear amplitude',
-             'Backscatter expression convention - linear ampliture or linear power'],
-        'RTC/metadata/fileFormatSpecification/backScatter/polarization':
-            ['',
-             'Polarization of the backscatter'],
+            ['expression_convention', 'Linear amplitude', #TODO Confirm
+             'Backscatter expression convention'],
+        # NOTE: polarization is provided in 'listOfPolarizations'
         'RTC/metadata/fileFormatSpecification/backScatter/dataFormat':
-            ['',
-             'Data format of the backscatter measurement'],
+            ['data_format', cfg_in.groups.product_group.output_imagery_format,
+             'data format of the measurement'],
         'RTC/metadata/fileFormatSpecification/backScatter/dataType':
-            ['',
-             'Data type of the backscatter measurement'],
+            ['data_type', 'Float',
+             'data type of the measurement'],
         'RTC/metadata/fileFormatSpecification/backScatter/bitsPerSample':
-            ['',
-             'Bits per sample of the backscatter measurement'],
+            ['bits_per_sample', 32,
+             'Bytes per sample in the measurement'],
         'RTC/metadata/fileFormatSpecification/backScatter/byteOrder':
-            ['',
-             'Byte order of the backscatter measurement'],
+            ['byte_order', sys.byteorder,
+             'Byte order of the measurement'],
 
-        'RTC/metadata/fileFormatSpecification/scalingConversion':
-            ['',
-             ('equation to convert from pixel linear amplitude / power to'
-              'logarithmic decibel scale')],
+        # The field below to be populated only when using power in dB scale
+        #'RTC/metadata/fileFormatSpecification/scalingConversion':
+        #    ['',
+        #     ('equation to convert from pixel linear amplitude / power to'
+        #      'logarithmic decibel scale')],
 
-        'RTC/metadata/processingInformation/demReference': # placeholder for 4.2
-            ['',
-             'Reference to DEM used for geometric terrain correction'],
+        'RTC/metadata/processingInformation/demReference': # 4.2
+            ['dem_source_description', 'Copernicus DEM', 'DEM source description'], #TODO confirm, might need to be populated via runconfig
             
-        'RTC/metadata/processingInformation/geoidReference': # placeholder for 4.2
-            ['',
-             ('reference to Earth Gravitational Model (EGM) '
-             'used for Geometric Correction')],
+        'RTC/metadata/processingInformation/geoidReference': # for 4.2
+            ['geoid_description', 'EGM2008', 'Geoid source description'],  #TODO confirm, might need to be populated via runconfig
 
-        'RTC/grids/processingInformation/absoluteAccuracyNorthing': # placeholder for 4.3
+        'RTC/grids/processingInformation/absoluteAccuracyNorthing': # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
             [[0, 0],
              ('An estimate of the absolute localisation error in north direction'
               'provided as bias and standard deviation')],
@@ -547,69 +555,8 @@ def get_metadata_dict(product_id: str,
              'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demSource':
             ['dem_source', dem_description, 'DEM file name'],
-        'RTC/metadata/processingInformation/inputs/demSourceDescription': # 4.2
-            ['dem_source_description', 'Copernicus DEM', 'DEM source description'], #TODO confirm
-        'RTC/metadata/processingInformation/inputs/geoidDescription': # 4.2
-            ['geoid_description', 'EGM2008', 'Geoid source description'], #TODO confirm
+            
         
-        'RTC/metadata/processingInformation/absoluteGeolocationError/bias': # Placeholder 4.3
-            ['offset', 0.0, 'Absolute geolocation error - bias'], #TODO test the geolocation error
-        'RTC/metadata/processingInformation/absoluteGeolocationError/stdev': # Placeholder 4.3
-            ['stdev', 0.0, 'Absolute geolocation error - standard deviation'], #TODO test the geolocation error
-
-
-        # per-pixel data
-        'RTC/metadata/processingInformation/outputs/maskImage/sampleType': # 2.2
-            ['sample_type', 'Mask', 'Sample type of the mask'], 
-        'RTC/metadata/processingInformation/outputs/maskImage/dataFormat':
-            ['data_format', cfg_in.groups.product_group.output_imagery_format,
-             'data format of the image mask'],
-        'RTC/metadata/processingInformation/outputs/maskImage/dataType':
-            ['data_type', 'bytes',
-             'data type of the image mask'],
-        'RTC/metadata/processingInformation/outputs/maskImage/bitsPerSample':
-            ['bits_per_sample', 8,
-             'Bytes per pixel'],
-        'RTC/metadata/processingInformation/outputs/maskImage/byteOrder':
-            ['byte_order', sys.byteorder, # assuming that the byte order follows the native setting.
-             'Byte order of the data'],
-        'RTC/metadata/processingInformation/outputs/maskImage/bitValueRepresentation':
-            ['bit_value_representation', 'no data = NaN, 0 = valid data, 1= ???, 2=???, 3=???', # TODO populate the string
-             'Description of the pixel values in the mask'],
-
-        'RTC/metadata/processingInformation/outputs/localIncidenceAngle/sampleType': # 2.4
-            ['sample_type', 'Angle', 'Sample type of the data'],
-        'RTC/metadata/processingInformation/outputs/maskImage/dataFormat':
-            ['data_format', cfg_in.groups.product_group.output_imagery_format,
-             'data format of the data'],
-        'RTC/metadata/processingInformation/outputs/localIncidenceAngle/dataType':
-            ['data_type', 'Float',
-             'data type of the data'],
-        'RTC/metadata/processingInformation/outputs/localIncidenceAngle/bitsPerSample':
-            ['bits_per_sample', 32,
-             'Bytes per pixel'],
-        'RTC/metadata/processingInformation/outputs/localIncidenceAngle/byteOrder':
-            ['byte_order', sys.byteorder,
-             'Byte order of the data'],
-
-        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/measurementType': # 3.1
-            ['measurement_type', 'Angle', 'Sample type of the data'],
-        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/expressionConvention':
-            ['expression_convention', 'Linear amplitude', #TODO Confirm
-             'Backscatter expression convention'],
-        # NOTE: polarization is provided in 'listOfPolarizations'
-        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/dataFormat':
-            ['data_format', cfg_in.groups.product_group.output_imagery_format,
-             'data format of the measurement'],
-        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/dataType':
-            ['data_type', 'Float',
-             'data type of the measurement'],
-        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/bitsPerSample':
-            ['bits_per_sample', 32,
-             'Bytes per sample in the measurement'],
-        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/byteOrder':
-            ['byte_order', sys.byteorder,
-             'Byte order of the measurement']
     }
 
     # Add reference to the thermal noise correction algorithm when the correction is applied
