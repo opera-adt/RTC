@@ -151,7 +151,7 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
                             is_mosaic)
 
     populate_rfi_info(hdf5_obj, burst,
-                      f'{BASE_HDF5_DATASET}/RTC/grids/RFI_information')
+                      f'{BASE_HDF5_DATASET}/RTC/metadata/rfiInformation')
 
     # save orbit
     orbit_group = hdf5_obj.require_group(
@@ -805,45 +805,105 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 def populate_rfi_info(h5py_obj, burst, rfi_root_path):
     '''
     Populate the RFI information into HDF5 object
+
+    Parameters
+    ----------
+    h5py_obj: HDF5 object
+    burst: Sentinel1BurstSlc
+    rfi_root_path: str
+
     '''
-    #is_empty_rfi_info = burst.burst_rfi_info is None
-    #dset = h5py_obj.create_dataset(f'{rfi_root_path}/isRfiInfoAvailable',
-    #                               data=not is_empty_rfi_info)
-    #dset.attrs['description'] = 'Whether RFI information is available'
-    #
-    #if is_empty_rfi_info:
-    #    return
+    is_rfi_info_empty = burst.burst_rfi_info is None
     dset = h5py_obj.create_dataset(f'{rfi_root_path}/isRfiInfoAvailable',
-                                   data=True)
+                                   data=not is_rfi_info_empty)
     dset.attrs['description'] = 'Whether RFI information is available'
 
+    if is_rfi_info_empty:
+        return
+    
     # Create group for RFI info
     subpath_data_dict = {
-        #'rfiMitigationPerformed':
-        #   [burst.burst_rfi_info.rfi_mitigation_performed,
-        #    'Whether or not the RFI mitigation step was performed'],
-        #'rfiMitigationDomain':
-        #   [burst.burst_rfi_info.rfi_mitigation_domain,
-        #    'Whether or not the RFI mitigation step was performed'],
-        #'rfiBurstReport':
-        #   [[],
-        #    'Burst RFI report']
         'rfiMitigationPerformed':
-            ['', 'Whether or not the RFI mitigation step was performed'],
+            ['rfi_mitigation_performed',
+             burst.burst_rfi_info.rfi_mitigation_performed,
+             'RFI detection and mitigtion strategy'],
         'rfiMitigationDomain':
-            ['', 'in what domain the RFI mitigation step was performed'],
-        'rfiBurstReport':
-            [[], 'Burst RFI report']
+            ['rfi_mitigation_domain',
+             burst.burst_rfi_info.rfi_mitigation_domain,
+             'In which domain(s) the RFI mitigation was performed'],
+        'rfiBurstReport/swath':
+            ['rfi_burst_report_swath',
+             burst.burst_rfi_info.rfi_burst_report['swath'],
+             'Swath of the IW RFI burst repost list'],
+        'rfiBurstReport/azimuthTime':
+            ['rfi_burst_report_azimuth_time',
+             burst.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+             'Azimuth time of the burst that corresponds to the RFI report'],
+        'rfiBurstReport/inBandOutBandPowerRatio':
+            ['in_band_out_band_power_ratio',
+             burst.burst_rfi_info.rfi_burst_report['inBandOutBandPowerRatio'],
+             'Ratio between the in-band and out-of-band power of the burst.']
     }
+
+    # Add RFI burst domain report
+    if 'timeDomainRfiReport' in burst.burst_rfi_info.rfi_burst_report.keys():
+        # populate the time domain RFI report
+        subpath_data_dict['timeDomainRfiReport/percentageAffectedLines']=\
+            ['time_domain_rfi_report_percentage_affected_lines',
+             burst.burst_rfi_info.rfi_burst_report['timeDomainRfiReport']['percentageAffectedLines'],
+             'Percentage of level-0 lines affected by RFI']
+
+        subpath_data_dict['timeDomainRfiReport/avgPercentageAffectedSamples']=\
+            ['time_domain_rfi_report_avg_percentage_affected_samples',
+             burst.burst_rfi_info.rfi_burst_report['timeDomainRfiReport']['avgPercentageAffectedSamples'],
+             'Average percentage of affected level-0 samples in the lines containing RFI.']
+
+        subpath_data_dict['timeDomainRfiReport/maxPercentageAffectedSamples']=\
+            ['time_domain_rfi_report_max_percentage_affected_samples',
+             burst.burst_rfi_info.rfi_burst_report['timeDomainRfiReport']['maxPercentageAffectedSamples'],
+             'Maximum percentage of level-0 samples affected by RFI in the same line']
+
+    if 'frequencyDomainRfiBurstReport' in burst.burst_rfi_info.rfi_burst_report.keys():
+        # populate the frequency domain RFI report
+        subpath_data_dict['frequencyDomainRfiBurstReport/numSubBlocks']=\
+            ['frequency_domain_rfi_burst_report_num_sub_blocks',
+             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['numSubBlocks'],
+             'Number of sub-blocks in the current burst']
+        
+        subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize']=\
+            ['frequency_domain_rfi_burst_report_sub_block_size',
+             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['subBlockSize'],
+             'Number of lines in each sub-block']
+
+        subpath_data_dict['frequencyDomainRfiBurstReport/isolatedRfiReport/percentageAffectedLines']=\
+            ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
+             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['isolatedRfiReport']['percentageAffectedLines'],
+             'Percentage of level-0 lines affected by RFI.']
+
+        subpath_data_dict['frequencyDomainRfiBurstReport/isolatedRfiReport/maxPercentageAffectedBW']=\
+            ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
+             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['isolatedRfiReport']['maxPercentageAffectedBW'],
+             'Max. percentage of bandwidth affected by isolated RFI in a single line.']
+
+        subpath_data_dict['frequencyDomainRfiBurstReport/percentageBlocksPersistentRfi']=\
+            ['frequency_domain_rfi_burst_report_percentage_blocks_persistent_rfi',
+             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['percentageBlocksPersistentRfi'],
+             ('Percentage of processing blocks affected by persistent RFI. '
+              'In this case the RFI detection is performed on the '
+              'mean PSD of each processing block.')]
+
+        subpath_data_dict['frequencyDomainRfiBurstReport/maxPercentageBWAffectedPersistentRfi']=\
+            ['frequency_domain_rfi_burst_report_max_percentage_bw_affected_persistent_rfi',
+             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['maxPercentageBWAffectedPersistentRfi'],
+             'Max percentage bandwidth affected by persistent RFI in a single processing block']
 
     for fieldname, data in subpath_data_dict.items():
             path_dataset_in_h5 = os.path.join(rfi_root_path, fieldname)
             if data[0] is str:
                 dset = h5py_obj.create_dataset(path_dataset_in_h5,
-                                               data=np.string_(data[0]))
+                                               data=np.string_(data[1]))
             else:
                 dset = h5py_obj.create_dataset(path_dataset_in_h5,
-                                               data=data[0])
+                                               data=data[1])
 
-            dset.attrs['description'] = np.string_(data[1])
-
+            dset.attrs['description'] = np.string_(data[2])
