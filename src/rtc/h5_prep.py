@@ -379,14 +379,14 @@ def get_metadata_dict(product_id: str,
              burst_in.range_pixel_spacing,
              'Slant range resolution of the source data in meters'],
 
-        'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle': # placeholder for 1.6.7
+        'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle': # 1.6.7
             ['near_range_incidence_angle',
-             0,
-             'Near range incidence angle in meters'], #TODO extract from incidence angle layer
-        'RTC/metadata/sourceDataInformation/farRangeIncidenceAngle': # placeholder for 1.6.7
+             burst_in.misc_metadata.inc_angle_near_range,
+             'Near range incidence angle in meters'],
+        'RTC/metadata/sourceDataInformation/farRangeIncidenceAngle': # 1.6.7
             ['far_range_incidence_angle',
-             0,
-             'Far range incidence angle in meters'],  #TODO extract from incidence angle layer
+             burst_in.misc_metadata.inc_angle_far_range,
+             'Far range incidence angle in meters'],
         'RTC/metadata/sourceDataInformation/intensityNoiseLevel': # placeholder for 1.6.9
             ['intensity_noise_level',
              [],
