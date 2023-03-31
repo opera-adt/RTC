@@ -343,11 +343,7 @@ def get_metadata_dict(product_id: str,
             ['source_processing_sw_version',
              str(burst_in.ipf_version),
              'IPF version of the source data'],
-        'RTC/metadata/sourceDataInformation/productID': # 1.6.6
-            ['source_product_id',
-             burst_in.safe_filename,
-             'Product ID of the source data'],
-
+        
         'RTC/metadata/sourceDataInformation/azimuthLooks': # placeholder for 1.6.6
             ['source_azimuth_looks',
              1,
@@ -485,7 +481,7 @@ def get_metadata_dict(product_id: str,
             ['geoid_source_description', 'EGM2008', 'Geoid source description'],  #TODO confirm, might need to be populated via runconfig
 
         'RTC/grids/processingInformation/absoluteAccuracyNorthing': # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
-            ['absolute_accuracy_northing'
+            ['absolute_accuracy_northing',
              [0.0, 0.0],
              ('An estimate of the absolute localisation error in north direction'
               'provided as bias and standard deviation')],
@@ -497,7 +493,7 @@ def get_metadata_dict(product_id: str,
               'provided as bias and standard deviation')],
 
          'identification/productPixelCoordinateConvention': # 1.7.8
-            ['product_pixel_coordinate_convention'
+            ['product_pixel_coordinate_convention',
              'Area',
              'Product pixel coordinate convention'],
 
