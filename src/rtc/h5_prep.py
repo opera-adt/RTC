@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import numpy as np
 import h5py
 import logging
@@ -276,11 +277,8 @@ def get_metadata_dict(product_id: str,
             ['project', 'OPERA', 'Project name'],
          'identification/acquisitionMode':
             ['acquisition_mode', 'Interferometric Wide (IW)', 'Acquisition mode'],
-        'RTC/grids/radarBand': # 1.6.4
-            ['C',
-             'Radar band'],
         'identification/card4lProductType':
-            ['Normalised Radar Backscatter', 'CARD4L Product type'], # 1.3
+            ['card4l_product_type','Normalised Radar Backscatter', 'CARD4L Product type'], # 1.3
 
         # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'identification/lookDirection':
@@ -326,68 +324,81 @@ def get_metadata_dict(product_id: str,
         'RTC/metadata/sourceDataInformation/numberOfAcquisitions': # placeholder
             [0,
              'Number of source data acquisitions'],
-        'RTC/metadata/sourceDataInformation/dataAccess': # placeholder
-            ['',
+        'RTC/metadata/sourceDataInformation/dataAccess': # location from where the source data "can" be retrieved,
+            ['https://search.asf.alaska.edu/',
              'Where the source data can be retrieved'],
+        'RTC/sourceDataInformation/radarBand': # 1.6.4
+            ['radar_band', 'C', 'Radar band'],
         'RTC/metadata/sourceDataInformation/processingFacility': # 1.6.6
-            ['IPF',
+            ['Sentinel-1 Instrument Processing Facility (IPF)',
              'Source data processing facility'],
         'RTC/metadata/sourceDataInformation/processingDate': # placeholder for 1.6.6
             ['0000-00-00T00:00:00.000000',
-             'Processing date'],
+             'Processing date'], # TODO parse from manifest - <safe:processing name="SLC Post Processing" start="2023-01-08T15:42:40.765967" stop="2023-01-08T15:52:25.000000">
         'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # placeholder for 1.6.6
             [str(burst_in.ipf_version),
              'IPF version of the source data'],
-        'RTC/metadata/sourceDataInformation/productLevel': # placeholder for 1.6.6
+        'RTC/metadata/sourceDataInformation/productID': # placeholder for 1.6.6
+            [burst_in.safe_filename,
+             'Product ID of the source data'],
+
+        'RTC/metadata/sourceDataInformation/azimuthLooks': # placeholder for 1.6.6
             [1,
+             'Azimuth number of looks'], #TODO parse from product annotation.             <numberOfLooks>1</numberOfLooks>
+        'RTC/metadata/sourceDataInformation/rangeLooks': # placeholder for 1.6.6
+            [1,
+             'Range number of looks'],
+
+        'RTC/metadata/sourceDataInformation/productLevel': # placeholder for 1.6.6
+            ['L1',
              'Product level of the source data'],
-        'RTC/metadata/sourceDataInformation/geometry': # placeholder for 1.6.6
+        'RTC/metadata/sourceDataInformation/geometry': # placeholder for 1.6.7
             ['slant range',
              'Geometry of the source data'],
+        'RTC/grids/azimuthSpacing': # placeholder for 1.6.7
+            [0,
+             'Azimuth spacing of the source data in seconds'], #TODO: check the unit; parse from LADS
+        'RTC/grids/slantRangeSpacing': # placeholder for 1.6.7
+            [0,
+             'Slant range spacing of the source data in meters'], #TODO: check the unit; parse from LADS
+
         'RTC/grids/azimuthResolution': # placeholder for 1.6.7
             [0,
-             'Azimuth time resolution of the source data in seconds'],
+             'Azimuth time resolution of the source data in seconds'], #TODO extract from the radargrid of `burst_in`
         'RTC/grids/slantRangeResolution': # placeholder for 1.6.7
             [0,
-             'Slant range resolution of the source data in meters'],
+             'Slant range resolution of the source data in meters'], #TODO extract from the radargrid of `burst_in`
+
         'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle': # placeholder for 1.6.7
             [0,
-             'Near range incidence angle in meters'],
+             'Near range incidence angle in meters'], #TODO extract from incidence angle layer
         'RTC/metadata/sourceDataInformation/farRangeIncidenceAngle': # placeholder for 1.6.7
             [0,
-             'Far range incidence angle in meters'],
+             'Far range incidence angle in meters'],  #TODO extract from incidence angle layer
         'RTC/metadata/sourceDataInformation/intensityNoiseLevel': # placeholder for 1.6.9
             [[],
-             'Noise level indicators for each polarization'],
+             'Noise level indicators for each polarization'],#TODO extract from burstNoise
         'RTC/metadata/processingInformation/processingDate': # placeholder for 1.7.1
             ['0000-00-00T00:00:00',
              'RTC-S1 processing date'],
 
-        'RTC/metadata/processingInformation/noiseRemovalApplied': # placeholder for 3.3
-            [True,
+        'RTC/metadata/processingInformation/noiseRemovalApplied': # for 3.3
+            [cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
-
-        'RTC/metadata/processingInformation/noiseRemovalAlgorithmReference': # placeholder for 3.3
-            [('https://sentinels.copernicus.eu/documents/247904/2142675/'
-              'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf/'
-              '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000'),
-             'A reference to the noise removal algorithm applied'],
 
         'RTC/metadata/processingInformation/rtcAlgorithmReference': # placeholder for 3.4
             ['https://ieeexplore.ieee.org/document/9695438',
              'A reference to the RTC algorithm applied'],
 
         'identification/dataAccess': # placeholder for 1.7.1
-            ['',
+            ['TBD',
              'URL to access the data'],
-        'RTC/metadata/processingInformation/parameters/productFiltering': # placeholder for 1.7.4
+        'RTC/metadata/processingInformation/parameters/productFilteringApplied': # 1.7.4
             [False,
              'Flag if filter has been applied'],
-        'identification/boundingBox': # placeholder for 1.7.4
-            [np.zeros(4),
-             'xmin, ymin, xmax, ymax'],
-        'RTC/grids/imageDimensions': # placeholder for 1.7.7
-            [np.zeros(2),
+        'RTC/grids/imageDimensions': # 1.7.7
+            [np.array([cfg_in.geogrids[str(burst_in.burst_id)].length,
+                       cfg_in.geogrids[str(burst_in.burst_id)].width]),
              'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
 
         # file format spec. for data mask - for 2.2
@@ -474,11 +485,9 @@ def get_metadata_dict(product_id: str,
              ('An estimate of the absolute localisation error in east direction'
               'provided as bias and standard deviation')],
 
-        # 'identification/productPixelCoordinateConvention': # 1.7.8
-        #    ['pixel ULC',
-        #     'Product pixel coordinate convention'],
-
-
+         'identification/productPixelCoordinateConvention': # 1.7.8
+            ['Area',
+             'Product pixel coordinate convention'],
 
         # 'identification/frameNumber':  # TBD
         # 'identification/plannedDatatakeId':
@@ -537,12 +546,114 @@ def get_metadata_dict(product_id: str,
             ['config_files', cfg_in.run_config_path,
              'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demSource':
-            ['dem_source', dem_description, 'DEM source description']
+            ['dem_source', dem_description, 'DEM file name'],
+        'RTC/metadata/processingInformation/inputs/demSourceDescription': # 4.2
+            ['dem_source_description', 'Copernicus DEM', 'DEM source description'], #TODO confirm
+        'RTC/metadata/processingInformation/inputs/geoidDescription': # 4.2
+            ['geoid_description', 'EGM2008', 'Geoid source description'], #TODO confirm
+        
+        'RTC/metadata/processingInformation/absoluteGeolocationError/bias': # Placeholder 4.3
+            ['offset', 0.0, 'Absolute geolocation error - bias'], #TODO test the geolocation error
+        'RTC/metadata/processingInformation/absoluteGeolocationError/stdev': # Placeholder 4.3
+            ['stdev', 0.0, 'Absolute geolocation error - standard deviation'], #TODO test the geolocation error
+
+
+        # per-pixel data
+        'RTC/metadata/processingInformation/outputs/maskImage/sampleType': # 2.2
+            ['sample_type', 'Mask', 'Sample type of the mask'], 
+        'RTC/metadata/processingInformation/outputs/maskImage/dataFormat':
+            ['data_format', cfg_in.groups.product_group.output_imagery_format,
+             'data format of the image mask'],
+        'RTC/metadata/processingInformation/outputs/maskImage/dataType':
+            ['data_type', 'bytes',
+             'data type of the image mask'],
+        'RTC/metadata/processingInformation/outputs/maskImage/bitsPerSample':
+            ['bits_per_sample', 8,
+             'Bytes per pixel'],
+        'RTC/metadata/processingInformation/outputs/maskImage/byteOrder':
+            ['byte_order', sys.byteorder, # assuming that the byte order follows the native setting.
+             'Byte order of the data'],
+        'RTC/metadata/processingInformation/outputs/maskImage/bitValueRepresentation':
+            ['bit_value_representation', 'no data = NaN, 0 = valid data, 1= ???, 2=???, 3=???', # TODO populate the string
+             'Description of the pixel values in the mask'],
+
+        'RTC/metadata/processingInformation/outputs/localIncidenceAngle/sampleType': # 2.4
+            ['sample_type', 'Angle', 'Sample type of the data'],
+        'RTC/metadata/processingInformation/outputs/maskImage/dataFormat':
+            ['data_format', cfg_in.groups.product_group.output_imagery_format,
+             'data format of the data'],
+        'RTC/metadata/processingInformation/outputs/localIncidenceAngle/dataType':
+            ['data_type', 'Float',
+             'data type of the data'],
+        'RTC/metadata/processingInformation/outputs/localIncidenceAngle/bitsPerSample':
+            ['bits_per_sample', 32,
+             'Bytes per pixel'],
+        'RTC/metadata/processingInformation/outputs/localIncidenceAngle/byteOrder':
+            ['byte_order', sys.byteorder,
+             'Byte order of the data'],
+
+        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/measurementType': # 3.1
+            ['measurement_type', 'Angle', 'Sample type of the data'],
+        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/expressionConvention':
+            ['expression_convention', 'Linear amplitude', #TODO Confirm
+             'Backscatter expression convention'],
+        # NOTE: polarization is provided in 'listOfPolarizations'
+        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/dataFormat':
+            ['data_format', cfg_in.groups.product_group.output_imagery_format,
+             'data format of the measurement'],
+        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/dataType':
+            ['data_type', 'Float',
+             'data type of the measurement'],
+        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/bitsPerSample':
+            ['bits_per_sample', 32,
+             'Bytes per sample in the measurement'],
+        'RTC/metadata/processingInformation/outputs/backscatterMeasurements/byteOrder':
+            ['byte_order', sys.byteorder,
+             'Byte order of the measurement']
     }
+
+    # Add reference to the thermal noise correction algorithm when the correction is applied
+    if cfg_in.groups.processing.apply_thermal_noise_correction:  # 3.3
+        metadata_dict['RTC/metadata/processingInformation/algorithms/noiseRemovalAlgorithmReference'] =\
+        ['noise_removal_algorithm_reference',
+         ('https://sentinels.copernicus.eu/documents/247904/2142675/'
+          'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf/'
+          '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000'),
+          'A reference to the noise removal algorithm applied']
+
+    # Add RTC algorithm reference depending on the algorithm applied
+    if cfg_in.groups.processing.apply_rtc: # 3.4
+        if cfg_in.groups.processing.rtc.algorithm_type == 'area_projection':
+            url_rtc_algorithm_ref = 'https://ieeexplore.ieee.org/document/9695438'
+        elif cfg_in.groups.processing.rtc.algorithm_type == 'bilinear_distribution':
+            url_rtc_algorithm_ref = 'https://ieeexplore.ieee.org/document/5752845'
+        
+        metadata_dict['RTC/metadata/processingInformation/algorithms/rtcAlgorithmReference'] =\
+                ['rtc_algorithm_reference',
+                 url_rtc_algorithm_ref,
+                'A reference to the RTC algorithm applied']
+
     if is_mosaic:
         return metadata_dict
 
-    # Metadata for burst product
+    # Metadata only for for burst product
+    # Calculate bounding box
+    xmin_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_x
+    ymax_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_y
+    spacing_x = cfg_in.geogrids[str(burst_in.burst_id)].spacing_x
+    spacing_y = cfg_in.geogrids[str(burst_in.burst_id)].spacing_y
+    width_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].width
+    length_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].length
+    xy_bounding_box = [
+        xmin_geogrid,
+        ymax_geogrid + length_geogrid * spacing_y,
+        xmin_geogrid + width_geogrid * spacing_x,
+        ymax_geogrid
+    ]
+    metadata_dict['identification/boundingBox'] = \
+        ['bounding_box', np.array(xy_bounding_box),
+         'Bounding box of the product, in order of xmin, ymin, xmax, ymax'] # 1.7.5
+
     metadata_dict['identification/boundingPolygon'] = \
         ['bounding_polygon', get_polygon_wkt(burst_in),
          'OGR compatible WKT representation of the product bounding polygon'
@@ -552,18 +663,18 @@ def get_metadata_dict(product_id: str,
         ['burst_id', str(burst_in.burst_id),
          'Burst identification (burst ID)']
 
-    beam_id = str(burst_in.burst_id)[-3:]
+    beam_id = burst_in.swath_name.upper()
     metadata_dict['identification/beamID'] = \
         ['beam_id', beam_id, 'Beam identification (Beam ID)']
 
     metadata_dict['identification/zeroDopplerStartTime'] = \
         ['zero_doppler_start_time',
          burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-         'Azimuth start time of the product']
+         'Azimuth start time of the product'] # 1.6.3
     metadata_dict['identification/zeroDopplerEndTime'] = \
         ['zero_doppler_end_time',
          burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-         'Azimuth stop time of the product']
+         'Azimuth stop time of the product']  # 1.6.3
     return metadata_dict
 
 
@@ -788,3 +899,4 @@ def populate_rfi_info(h5py_obj, burst, rfi_root_path):
                                                data=data[0])
 
             dset.attrs['description'] = np.string_(data[1])
+
