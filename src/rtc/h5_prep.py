@@ -268,8 +268,9 @@ def get_metadata_dict(product_id: str,
         #    [mission_id, 'Mission identifier'],
         'identification/platform':
             ['platform', platform_id, 'Platform name'],
+        # https://sentinel.esa.int/web/sentinel/missions/sentinel-1/satellite-description
          'identification/sensor':
-            ['sensor', 'C-SAR', 'Sensor instrument name'], # https://sentinel.esa.int/web/sentinel/missions/sentinel-1/satellite-description
+            ['sensor', 'C-SAR', 'Sensor instrument name'],
          'identification/productType':
             ['product_type', 'RTC-S1', 'Product type'],
          'identification/project':
@@ -325,7 +326,7 @@ def get_metadata_dict(product_id: str,
             ['number_of_acquisitions',
              0,
              'Number of source data acquisitions'],
-        'RTC/metadata/sourceDataInformation/dataAccess': # location from where the source data "can" be retrieved,
+        'RTC/metadata/sourceDataInformation/dataAccess':
             ['data_access',
              'https://search.asf.alaska.edu/',
              'Where the source data can be retrieved'],
@@ -390,7 +391,7 @@ def get_metadata_dict(product_id: str,
         'RTC/metadata/sourceDataInformation/intensityNoiseLevel': # placeholder for 1.6.9
             ['intensity_noise_level',
              [],
-             'Noise level indicators for each polarization'],#TODO see if it can be extracted from burstNoise
+             'Noise level indicators for each polarization'], #TODO see if it can be extracted from burstNoise
 
         'RTC/metadata/processingInformation/dataAccess': # placeholder for 1.7.1
             ['product_data_access',
@@ -478,7 +479,7 @@ def get_metadata_dict(product_id: str,
              'DEM source description'], #TODO confirm, might need to be populated via runconfig
             
         'RTC/metadata/processingInformation/geoidReference': # for 4.2
-            ['geoid_source_description', 'EGM2008', 'Geoid source description'],  #TODO confirm, might need to be populated via runconfig
+            ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
 
         'RTC/grids/processingInformation/absoluteAccuracyNorthing': # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
             ['absolute_accuracy_northing',
