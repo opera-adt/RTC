@@ -256,8 +256,7 @@ def get_metadata_dict(product_id: str,
     # 'field_name': [corresponding_variables_in_workflow, description]
     metadata_dict = {
         'identification/absoluteOrbitNumber':
-            ['absolute_orbit_number', 
-             burst_in.abs_orbit_number,
+            ['absolute_orbit_number', burst_in.abs_orbit_number,
              'Absolute orbit number'],
         # NOTE: The field below does not exist on opera_rtc.xml
         # 'identification/relativeOrbitNumber':
@@ -276,9 +275,11 @@ def get_metadata_dict(product_id: str,
          'identification/project':
             ['project', 'OPERA', 'Project name'],
          'identification/acquisitionMode':
-            ['acquisition_mode', 'Interferometric Wide (IW)', 'Acquisition mode'],
+            ['acquisition_mode', 'Interferometric Wide (IW)',
+             'Acquisition mode'],
         'identification/card4lProductType':
-            ['card4l_product_type','Normalised Radar Backscatter', 'CARD4L Product type'], # 1.3
+            ['card4l_product_type','Normalised Radar Backscatter',
+             'CARD4L Product type'], # 1.3
 
         # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'identification/lookDirection':
@@ -455,7 +456,6 @@ def get_metadata_dict(product_id: str,
         #     ('equation to convert from pixel linear amplitude / power to'
         #      'logarithmic decibel scale')],
 
-
         'RTC/metadata/processingInformation/noiseRemovalApplied': # 3.3
             [cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
@@ -507,9 +507,11 @@ def get_metadata_dict(product_id: str,
 
         'RTC/metadata/processingInformation/algorithms/demInterpolation':
             ['dem_interpolation_algorithm',
-             cfg_in.groups.processing.dem_interpolation_method, 'DEM interpolation method'],
+             cfg_in.groups.processing.dem_interpolation_method,
+             'DEM interpolation method'],
         'RTC/metadata/processingInformation/algorithms/geocoding':
-            ['geocoding_algorithm', cfg_in.groups.processing.geocoding.algorithm_type,
+            ['geocoding_algorithm',
+             cfg_in.groups.processing.geocoding.algorithm_type,
              'Geocoding algorithm'],
         'RTC/metadata/processingInformation/algorithms/radiometricTerrainCorrection':
             ['radiometric_terrain_correction_algorithm',
@@ -542,7 +544,7 @@ def get_metadata_dict(product_id: str,
 
     # Add reference to the thermal noise correction algorithm when the correction is applied
     if cfg_in.groups.processing.apply_thermal_noise_correction:  # 3.3
-        metadata_dict['RTC/metadata/processingInformation/algorithms/noiseRemovalAlgorithmReference'] =\
+        metadata_dict['RTC/metadata/processingInformation/noiseRemovalAlgorithmReference'] =\
         ['noise_removal_algorithm_reference',
          ('https://sentinels.copernicus.eu/documents/247904/2142675/'
           'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf/'
@@ -552,13 +554,13 @@ def get_metadata_dict(product_id: str,
     # Add RTC algorithm reference depending on the algorithm applied
     if cfg_in.groups.processing.apply_rtc: # 3.4
         if cfg_in.groups.processing.rtc.algorithm_type == 'area_projection':
-            url_rtc_algorithm_ref = 'https://ieeexplore.ieee.org/document/9695438'
+            url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/9695438'
         elif cfg_in.groups.processing.rtc.algorithm_type == 'bilinear_distribution':
-            url_rtc_algorithm_ref = 'https://ieeexplore.ieee.org/document/5752845'
+            url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/5752845'
         
-        metadata_dict['RTC/metadata/processingInformation/algorithms/rtcAlgorithmReference'] =\
+        metadata_dict['RTC/metadata/processingInformation/rtcAlgorithmReference'] =\
                 ['rtc_algorithm_reference',
-                 url_rtc_algorithm_ref,
+                 url_rtc_algorithm_document,
                 'A reference to the RTC algorithm applied']
 
     if is_mosaic:
