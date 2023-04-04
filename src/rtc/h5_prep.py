@@ -557,7 +557,7 @@ def get_metadata_dict(product_id: str,
             ['config_files', cfg_in.run_config_path,
              'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demSource':
-            ['dem_source', dem_description, 'DEM file name'],
+            ['dem_source', dem_description, 'DEM source Description'],
     }
 
     # Add reference to the thermal noise correction algorithm when the correction is applied
