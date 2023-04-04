@@ -336,10 +336,10 @@ def get_metadata_dict(product_id: str,
             ['source_processing_facility',
              'Sentinel-1 Instrument Processing Facility (IPF)',
              'Source data processing facility'],
-        'RTC/metadata/sourceDataInformation/processingDate': # 1.6.6
-            ['source_processing_date',
+        'RTC/metadata/sourceDataInformation/processingDateTime': # 1.6.6
+            ['source_processing_date_time',
              burst_in.burst_misc_metadata.processing_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-             'Processing date of the source data'],
+             'Processing date and time of the source data'],
         'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # 1.6.6
             ['source_processing_sw_version',
              str(burst_in.ipf_version),
