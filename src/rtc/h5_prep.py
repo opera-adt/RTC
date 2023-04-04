@@ -151,7 +151,7 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
                             is_mosaic)
 
     populate_rfi_info(hdf5_obj, burst,
-                      f'{BASE_HDF5_DATASET}/RTC/metadata/rfiInformation')
+                      f'{BASE_HDF5_DATASET}/RTC/metadata/RFIInformation')
 
     # save orbit
     orbit_group = hdf5_obj.require_group(
@@ -278,9 +278,9 @@ def get_metadata_dict(product_id: str,
         'identification/acquisitionMode':
             ['acquisition_mode', 'Interferometric Wide (IW)',
              'Acquisition mode'],
-        'identification/card4lProductType':
-            ['card4l_product_type','Normalised Radar Backscatter',
-             'CARD4L Product type'], # 1.3
+        'identification/CARDProductType':
+            ['card_product_type', 'Normalised Radar Backscatter',
+             'CARD Product type'], # 1.3
 
         # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'identification/lookDirection':
@@ -445,7 +445,7 @@ def get_metadata_dict(product_id: str,
 
         # file format spec. for backscatter - for 3.1
         'RTC/metadata/fileFormatSpecification/backScatter/measurementType': # 3.1
-            ['measurement_type', 'Gamma-nought', 'Sample type of the data'],
+            ['measurement_type', 'Gamma0', 'Sample type of the data'],
         'RTC/metadata/fileFormatSpecification/backScatter/expressionConvention':  # 3.1
             ['measurement_expression_convention', 'Linear amplitude', #TODO Confirm
              'Backscatter expression convention'],
@@ -575,7 +575,8 @@ def get_metadata_dict(product_id: str,
             url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/9695438'
         elif cfg_in.groups.processing.rtc.algorithm_type == 'bilinear_distribution':
             url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/5752845'
-        
+        else:
+            raise NotImplementedError
         metadata_dict['RTC/metadata/processingInformation/rtcAlgorithmReference'] =\
                 ['rtc_algorithm_reference',
                  url_rtc_algorithm_document,
