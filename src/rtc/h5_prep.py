@@ -128,7 +128,7 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
     output_hdf5_file: h5py.File
         HDF5 object into which write the metadata
     orbit: isce3.core.Orbit
-        Orbit file
+        Orbit ISCE3 object
     burst: Sentinel1BurstCls
         Source burst of the RTC
     cfg: RunConfig
@@ -174,9 +174,18 @@ def save_orbit(orbit, orbit_group):
 
     # Orbit source/type
     # TODO: Update orbit type:
-    d = orbit_group.require_dataset("orbitType", (), "S10", data=np.string_("POE"))
-    d.attrs["description"] = np.string_("PrOE (or) NOE (or) MOE (or) POE"
-                                        " (or) Custom")
+    orbit_file_path = orbit_file
+    if 'RESORB' in orbit_file_path:
+        orbit_type = 'RES restituted orbit'
+    elif 'POEORB' in orbit_file_path:
+        orbit_type = 'POE precise orbit'
+    else:
+        orbit_type = 'Undefined'
+
+    d = orbit_group.require_dataset("orbitType", (), "S10",
+                                    data=np.string_(orbit_type))
+    d.attrs["description"] = np.string_(
+        "Type of orbit file used in processing")
 
 
 def get_metadata_dict(product_id: str,
@@ -349,7 +358,7 @@ def get_metadata_dict(product_id: str,
             ['radiometric_terrain_correction_algorithm',
              cfg_in.groups.processing.rtc.algorithm_type,
             'Radiometric terrain correction (RTC) algorithm'],
-        'RTC/metadata/processingInformation/algorithms/ISCEVersion':
+        'RTC/metadata/processingInformation/algorithms/ISCE3Version':
             ['isce3_version', isce3.__version__,
             'Version of the ISCE3 framework used for processing'],
         # 'RTC/metadata/processingInformation/algorithms/RTCVersion':

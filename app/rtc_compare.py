@@ -14,7 +14,7 @@ RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
 RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
 
 LIST_EXCLUDE_COMPARISON = \
-    ['//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/ISCEVersion',
+    ['//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/ISCE3Version',
      '//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/S1ReaderVersion',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/annotationFiles',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/configFiles',
@@ -701,8 +701,8 @@ def _compare_rtc_s1_metadata(metadata_1, metadata_2):
                 break
             # Exclude metadata fields that are not required to be the same
             if k1 in ['PROCESSING_DATE_TIME', 'DEM_SOURCE', 'ISCE3_VERSION',
-                      'ANNOTATION_FILES', 'CONFIG_FILES', 'DEM_FILES',
-                      'ORBIT_FILES']:
+                      'S1_READER_VERSION', 'ANNOTATION_FILES', 'CONFIG_FILES',
+                      'DEM_FILES', 'ORBIT_FILES']:
                 continue
             if metadata_2[k1] != v1:
                 flag_same_metadata = False

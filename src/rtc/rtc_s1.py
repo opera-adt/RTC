@@ -21,7 +21,7 @@ from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    append_metadata_to_geotiff_file)
 from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
                                   compute_weighted_mosaic_raster_single_band)
-from rtc.core import create_logger, save_as_cog
+from rtc.core import create_logger, save_as_cog, check_ancillary_inputs
 from rtc.version import VERSION as SOFTWARE_VERSION
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
                          get_metadata_dict, all_metadata_dict_to_geotiff_metadata_dict)
@@ -261,6 +261,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         processing_namespace.apply_thermal_noise_correction
     flag_apply_abs_rad_correction = \
         processing_namespace.apply_absolute_radiometric_correction
+    check_ancillary_inputs_coverage = \
+        processing_namespace.check_ancillary_inputs_coverage
 
     # read product path group / output format
     runconfig_product_id = cfg.groups.product_group.product_id
@@ -379,6 +381,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     logger.info(f'    product version: {product_version}')
     if save_mosaics:
         logger.info(f'    mosaic product ID: {mosaic_product_id}')
+    logger.info(f'Ancillary input(s):')
+    logger.info(f'    DEM file: {cfg.dem}')
     logger.info(f'Processing parameters:')
     logger.info(f'    apply RTC: {flag_apply_rtc}')
     logger.info(f'    apply thermal noise correction:'
@@ -395,12 +399,19 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     logger.info(f'    output imagery nbits: {output_imagery_nbits}')
     logger.info(f'    save secondary layers as HDF5 files:'
                 f' {save_secondary_layers_as_hdf5}')
+    logger.info(f'    check ancillary coverage:'
+                f' {check_ancillary_inputs_coverage}')
     logger.info(f'Browse images:')
     logger.info(f'    burst height: {browse_image_burst_height}')
     logger.info(f'    burst width: {browse_image_burst_width}')
     logger.info(f'    mosaic height: {browse_image_mosaic_height}')
     logger.info(f'    mosaic width: {browse_image_mosaic_width}')
 
+    # check ancillary input (DEM)
+    metadata_dict = {}
+    check_ancillary_inputs(check_ancillary_inputs_coverage,
+                           cfg.dem, cfg.geogrid,
+                           metadata_dict, logger=logger)
     # Common initializations
     dem_raster = isce3.io.Raster(cfg.dem)
 
