@@ -324,7 +324,7 @@ def get_metadata_dict(product_id: str,
         #     'Product version'],
         'RTC/metadata/sourceDataInformation/numberOfAcquisitions': # placeholder
             ['number_of_acquisitions',
-             0,
+             1,
              'Number of source data acquisitions'],
         'RTC/metadata/sourceDataInformation/dataAccess':
             ['data_access',
