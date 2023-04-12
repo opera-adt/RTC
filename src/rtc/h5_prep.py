@@ -334,11 +334,13 @@ def get_metadata_dict(product_id: str,
             ['radar_band', 'C', 'Radar band'],
         'RTC/metadata/sourceDataInformation/processingFacility': # 1.6.6
             ['source_processing_facility',
-             'Sentinel-1 Instrument Processing Facility (IPF)',
-             'Source data processing facility'],
+             (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
+              f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
+              f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
+             'Source data processing facility, [organisation] in [site], [country]'],
         'RTC/metadata/sourceDataInformation/processingDateTime': # 1.6.6
             ['source_processing_date_time',
-             burst_in.burst_misc_metadata.processing_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+             burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing date and time of the source data'],
         'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # 1.6.6
             ['source_processing_sw_version',
@@ -473,11 +475,7 @@ def get_metadata_dict(product_id: str,
             ['noise_removal_applied',
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
-
-        'RTC/metadata/processingInformation/demReference': # 4.2
-            ['dem_source_description', 'Copernicus DEM',
-             'DEM source description'], #TODO confirm, might need to be populated via runconfig
-            
+    
         'RTC/metadata/processingInformation/geoidReference': # for 4.2
             ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
 
