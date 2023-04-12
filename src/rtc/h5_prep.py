@@ -560,11 +560,14 @@ def get_metadata_dict(product_id: str,
 
     # Add reference to the thermal noise correction algorithm when the correction is applied
     if cfg_in.groups.processing.apply_thermal_noise_correction:  # 3.3
-        metadata_dict['RTC/metadata/processingInformation/noiseRemovalAlgorithmReference'] =\
-        ['noise_removal_algorithm_reference',
-         ('https://sentinels.copernicus.eu/documents/247904/2142675/'
+        noise_removal_algorithm_reference = 'https://sentinels.copernicus.eu/documents/247904/2142675/'
           'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf/'
-          '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000'),
+          '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000'
+    else:
+        noise_removal_algorithm_reference = '(noise removal not applied)'
+    metadata_dict['RTC/metadata/processingInformation/noiseRemovalAlgorithmReference'] =\
+        ['noise_removal_algorithm_reference',
+         noise_removal_algorithm_reference,
           'A reference to the noise removal algorithm applied']
 
     # Add RTC algorithm reference depending on the algorithm applied
