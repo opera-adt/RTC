@@ -337,7 +337,7 @@ def get_metadata_dict(product_id: str,
              (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
               f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
               f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
-             'Source data processing facility, [organisation] in [site], [country]'],
+             'Source data processing facility'],
         'RTC/metadata/sourceDataInformation/processingDateTime': # 1.6.6
             ['source_processing_date_time',
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
@@ -560,9 +560,10 @@ def get_metadata_dict(product_id: str,
 
     # Add reference to the thermal noise correction algorithm when the correction is applied
     if cfg_in.groups.processing.apply_thermal_noise_correction:  # 3.3
-        noise_removal_algorithm_reference = 'https://sentinels.copernicus.eu/documents/247904/2142675/'
-          'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf/'
-          '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000'
+        noise_removal_algorithm_reference =\
+            ('https://sentinels.copernicus.eu/documents/247904/2142675/'
+             'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf/'
+             '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000')
     else:
         noise_removal_algorithm_reference = '(noise removal not applied)'
     metadata_dict['RTC/metadata/processingInformation/noiseRemovalAlgorithmReference'] =\
@@ -571,6 +572,7 @@ def get_metadata_dict(product_id: str,
           'A reference to the noise removal algorithm applied']
 
     # Add RTC algorithm reference depending on the algorithm applied
+    url_rtc_algorithm_document = '(RTC not applied)'
     if cfg_in.groups.processing.apply_rtc: # 3.4
         if cfg_in.groups.processing.rtc.algorithm_type == 'area_projection':
             url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/9695438'
@@ -578,10 +580,10 @@ def get_metadata_dict(product_id: str,
             url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/5752845'
         else:
             raise NotImplementedError
-        metadata_dict['RTC/metadata/processingInformation/rtcAlgorithmReference'] =\
-                ['rtc_algorithm_reference',
-                 url_rtc_algorithm_document,
-                'A reference to the RTC algorithm applied']
+    metadata_dict['RTC/metadata/processingInformation/rtcAlgorithmReference'] =\
+        ['rtc_algorithm_reference',
+         url_rtc_algorithm_document,
+         'A reference to the RTC algorithm applied']
 
     if is_mosaic:
         return metadata_dict
