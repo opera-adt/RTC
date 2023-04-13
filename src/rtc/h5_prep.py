@@ -831,7 +831,7 @@ def get_rfi_metadata_dict(burst_in,
     rfi_metadata_dict = {}
 
     is_rfi_info_empty = burst_in.burst_rfi_info is None
-    rfi_metadata_dict[f'{rfi_root_path}/isRfiInfoAvailable'] =\
+    rfi_metadata_dict[f'{rfi_root_path}/isRFIInfoAvailable'] =\
         ['is_rfi_info_available',
          not is_rfi_info_empty,
          'A flag whether RFI information is available in the source data']
