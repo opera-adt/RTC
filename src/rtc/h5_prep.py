@@ -633,7 +633,7 @@ def get_metadata_dict(product_id: str,
 
     # Add RFI metadata into `metadata_dict`
     rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
-                                              'RTC/metadata/RFIInformation')
+                                              'RTC/metadata/QA/RFIInformation')
     metadata_dict.update(rfi_metadata_dict)
 
     return metadata_dict
@@ -818,7 +818,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
 
 def get_rfi_metadata_dict(burst_in,
-                          rfi_root_path = 'RTC/metadata/RFIInformation'):
+                          rfi_root_path = 'RTC/metadata/QA/RFIInformation'):
     '''
     Populate the RFI information into HDF5 object
 
