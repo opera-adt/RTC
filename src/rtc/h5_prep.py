@@ -390,10 +390,13 @@ def get_metadata_dict(product_id: str,
             ['far_range_incidence_angle',
              burst_in.burst_misc_metadata.inc_angle_far_range,
              'Far range incidence angle in meters'],
-        'RTC/metadata/sourceDataInformation/intensityNoiseLevel':  # placeholder for 1.6.9
-            ['intensity_noise_level',
-             [],
-             'Noise level indicators for each polarization'], #TODO see if it can be extracted from burstNoise
+        # Source for the max. NESZ:
+        # (https://sentinels.copernicus.eu/web/sentinel/user-guides/
+        #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
+        'RTC/metadata/sourceDataInformation/maxNoiseEquivalentSigmaZero':  # placeholder for 1.6.9
+            ['max_noise_equivalent_sigma_zero',
+             -22,
+             'Maximum Noise equivalent sigma0 in dB'], #TODO see if it can be extracted from burstNoise
 
         'RTC/metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
             ['product_data_access',
