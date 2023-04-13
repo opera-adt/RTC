@@ -322,7 +322,7 @@ def get_metadata_dict(product_id: str,
         #'identification/CEOSDocumentIdentifier':
         #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
         #     'Product version'],
-        'RTC/metadata/sourceDataInformation/numberOfAcquisitions': # placeholder
+        'RTC/metadata/sourceDataInformation/numberOfAcquisitions': # 1.6.4
             ['number_of_acquisitions',
              1,
              'Number of source data acquisitions'],
@@ -393,7 +393,7 @@ def get_metadata_dict(product_id: str,
         # Source for the max. NESZ:
         # (https://sentinels.copernicus.eu/web/sentinel/user-guides/
         #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
-        'RTC/metadata/sourceDataInformation/maxNoiseEquivalentSigmaZero':  # placeholder for 1.6.9
+        'RTC/metadata/sourceDataInformation/maxNoiseEquivalentSigmaZero':  # 1.6.9
             ['max_noise_equivalent_sigma_zero',
              -22,
              'Maximum Noise equivalent sigma0 in dB'], #TODO see if it can be extracted from burstNoise
