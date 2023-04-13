@@ -150,8 +150,8 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
     populate_metadata_group(product_id, hdf5_obj, burst, cfg, BASE_HDF5_DATASET,
                             is_mosaic)
 
-    populate_rfi_info(hdf5_obj, burst,
-                      f'{BASE_HDF5_DATASET}/RTC/metadata/RFIInformation')
+    #populate_rfi_info(hdf5_obj, burst,
+    #                  f'{BASE_HDF5_DATASET}/RTC/metadata/RFIInformation')
 
     # save orbit
     orbit_group = hdf5_obj.require_group(
@@ -330,87 +330,87 @@ def get_metadata_dict(product_id: str,
             ['data_access',
              'https://search.asf.alaska.edu/',
              'Where the source data can be retrieved'],
-        'RTC/metadata/sourceDataInformation/radarBand': # 1.6.4
+        'RTC/metadata/sourceDataInformation/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Radar band'],
-        'RTC/metadata/sourceDataInformation/processingFacility': # 1.6.6
+        'RTC/metadata/sourceDataInformation/processingFacility': #  1.6.6
             ['source_processing_facility',
              (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
               f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
               f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
              'Source data processing facility'],
-        'RTC/metadata/sourceDataInformation/processingDateTime': # 1.6.6
+        'RTC/metadata/sourceDataInformation/processingDateTime':  # 1.6.6
             ['source_processing_date_time',
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing date and time of the source data'],
-        'RTC/metadata/sourceDataInformation/processingSoftwareVersion': # 1.6.6
+        'RTC/metadata/sourceDataInformation/processingSoftwareVersion':  # 1.6.6
             ['source_processing_sw_version',
              str(burst_in.ipf_version),
              'IPF version of the source data'],
         
-        'RTC/metadata/sourceDataInformation/azimuthLooks': # 1.6.6
+        'RTC/metadata/sourceDataInformation/azimuthLooks':  # 1.6.6
             ['source_azimuth_looks',
              burst_in.burst_misc_metadata.azimuth_looks,
              'Azimuth number of looks'],
-        'RTC/metadata/sourceDataInformation/slantRangeLooks': # 1.6.6
+        'RTC/metadata/sourceDataInformation/slantRangeLooks':  # 1.6.6
             ['source_slant_range_looks',
              burst_in.burst_misc_metadata.slant_range_looks,
              'Slant range number of looks'],
 
-        'RTC/metadata/sourceDataInformation/productLevel': # 1.6.6
+        'RTC/metadata/sourceDataInformation/productLevel':  # 1.6.6
             ['source_product_level',
              'L1',
              'Product level of the source data'],
-        'RTC/metadata/sourceDataInformation/geometry': # 1.6.7
+        'RTC/metadata/sourceDataInformation/geometry':  # 1.6.7
             ['source_geometry',
              'slant range',
              'Geometry of the source data'],
-        'RTC/metadata/sourceDataInformation/azimuthSpacing': # 1.6.7
+        'RTC/metadata/sourceDataInformation/azimuthSpacing':  # 1.6.7
             ['source_azimuth_spacing',
              burst_in.azimuth_time_interval,
              'Azimuth spacing of the source data in seconds'], 
-        'RTC/metadata/sourceDataInformation/slantRangeSpacing': # 1.6.7
+        'RTC/metadata/sourceDataInformation/slantRangeSpacing':  # 1.6.7
             ['source_slant_range_spacing',
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'], 
 
-        'RTC/metadata/sourceDataInformation/azimuthResolution': # 1.6.7
+        'RTC/metadata/sourceDataInformation/azimuthResolution':  # 1.6.7
             ['source_azimuth_resolution',
              burst_in.azimuth_time_interval,
              'Azimuth time resolution of the source data in seconds'],
-        'RTC/metadata/sourceDataInformation/slantRangeResolution': # 1.6.7
+        'RTC/metadata/sourceDataInformation/slantRangeResolution':  # 1.6.7
             ['source_slant_range_resolution',
              burst_in.range_pixel_spacing,
              'Slant range resolution of the source data in meters'],
 
-        'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle': # 1.6.7
+        'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle':  # 1.6.7
             ['near_range_incidence_angle',
              burst_in.burst_misc_metadata.inc_angle_near_range,
              'Near range incidence angle in meters'],
-        'RTC/metadata/sourceDataInformation/farRangeIncidenceAngle': # 1.6.7
+        'RTC/metadata/sourceDataInformation/farRangeIncidenceAngle':  # 1.6.7
             ['far_range_incidence_angle',
              burst_in.burst_misc_metadata.inc_angle_far_range,
              'Far range incidence angle in meters'],
-        'RTC/metadata/sourceDataInformation/intensityNoiseLevel': # placeholder for 1.6.9
+        'RTC/metadata/sourceDataInformation/intensityNoiseLevel':  # placeholder for 1.6.9
             ['intensity_noise_level',
              [],
              'Noise level indicators for each polarization'], #TODO see if it can be extracted from burstNoise
 
-        'RTC/metadata/processingInformation/dataAccess': # placeholder for 1.7.1
+        'RTC/metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
             ['product_data_access',
              'TBD',
              'URL to access the product data'],
-        'RTC/metadata/processingInformation/parameters/FilteringApplied': # 1.7.4
+        'RTC/metadata/processingInformation/parameters/FilteringApplied':  # 1.7.4
             ['filtering_applied',
             False,
              'Flag if filter has been applied'],
-        'RTC/grids/imageDimensions': # 1.7.7
+        'RTC/grids/imageDimensions':  # 1.7.7
             ['product_image_dimensions',
              np.array([cfg_in.geogrids[str(burst_in.burst_id)].length,
                        cfg_in.geogrids[str(burst_in.burst_id)].width]),
              'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
 
         # file format spec. for data mask - for 2.2
-        'RTC/metadata/fileFormatSpecification/dataMask/sampleType': # 2.2
+        'RTC/metadata/fileFormatSpecification/dataMask/sampleType':  # 2.2
             ['mask_sample_type', 'Mask', 'Sample type of the mask'], 
         'RTC/metadata/fileFormatSpecification/dataMask/dataFormat':
             ['mask_data_format', cfg_in.groups.product_group.output_imagery_format,
@@ -430,7 +430,7 @@ def get_metadata_dict(product_id: str,
              'Description of the pixel values in the mask'],
 
         # file format spec. for local inc. angle - for 2.4
-        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/sampleType': # 2.4
+        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/sampleType':  # 2.4
             ['local_inc_sample_type', 'Angle', 'Sample type of the data'],
         'RTC/metadata/fileFormatSpecification/localIncidenceAngle/dataFormat':
             ['local_inc_data_format', cfg_in.groups.product_group.output_imagery_format,
@@ -446,7 +446,7 @@ def get_metadata_dict(product_id: str,
              'Byte order of the data'],
 
         # file format spec. for backscatter - for 3.1
-        'RTC/metadata/fileFormatSpecification/backScatter/measurementType': # 3.1
+        'RTC/metadata/fileFormatSpecification/backScatter/measurementType':  # 3.1
             ['measurement_type', 'Gamma0', 'Sample type of the data'],
         'RTC/metadata/fileFormatSpecification/backScatter/expressionConvention':  # 3.1
             ['measurement_expression_convention', 'Linear amplitude', #TODO Confirm
@@ -471,27 +471,27 @@ def get_metadata_dict(product_id: str,
         #     ('equation to convert from pixel linear amplitude / power to'
         #      'logarithmic decibel scale')],
 
-        'RTC/metadata/processingInformation/noiseRemovalApplied': # 3.3
+        'RTC/metadata/processingInformation/noiseRemovalApplied':  # 3.3
             ['noise_removal_applied',
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
     
-        'RTC/metadata/processingInformation/geoidReference': # for 4.2
+        'RTC/metadata/processingInformation/geoidReference':  # for 4.2
             ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
 
-        'RTC/grids/processingInformation/absoluteAccuracyNorthing': # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
+        'RTC/grids/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
             ['absolute_accuracy_northing',
              [0.0, 0.0],
              ('An estimate of the absolute localisation error in north direction'
               'provided as bias and standard deviation')],
 
-        'RTC/grids/processingInformation/absoluteAccuracyEasting': # placeholder for 4.3
+        'RTC/grids/processingInformation/absoluteAccuracyEasting':  # placeholder for 4.3
             ['absolute_accuracy_easting',
              [0.0, 0.0],
              ('An estimate of the absolute localisation error in east direction'
               'provided as bias and standard deviation')],
 
-         'identification/productPixelCoordinateConvention': # 1.7.8
+         'identification/productPixelCoordinateConvention':  # 1.7.8
             ['product_pixel_coordinate_convention',
              'Area',
              'Product pixel coordinate convention'],
@@ -604,7 +604,7 @@ def get_metadata_dict(product_id: str,
     ]
     metadata_dict['identification/boundingBox'] = \
         ['bounding_box', np.array(xy_bounding_box),
-         'Bounding box of the product, in order of xmin, ymin, xmax, ymax'] # 1.7.5
+         'Bounding box of the product, in order of xmin, ymin, xmax, ymax']  # 1.7.5
 
     metadata_dict['identification/boundingPolygon'] = \
         ['bounding_polygon', get_polygon_wkt(burst_in),
@@ -627,6 +627,12 @@ def get_metadata_dict(product_id: str,
         ['zero_doppler_end_time',
          burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
          'Azimuth stop time of the product']  # 1.6.3
+
+    # Add RFI metadata into `metadata_dict`
+    rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
+                                              'RTC/metadata/RFIInformation')
+    metadata_dict.update(rfi_metadata_dict)
+
     return metadata_dict
 
 
@@ -657,6 +663,7 @@ def all_metadata_dict_to_geotiff_metadata_dict(metadata_dict):
             geotiff_metadata_dict[key.upper()] = str(value).upper()
             continue
         geotiff_metadata_dict[key.upper()] = value
+
     return geotiff_metadata_dict
 
 
@@ -685,7 +692,7 @@ def populate_metadata_group(product_id: str,
         or burst (False) product
     '''
 
-    metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in,  is_mosaic)
+    metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in, is_mosaic)
 
     for fieldname, (_, data, description) in metadata_dict.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
@@ -698,9 +705,9 @@ def populate_metadata_group(product_id: str,
 
 
 def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
-                       yds, xds, ds_name, standard_name=None,
-                       long_name=None, units=None, fill_value=None,
-                       valid_min=None, valid_max=None, compute_stats=True):
+                      yds, xds, ds_name, standard_name=None,
+                      long_name=None, units=None, fill_value=None,
+                      valid_min=None, valid_max=None, compute_stats=True):
     '''
     write temporary raster file contents to HDF5
 
@@ -807,108 +814,123 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
     del gdal_ds
 
 
-def populate_rfi_info(h5py_obj, burst, rfi_root_path):
+def get_rfi_metadata_dict(burst_in,
+                          rfi_root_path = 'RTC/metadata/RFIInformation'):
     '''
     Populate the RFI information into HDF5 object
 
     Parameters
     ----------
-    h5py_obj: HDF5 object
-    burst: Sentinel1BurstSlc
+    burst_in: Sentinel1BurstSlc
     rfi_root_path: str
 
     '''
-    is_rfi_info_empty = burst.burst_rfi_info is None
-    dset = h5py_obj.create_dataset(f'{rfi_root_path}/isRfiInfoAvailable',
-                                   data=not is_rfi_info_empty)
-    dset.attrs['description'] = 'Whether RFI information is available'
+    rfi_metadata_dict = {}
+
+    is_rfi_info_empty = burst_in.burst_rfi_info is None
+    rfi_metadata_dict[f'{rfi_root_path}/isRfiInfoAvailable'] =\
+        ['is_rfi_info_available',
+         not is_rfi_info_empty,
+         'A flag whether RFI information is available in the source data']
 
     if is_rfi_info_empty:
-        return
-    
+        return rfi_metadata_dict
+
     # Create group for RFI info
     subpath_data_dict = {
         'rfiMitigationPerformed':
             ['rfi_mitigation_performed',
-             burst.burst_rfi_info.rfi_mitigation_performed,
+             burst_in.burst_rfi_info.rfi_mitigation_performed,
              'RFI detection and mitigtion strategy'],
         'rfiMitigationDomain':
             ['rfi_mitigation_domain',
-             burst.burst_rfi_info.rfi_mitigation_domain,
+             burst_in.burst_rfi_info.rfi_mitigation_domain,
              'In which domain(s) the RFI mitigation was performed'],
         'rfiBurstReport/swath':
             ['rfi_burst_report_swath',
-             burst.burst_rfi_info.rfi_burst_report['swath'],
+             burst_in.burst_rfi_info.rfi_burst_report['swath'],
              'Swath of the IW RFI burst repost list'],
         'rfiBurstReport/azimuthTime':
             ['rfi_burst_report_azimuth_time',
-             burst.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
              'Azimuth time of the burst that corresponds to the RFI report'],
         'rfiBurstReport/inBandOutBandPowerRatio':
             ['in_band_out_band_power_ratio',
-             burst.burst_rfi_info.rfi_burst_report['inBandOutBandPowerRatio'],
+             burst_in.burst_rfi_info.rfi_burst_report['inBandOutBandPowerRatio'],
              'Ratio between the in-band and out-of-band power of the burst.']
     }
 
+    # Aliases for the improvement of code readability
+    rfi_burst_report_time =\
+        (burst_in.burst_rfi_info.rfi_burst_report['timeDomainRfiReport']
+         if 'timeDomainRfiReport' in
+         burst_in.burst_rfi_info.rfi_burst_report.keys()
+         else None)
+    rfi_burst_report_freq =\
+        (burst_in.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']
+         if 'frequencyDomainRfiBurstReport' in
+         burst_in.burst_rfi_info.rfi_burst_report.keys()
+         else None)
+
     # Add RFI burst domain report
-    if 'timeDomainRfiReport' in burst.burst_rfi_info.rfi_burst_report.keys():
+    if 'timeDomainRfiReport' in burst_in.burst_rfi_info.rfi_burst_report.keys():
         # populate the time domain RFI report
         subpath_data_dict['timeDomainRfiReport/percentageAffectedLines']=\
             ['time_domain_rfi_report_percentage_affected_lines',
-             burst.burst_rfi_info.rfi_burst_report['timeDomainRfiReport']['percentageAffectedLines'],
+             rfi_burst_report_time['percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI']
 
         subpath_data_dict['timeDomainRfiReport/avgPercentageAffectedSamples']=\
             ['time_domain_rfi_report_avg_percentage_affected_samples',
-             burst.burst_rfi_info.rfi_burst_report['timeDomainRfiReport']['avgPercentageAffectedSamples'],
-             'Average percentage of affected level-0 samples in the lines containing RFI.']
+             rfi_burst_report_time['avgPercentageAffectedSamples'],
+             ('Average percentage of affected level-0 samples '
+              'in the lines containing RFI.')]
 
         subpath_data_dict['timeDomainRfiReport/maxPercentageAffectedSamples']=\
             ['time_domain_rfi_report_max_percentage_affected_samples',
-             burst.burst_rfi_info.rfi_burst_report['timeDomainRfiReport']['maxPercentageAffectedSamples'],
+             rfi_burst_report_time['maxPercentageAffectedSamples'],
              'Maximum percentage of level-0 samples affected by RFI in the same line']
 
-    if 'frequencyDomainRfiBurstReport' in burst.burst_rfi_info.rfi_burst_report.keys():
+    if 'frequencyDomainRfiBurstReport' in burst_in.burst_rfi_info.rfi_burst_report.keys():
         # populate the frequency domain RFI report
         subpath_data_dict['frequencyDomainRfiBurstReport/numSubBlocks']=\
             ['frequency_domain_rfi_burst_report_num_sub_blocks',
-             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['numSubBlocks'],
+             rfi_burst_report_freq['numSubBlocks'],
              'Number of sub-blocks in the current burst']
         
         subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize']=\
             ['frequency_domain_rfi_burst_report_sub_block_size',
-             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['subBlockSize'],
+             rfi_burst_report_freq['subBlockSize'],
              'Number of lines in each sub-block']
 
-        subpath_data_dict['frequencyDomainRfiBurstReport/isolatedRfiReport/percentageAffectedLines']=\
+        subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
+                           'percentageAffectedLines')]=\
             ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
-             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['isolatedRfiReport']['percentageAffectedLines'],
+             rfi_burst_report_freq['isolatedRfiReport']['percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI.']
 
-        subpath_data_dict['frequencyDomainRfiBurstReport/isolatedRfiReport/maxPercentageAffectedBW']=\
+        subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
+                           'maxPercentageAffectedBW')]=\
             ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
-             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['isolatedRfiReport']['maxPercentageAffectedBW'],
+             rfi_burst_report_freq['isolatedRfiReport']['maxPercentageAffectedBW'],
              'Max. percentage of bandwidth affected by isolated RFI in a single line.']
 
         subpath_data_dict['frequencyDomainRfiBurstReport/percentageBlocksPersistentRfi']=\
             ['frequency_domain_rfi_burst_report_percentage_blocks_persistent_rfi',
-             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['percentageBlocksPersistentRfi'],
+             rfi_burst_report_freq['percentageBlocksPersistentRfi'],
              ('Percentage of processing blocks affected by persistent RFI. '
               'In this case the RFI detection is performed on the '
               'mean PSD of each processing block.')]
 
-        subpath_data_dict['frequencyDomainRfiBurstReport/maxPercentageBWAffectedPersistentRfi']=\
+        subpath_data_dict[('frequencyDomainRfiBurstReport/'
+                           'maxPercentageBWAffectedPersistentRfi')]=\
             ['frequency_domain_rfi_burst_report_max_percentage_bw_affected_persistent_rfi',
-             burst.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']['maxPercentageBWAffectedPersistentRfi'],
-             'Max percentage bandwidth affected by persistent RFI in a single processing block']
+             rfi_burst_report_freq['maxPercentageBWAffectedPersistentRfi'],
+             ('Max percentage bandwidth affected by '
+              'persistent RFI in a single processing block')]
 
     for fieldname, data in subpath_data_dict.items():
-            path_dataset_in_h5 = os.path.join(rfi_root_path, fieldname)
-            if data[0] is str:
-                dset = h5py_obj.create_dataset(path_dataset_in_h5,
-                                               data=np.string_(data[1]))
-            else:
-                dset = h5py_obj.create_dataset(path_dataset_in_h5,
-                                               data=data[1])
+            path_in_rfi_dict = os.path.join(rfi_root_path, fieldname)
+            rfi_metadata_dict[path_in_rfi_dict] = data
 
-            dset.attrs['description'] = np.string_(data[2])
+    return rfi_metadata_dict
