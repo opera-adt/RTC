@@ -47,7 +47,7 @@ jobs:
       # Test the project.
       - name: Test Project
         run: |
-          cd test
+          ls -l
           pytest -vrpP
 
   build_docker:
