@@ -39,6 +39,16 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: .github/environment.yml
+
+      - name: Install S1-Reader
+        run: |
+          curl -sSL \
+            https://github.com/opera-adt/s1-reader/archive/refs/tags/v0.1.6.tar.gz \
+            -o s1_reader_src.tar.gz \
+          && tar -xvf s1_reader_src.tar.gz \
+          && ln -s s1-reader-0.1.6 s1-reader \
+          && rm s1_reader_src.tar.gz \
+          && python -m pip install ./s1-reader
       
       # Setup the project
       - name: Install Project
