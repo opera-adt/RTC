@@ -73,7 +73,7 @@ jobs:
       
       # Install the setuptools dependency for build_docker_image.sh.
       - name: Setup Python dependencies
-        run: pip install -r setuptools
+        run: pip install setuptools
       
       # Build the image.
       - name: Build docker image
