@@ -78,4 +78,4 @@ jobs:
       # Build the image.
       - name: Build docker image
         run: |
-          build_docker_image.sh
+          sh build_docker_image.sh
