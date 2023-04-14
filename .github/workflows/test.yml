@@ -42,7 +42,7 @@ jobs:
       
       # Setup the project
       - name: Install Project
-        run: python setup.py sdist
+        run: python -m pip install .
 
       # Test the project.
       - name: Test Project
