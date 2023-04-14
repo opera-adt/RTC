@@ -38,8 +38,8 @@ jobs:
       - name: Setup Environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: .github/lockfile.lock
-          environment-name: RTC
+          environment-file: .github/environment.yml
+        #  environment-name: RTC
 
       # Install the S1-Reader OPERA-ADT project.
       - name: Install S1-Reader

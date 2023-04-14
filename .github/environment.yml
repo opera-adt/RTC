@@ -10,7 +10,7 @@ dependencies:
   - gmock
   - gtest
   - h5py
-  - hdf5
+  - hdf5>=1.10.2
   - libgcc-ng
   - libstdcxx-ng
   - numpy
