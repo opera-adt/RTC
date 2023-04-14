@@ -40,6 +40,7 @@ jobs:
         with:
           environment-file: .github/environment.yml
 
+      # Install the S1-Reader OPERA-ADT project.
       - name: Install S1-Reader
         run: |
           curl -sSL \
@@ -57,7 +58,7 @@ jobs:
       # Test the project.
       - name: Test Project
         run: |
-          ls -l
+          cd tests
           pytest -vrpP
 
   build_docker:
