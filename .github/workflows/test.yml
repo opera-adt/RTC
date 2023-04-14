@@ -34,16 +34,15 @@ jobs:
           python-version: '3.8'
           cache: 'pip'
       
-      # Install the setuptools dependency for build_docker_image.sh.
-      - name: Setup Python dependencies
-        run: pip install setuptools
+      # Set the conda environment up using Mamba and install dependencies
+      - name: Setup Environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: .github/environment.yml
       
+      # Setup the project
       - name: Install Project
         run: python setup.py sdist
-
-      # Install the environment file.
-      - name: Setup Python dependencies
-        run: pip install -r .github/environment.yml
 
       # Test the project.
       - name: Test Project
