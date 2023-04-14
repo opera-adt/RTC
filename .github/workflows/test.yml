@@ -39,7 +39,7 @@ jobs:
         run: pip install setuptools
       
       - name: Install Project
-        run: python setup.py
+        run: python setup.py sdist
 
       # Install the environment file.
       - name: Setup Python dependencies
