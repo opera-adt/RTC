@@ -38,7 +38,7 @@ jobs:
       - name: Setup Environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: Docker/specfile.txt
+          environment-file: .github/specfile.txt
           environment-name: RTC
 
       # Install the S1-Reader OPERA-ADT project.
