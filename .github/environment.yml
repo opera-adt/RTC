@@ -2,7 +2,7 @@ name: isce3_rtc
 channels:
   - conda-forge
 dependencies:
-  - python>=3.8,<3.9
+  - python>=3.9,<3.10
   - cmake
   - eigen
   - fftw
