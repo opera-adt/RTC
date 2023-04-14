@@ -1,0 +1,81 @@
+name: Tests
+
+on: [pull_request, push]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  install_and_test:
+
+    defaults:
+      run:
+        shell: bash -l {0}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - label: Linux
+            runner: ubuntu-latest
+
+    name: Install And Test - ${{ matrix.os.label }}
+    runs-on: ${{ matrix.os.runner }}
+    steps:
+      # Typical github repo checkout step.
+      - name: Github Repo Checkout
+        uses: actions/checkout@v3
+
+      # Install Python on the runner.
+      - name: Provision with Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+          cache: 'pip'
+      
+      # Install the environment file.
+      - name: Setup Python dependencies
+        run: pip install -r .github/environment.yml
+
+      # Test the project.
+      - name: Test Project
+        run: |
+          cd test
+          pytest -vrpP
+
+  build_docker:
+
+    defaults:
+      run:
+        shell: bash -l {0}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - label: Linux
+            runner: ubuntu-latest
+
+    name: Docker Build Test - ${{ matrix.os.label }}
+    runs-on: ${{ matrix.os.runner }}
+    steps:
+      # Typical github repo checkout step.
+      - name: Github Repo Checkout
+        uses: actions/checkout@v3
+
+      # Install Python on the runner.
+      - name: Provision with Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+          cache: 'pip'
+      
+      # Install the setuptools dependency for build_docker_image.sh.
+      - name: Setup Python dependencies
+        run: pip install -r setuptools
+      
+      # Build the image.
+      - name: Build docker image
+        run: |
+          build_docker_image.sh
