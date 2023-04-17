@@ -1,0 +1,98 @@
+name: Tests
+
+on: [pull_request, push]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  install_and_test:
+
+    defaults:
+      run:
+        shell: bash -l {0}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - label: Linux
+            runner: ubuntu-latest
+
+    name: Install And Test - ${{ matrix.os.label }}
+    runs-on: ${{ matrix.os.runner }}
+    steps:
+      # Typical github repo checkout step.
+      - name: Github Repo Checkout
+        uses: actions/checkout@v3
+
+      # Install Python on the runner.
+      - name: Provision with Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      
+      # Set the conda environment up using Mamba and install dependencies
+      - name: Setup Environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: .github/environment.yml
+        #  environment-name: RTC
+
+      # Install the S1-Reader OPERA-ADT project.
+      - name: Install S1-Reader
+        run: |
+          curl -sSL \
+            https://github.com/opera-adt/s1-reader/archive/refs/tags/v0.1.6.tar.gz \
+            -o s1_reader_src.tar.gz \
+          && tar -xvf s1_reader_src.tar.gz \
+          && ln -s s1-reader-0.1.6 s1-reader \
+          && rm s1_reader_src.tar.gz \
+          && python -m pip install ./s1-reader
+      
+      # Setup the project
+      - name: Install Project
+        run: python -m pip install .
+
+      # Test the project.
+      - name: Test Project
+        run: |
+          pytest -vrpP
+
+  build_docker:
+
+    defaults:
+      run:
+        shell: bash -l {0}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - label: Linux
+            runner: ubuntu-latest
+
+    name: Docker Build Test - ${{ matrix.os.label }}
+    runs-on: ${{ matrix.os.runner }}
+    steps:
+      # Typical github repo checkout step.
+      - name: Github Repo Checkout
+        uses: actions/checkout@v3
+
+      # Install Python on the runner.
+      - name: Provision with Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+          cache: 'pip'
+      
+      # Install the setuptools dependency for build_docker_image.sh.
+      - name: Setup Python dependencies
+        run: pip install setuptools
+      
+      # Build the image.
+      - name: Build docker image
+        run: |
+          sh build_docker_image.sh
