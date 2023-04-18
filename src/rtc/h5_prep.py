@@ -315,7 +315,7 @@ def get_metadata_dict(product_id: str,
         'identification/processingDateTime':
              ['processing_date_time',
               datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-              'Processing date and time'],
+              'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
         'identification/productVersion':
             ['product_version', product_version, 'Product version'],
         'identification/softwareVersion':
@@ -405,19 +405,13 @@ def get_metadata_dict(product_id: str,
         #    ['product_data_access',
         #     'TBD',
         #     'URL to access the product data'],
-        'RTC/metadata/processingInformation/parameters/FilteringApplied':  # 1.7.4
-            ['filtering_applied',
+        'RTC/metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
+            ['post_processing_filtering_applied',
             False,
-             'Flag if filter has been applied'],
-        'RTC/grids/imageDimensions':  # 1.7.7
-            ['product_image_dimensions',
-             np.array([cfg_in.geogrids[str(burst_in.burst_id)].length,
-                       cfg_in.geogrids[str(burst_in.burst_id)].width]),
-             'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
+             'Flag to indicate if post-processing filtering has been applied'],
 
-
-        'RTC/metadata/processingInformation/noiseRemovalApplied':  # 3.3
-            ['noise_removal_applied',
+        'RTC/metadata/processingInformation/noiseCorrectionApplied':  # 3.3
+            ['noise_correction_applied',
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
     
@@ -435,11 +429,6 @@ def get_metadata_dict(product_id: str,
         #     [0.0, 0.0],
         #     ('An estimate of the absolute localisation error in east direction'
         #      'provided as bias and standard deviation')],
-
-         'identification/productPixelCoordinateConvention':  # 1.7.8
-            ['product_pixel_coordinate_convention',
-             'Area',
-             'Product pixel coordinate convention'],
 
         # 'identification/frameNumber':  # TBD
         # 'identification/plannedDatatakeId':
@@ -511,7 +500,7 @@ def get_metadata_dict(product_id: str,
              '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000')
     else:
         noise_removal_algorithm_reference = '(noise removal not applied)'
-    metadata_dict['RTC/metadata/processingInformation/noiseRemovalAlgorithmReference'] =\
+    metadata_dict['RTC/metadata/processingInformation/algorithms/noiseCorrectionAlgorithmReference'] =\
         ['noise_removal_algorithm_reference',
          noise_removal_algorithm_reference,
           'A reference to the noise removal algorithm applied']
@@ -525,7 +514,7 @@ def get_metadata_dict(product_id: str,
             url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/5752845'
         else:
             raise NotImplementedError
-    metadata_dict['RTC/metadata/processingInformation/rtcAlgorithmReference'] =\
+    metadata_dict['RTC/metadata/processingInformation/algorithms/radiometricTerrainCorrectionAlgorithmReference'] =\
         ['rtc_algorithm_reference',
          url_rtc_algorithm_document,
          'A reference to the RTC algorithm applied']
@@ -575,7 +564,7 @@ def get_metadata_dict(product_id: str,
 
     # Add RFI metadata into `metadata_dict`
     rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
-                                              'RTC/metadata/QA/RFIInformation')
+                                              'RTC/metadata/QA/rfiInformation')
     metadata_dict.update(rfi_metadata_dict)
 
     return metadata_dict
@@ -760,7 +749,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
 
 def get_rfi_metadata_dict(burst_in,
-                          rfi_root_path = 'RTC/metadata/QA/RFIInformation'):
+                          rfi_root_path = 'RTC/metadata/QA/rfiInformation'):
     '''
     Populate the RFI information into HDF5 object
 
