@@ -315,7 +315,7 @@ def get_metadata_dict(product_id: str,
         'identification/processingDateTime':
              ['processing_date_time',
               datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-              'Processing date and time'],
+              'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
         'identification/productVersion':
             ['product_version', product_version, 'Product version'],
         'identification/softwareVersion':
@@ -329,49 +329,49 @@ def get_metadata_dict(product_id: str,
              'Number of source data acquisitions'],
         # TODO Review: should we expose this parameter in the runconfig?
         'RTC/metadata/sourceDataInformation/dataAccess':
-            ['data_access',
+            ['source_data_access',
              'https://search.asf.alaska.edu/',
              'Data access URL'],
         'RTC/metadata/sourceDataInformation/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Radar band'],
         'RTC/metadata/sourceDataInformation/processingFacility': #  1.6.6
-            ['source_processing_facility',
+            ['source_data_processing_facility',
              (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
               f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
               f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
              'Source data processing facility'],
         'RTC/metadata/sourceDataInformation/processingDateTime':  # 1.6.6
-            ['source_processing_date_time',
+            ['source_data_processing_date_time',
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing date and time of the source data'],
-        'RTC/metadata/sourceDataInformation/processingSoftwareVersion':  # 1.6.6
-            ['source_processing_sw_version',
+        'RTC/metadata/sourceDataInformation/softwareVersion':  # 1.6.6
+            ['source_data_software_version',
              str(burst_in.ipf_version),
              'IPF version of the source data'],
         
         'RTC/metadata/sourceDataInformation/azimuthLooks':  # 1.6.6
-            ['source_azimuth_looks',
+            [None,
              burst_in.burst_misc_metadata.azimuth_looks,
              'Azimuth number of looks'],
         'RTC/metadata/sourceDataInformation/slantRangeLooks':  # 1.6.6
-            ['source_slant_range_looks',
+            [None,
              burst_in.burst_misc_metadata.slant_range_looks,
              'Slant range number of looks'],
 
         'RTC/metadata/sourceDataInformation/productLevel':  # 1.6.6
-            ['source_product_level',
+            ['source_data_product_level',
              'L1',
              'Product level of the source data'],
         'RTC/metadata/sourceDataInformation/geometry':  # 1.6.7
-            ['source_geometry',
+            ['source_data_geometry',
              'slant range',
              'Geometry of the source data'],
-        'RTC/metadata/sourceDataInformation/azimuthSpacing':  # 1.6.7
-            ['source_azimuth_spacing',
+        'RTC/metadata/sourceDataInformation/zeroDopplerTimeSpacing':  # 1.6.7
+            ['source_data_azimuth_spacing',
              burst_in.azimuth_time_interval,
-             'Azimuth spacing of the source data in seconds'], 
+             'Time interval in the along track direction of the source data in seconds'], 
         'RTC/metadata/sourceDataInformation/slantRangeSpacing':  # 1.6.7
-            ['source_slant_range_spacing',
+            ['source_data_slant_range_spacing',
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'], 
 
@@ -385,18 +385,18 @@ def get_metadata_dict(product_id: str,
              'Slant range resolution of the source data in meters'],
 
         'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle':  # 1.6.7
-            ['near_range_incidence_angle',
+            [None,
              burst_in.burst_misc_metadata.inc_angle_near_range,
              'Near range incidence angle in meters'],
         'RTC/metadata/sourceDataInformation/farRangeIncidenceAngle':  # 1.6.7
-            ['far_range_incidence_angle',
+            [None,
              burst_in.burst_misc_metadata.inc_angle_far_range,
              'Far range incidence angle in meters'],
         # Source for the max. NESZ:
         # (https://sentinels.copernicus.eu/web/sentinel/user-guides/
         #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
         'RTC/metadata/sourceDataInformation/maxNoiseEquivalentSigmaZero':  # 1.6.9
-            ['max_noise_equivalent_sigma_zero',
+            [None,
              -22,
              'Maximum Noise equivalent sigma0 in dB'],
 
@@ -405,19 +405,13 @@ def get_metadata_dict(product_id: str,
         #    ['product_data_access',
         #     'TBD',
         #     'URL to access the product data'],
-        'RTC/metadata/processingInformation/parameters/FilteringApplied':  # 1.7.4
-            ['filtering_applied',
+        'RTC/metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
+            ['post_processing_filtering_applied',
             False,
-             'Flag if filter has been applied'],
-        'RTC/grids/imageDimensions':  # 1.7.7
-            ['product_image_dimensions',
-             np.array([cfg_in.geogrids[str(burst_in.burst_id)].length,
-                       cfg_in.geogrids[str(burst_in.burst_id)].width]),
-             'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
+             'Flag to indicate if post-processing filtering has been applied'],
 
-
-        'RTC/metadata/processingInformation/noiseRemovalApplied':  # 3.3
-            ['noise_removal_applied',
+        'RTC/metadata/processingInformation/noiseCorrectionApplied':  # 3.3
+            ['noise_correction_applied',
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
     
@@ -435,11 +429,6 @@ def get_metadata_dict(product_id: str,
         #     [0.0, 0.0],
         #     ('An estimate of the absolute localisation error in east direction'
         #      'provided as bias and standard deviation')],
-
-         'identification/productPixelCoordinateConvention':  # 1.7.8
-            ['product_pixel_coordinate_convention',
-             'Area',
-             'Product pixel coordinate convention'],
 
         # 'identification/frameNumber':  # TBD
         # 'identification/plannedDatatakeId':
@@ -511,7 +500,7 @@ def get_metadata_dict(product_id: str,
              '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000')
     else:
         noise_removal_algorithm_reference = '(noise removal not applied)'
-    metadata_dict['RTC/metadata/processingInformation/noiseRemovalAlgorithmReference'] =\
+    metadata_dict['RTC/metadata/processingInformation/algorithms/noiseCorrectionAlgorithmReference'] =\
         ['noise_removal_algorithm_reference',
          noise_removal_algorithm_reference,
           'A reference to the noise removal algorithm applied']
@@ -525,7 +514,7 @@ def get_metadata_dict(product_id: str,
             url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/5752845'
         else:
             raise NotImplementedError
-    metadata_dict['RTC/metadata/processingInformation/rtcAlgorithmReference'] =\
+    metadata_dict['RTC/metadata/processingInformation/algorithms/radiometricTerrainCorrectionAlgorithmReference'] =\
         ['rtc_algorithm_reference',
          url_rtc_algorithm_document,
          'A reference to the RTC algorithm applied']
@@ -575,7 +564,7 @@ def get_metadata_dict(product_id: str,
 
     # Add RFI metadata into `metadata_dict`
     rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
-                                              'RTC/metadata/QA/RFIInformation')
+                                              'RTC/metadata/QA/rfiInformation')
     metadata_dict.update(rfi_metadata_dict)
 
     return metadata_dict
@@ -760,7 +749,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
 
 def get_rfi_metadata_dict(burst_in,
-                          rfi_root_path = 'RTC/metadata/QA/RFIInformation'):
+                          rfi_root_path = 'RTC/metadata/QA/rfiInformation'):
     '''
     Populate the RFI information into HDF5 object
 
