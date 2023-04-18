@@ -30,7 +30,7 @@ RUN ${CONDA_PREFIX}/bin/conda init bash
 COPY --chown=rtc_user:rtc_user . /home/rtc_user/OPERA/RTC
 
 # create CONDA environment
-RUN conda create --name "RTC" --file /home/rtc_user/OPERA/RTC/Docker/specfile.txt
+RUN conda create --name "RTC" --file /home/rtc_user/OPERA/RTC/Docker/lockfile.lock
 
 SHELL ["conda", "run", "-n", "RTC", "/bin/bash", "-c"]
 
