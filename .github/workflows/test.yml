@@ -19,8 +19,13 @@ jobs:
         os:
           - label: Linux
             runner: ubuntu-latest
+        env-file:
+          - label: Lock File
+            file: .github/lockfile.lock
+          - label: Environment File
+            file: .github/environment.yml
 
-    name: Install And Test - ${{ matrix.os.label }}
+    name: Install And Test - ${{ matrix.os.label }} ${{ matrix.env-file.label }}
     runs-on: ${{ matrix.os.runner }}
     steps:
       # Typical github repo checkout step.
@@ -38,8 +43,8 @@ jobs:
       - name: Setup Environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: .github/environment.yml
-        #  environment-name: RTC
+          environment-file: ${{ matrix.env-file.file }}
+          environment-name: RTC
 
       # Install the S1-Reader OPERA-ADT project.
       - name: Install S1-Reader
