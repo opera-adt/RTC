@@ -423,17 +423,17 @@ def get_metadata_dict(product_id: str,
         #'RTC/metadata/processingInformation/geoidReference':  # for 4.2
         #    ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
 
-        'RTC/grids/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
-            ['absolute_accuracy_northing',
-             [0.0, 0.0],
-             ('An estimate of the absolute localisation error in north direction'
-              'provided as bias and standard deviation')],
+        #'RTC/grids/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
+        #    ['absolute_accuracy_northing',
+        #     [0.0, 0.0],
+        #     ('An estimate of the absolute localisation error in north direction'
+        #      'provided as bias and standard deviation')],
 
-        'RTC/grids/processingInformation/absoluteAccuracyEasting':  # placeholder for 4.3
-            ['absolute_accuracy_easting',
-             [0.0, 0.0],
-             ('An estimate of the absolute localisation error in east direction'
-              'provided as bias and standard deviation')],
+        #'RTC/grids/processingInformation/absoluteAccuracyEasting':  # placeholder for 4.3
+        #    ['absolute_accuracy_easting',
+        #     [0.0, 0.0],
+        #     ('An estimate of the absolute localisation error in east direction'
+        #      'provided as bias and standard deviation')],
 
          'identification/productPixelCoordinateConvention':  # 1.7.8
             ['product_pixel_coordinate_convention',
