@@ -379,10 +379,10 @@ def get_metadata_dict(product_id: str,
         #    ['source_azimuth_resolution',
         #     burst_in.azimuth_time_interval,
         #     'Azimuth time resolution of the source data in seconds'],
-        'RTC/metadata/sourceDataInformation/slantRangeResolution':  # 1.6.7
-            ['source_slant_range_resolution',
-             burst_in.range_pixel_spacing,
-             'Slant range resolution of the source data in meters'],
+        #'RTC/metadata/sourceDataInformation/slantRangeResolution':  # 1.6.7
+        #    ['source_slant_range_resolution',
+        #     burst_in.range_pixel_spacing,
+        #     'Slant range resolution of the source data in meters'],
 
         'RTC/metadata/sourceDataInformation/nearRangeIncidenceAngle':  # 1.6.7
             ['near_range_incidence_angle',
