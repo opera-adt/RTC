@@ -326,10 +326,11 @@ def get_metadata_dict(product_id: str,
             ['number_of_acquisitions',
              1,
              'Number of source data acquisitions'],
+        # TODO Review: should we expose this parameter in the runconfig?
         'RTC/metadata/sourceDataInformation/dataAccess':
             ['data_access',
              'https://search.asf.alaska.edu/',
-             'Where the source data can be retrieved'],
+             'Data access URL'],
         'RTC/metadata/sourceDataInformation/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Radar band'],
         'RTC/metadata/sourceDataInformation/processingFacility': #  1.6.6
@@ -398,10 +399,11 @@ def get_metadata_dict(product_id: str,
              -22,
              'Maximum Noise equivalent sigma0 in dB'], #TODO see if it can be extracted from burstNoise
 
-        'RTC/metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
-            ['product_data_access',
-             'TBD',
-             'URL to access the product data'],
+        # TODO Review: should we expose this parameter in the runconfig?
+        #'RTC/metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
+        #    ['product_data_access',
+        #     'TBD',
+        #     'URL to access the product data'],
         'RTC/metadata/processingInformation/parameters/FilteringApplied':  # 1.7.4
             ['filtering_applied',
             False,
@@ -412,75 +414,14 @@ def get_metadata_dict(product_id: str,
                        cfg_in.geogrids[str(burst_in.burst_id)].width]),
              'List indicating the number of lines and samples the RTC-S1 imagery and secondary layers'],
 
-        # file format spec. for data mask - for 2.2
-        'RTC/metadata/fileFormatSpecification/dataMask/sampleType':  # 2.2
-            ['mask_sample_type', 'Mask', 'Sample type of the mask'], 
-        'RTC/metadata/fileFormatSpecification/dataMask/dataFormat':
-            ['mask_data_format', cfg_in.groups.product_group.output_imagery_format,
-             'data format of the image mask'],
-        'RTC/metadata/fileFormatSpecification/dataMask/dataType':
-            ['mask_data_type', 'bytes',
-             'data type of the image mask'],
-        'RTC/metadata/fileFormatSpecification/dataMask/bitsPerSample':
-            ['mask_bits_per_sample', 8,
-             'Bytes per pixel'],
-        'RTC/metadata/fileFormatSpecification/dataMask//byteOrder':
-            ['mask_byte_order', sys.byteorder, # assuming that the byte order follows the native setting.
-             'Byte order of the data'],
-        'RTC/metadata/fileFormatSpecification/dataMask//bitValueRepresentation':
-            ['mask_bit_value_representation',
-             'no data = NaN, 0 = valid data, 1= ???, 2=???, 3=???', # TODO populate the string
-             'Description of the pixel values in the mask'],
-
-        # file format spec. for local inc. angle - for 2.4
-        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/sampleType':  # 2.4
-            ['local_inc_sample_type', 'Angle', 'Sample type of the data'],
-        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/dataFormat':
-            ['local_inc_data_format', cfg_in.groups.product_group.output_imagery_format,
-             'data format of the data'],
-        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/dataType':
-            ['local_inc_data_type', 'Float',
-             'data type of the data'],
-        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/bitsPerSample':
-            ['local_inc_bits_per_sample', 32,
-             'Bytes per pixel'],
-        'RTC/metadata/fileFormatSpecification/localIncidenceAngle/byteOrder':
-            ['local_inc_byte_order', sys.byteorder,
-             'Byte order of the data'],
-
-        # file format spec. for backscatter - for 3.1
-        'RTC/metadata/fileFormatSpecification/backScatter/measurementType':  # 3.1
-            ['measurement_type', 'Gamma0', 'Sample type of the data'],
-        'RTC/metadata/fileFormatSpecification/backScatter/expressionConvention':  # 3.1
-            ['measurement_expression_convention', 'Linear amplitude', #TODO Confirm
-             'Backscatter expression convention'],
-        # NOTE: polarization is provided in 'listOfPolarizations'
-        'RTC/metadata/fileFormatSpecification/backScatter/dataFormat':
-            ['measurement_data_format', cfg_in.groups.product_group.output_imagery_format,
-             'data format of the measurement'],
-        'RTC/metadata/fileFormatSpecification/backScatter/dataType':
-            ['measurement_data_type', 'Float',
-             'data type of the measurement'],
-        'RTC/metadata/fileFormatSpecification/backScatter/bitsPerSample':
-            ['measurement_bits_per_sample', 32,
-             'Bytes per sample in the measurement'],
-        'RTC/metadata/fileFormatSpecification/backScatter/byteOrder':
-            ['measurement_byte_order', sys.byteorder,
-             'Byte order of the measurement'],
-
-        # The field below to be populated only when using power in dB scale
-        #'RTC/metadata/fileFormatSpecification/scalingConversion': # 3.2
-        #    ['',
-        #     ('equation to convert from pixel linear amplitude / power to'
-        #      'logarithmic decibel scale')],
 
         'RTC/metadata/processingInformation/noiseRemovalApplied':  # 3.3
             ['noise_removal_applied',
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
     
-        'RTC/metadata/processingInformation/geoidReference':  # for 4.2
-            ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
+        #'RTC/metadata/processingInformation/geoidReference':  # for 4.2
+        #    ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
 
         'RTC/grids/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
             ['absolute_accuracy_northing',
@@ -831,7 +772,7 @@ def get_rfi_metadata_dict(burst_in,
     rfi_metadata_dict = {}
 
     is_rfi_info_empty = burst_in.burst_rfi_info is None
-    rfi_metadata_dict[f'{rfi_root_path}/isRFIInfoAvailable'] =\
+    rfi_metadata_dict[f'{rfi_root_path}/isRfiInfoAvailable'] =\
         ['is_rfi_info_available',
          not is_rfi_info_empty,
          'A flag whether RFI information is available in the source data']
