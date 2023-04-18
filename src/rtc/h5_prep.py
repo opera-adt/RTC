@@ -268,9 +268,10 @@ def get_metadata_dict(product_id: str,
         #    [mission_id, 'Mission identifier'],
         'identification/platform':
             ['platform', platform_id, 'Platform name'],
-        # https://sentinel.esa.int/web/sentinel/missions/sentinel-1/satellite-description
+        # Instrument name mentioned at:
+        # https://sentinel.esa.int/documents/247904/349449/s1_sp-1322_1.pdf
         'identification/sensor':
-            ['sensor', platform_id, 'Sensor instrument name'],
+            ['sensor', 'CSAR', 'Sensor instrument name'],
         'identification/productType':
             ['product_type', 'RTC-S1', 'Product type'],
         'identification/project':
