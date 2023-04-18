@@ -374,10 +374,10 @@ def get_metadata_dict(product_id: str,
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'], 
 
-        'RTC/metadata/sourceDataInformation/azimuthResolution':  # 1.6.7
-            ['source_azimuth_resolution',
-             burst_in.azimuth_time_interval,
-             'Azimuth time resolution of the source data in seconds'],
+        #'RTC/metadata/sourceDataInformation/azimuthResolution':  # 1.6.7
+        #    ['source_azimuth_resolution',
+        #     burst_in.azimuth_time_interval,
+        #     'Azimuth time resolution of the source data in seconds'],
         'RTC/metadata/sourceDataInformation/slantRangeResolution':  # 1.6.7
             ['source_slant_range_resolution',
              burst_in.range_pixel_spacing,
@@ -397,7 +397,7 @@ def get_metadata_dict(product_id: str,
         'RTC/metadata/sourceDataInformation/maxNoiseEquivalentSigmaZero':  # 1.6.9
             ['max_noise_equivalent_sigma_zero',
              -22,
-             'Maximum Noise equivalent sigma0 in dB'], #TODO see if it can be extracted from burstNoise
+             'Maximum Noise equivalent sigma0 in dB'],
 
         # TODO Review: should we expose this parameter in the runconfig?
         #'RTC/metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
@@ -499,7 +499,7 @@ def get_metadata_dict(product_id: str,
             ['config_files', cfg_in.run_config_path,
              'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demSource':
-            ['dem_source', dem_description, 'DEM source Description'],
+            ['dem_source', dem_description, 'DEM source description'],
     }
 
     # Add reference to the thermal noise correction algorithm when the correction is applied
