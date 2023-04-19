@@ -329,19 +329,19 @@ def get_metadata_dict(product_id: str,
              'Number of source data acquisitions'],
         # TODO Review: should we expose this parameter in the runconfig?
         'RTC/metadata/sourceData/dataAccess':
-            ['data_access',
+            ['source_data_access',
              'https://search.asf.alaska.edu/',
              'Data access URL'],
         'RTC/metadata/sourceData/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Radar band'],
         'RTC/metadata/sourceData/processingFacility': #  1.6.6
-            ['source_processing_facility',
+            ['source_data_processing_facility',
              (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
               f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
               f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
              'Source data processing facility'],
         'RTC/metadata/sourceData/processingDateTime':  # 1.6.6
-            ['source_processing_date_time',
+            ['source_data_processing_date_time',
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing date and time of the source data'],
         'RTC/metadata/sourceData/processingSoftwareVersion':  # 1.6.6
@@ -350,20 +350,20 @@ def get_metadata_dict(product_id: str,
              'IPF version of the source data'],
         
         'RTC/metadata/sourceData/azimuthLooks':  # 1.6.6
-            ['source_azimuth_looks',
+            [None,
              burst_in.burst_misc_metadata.azimuth_looks,
              'Azimuth number of looks'],
         'RTC/metadata/sourceData/slantRangeLooks':  # 1.6.6
-            ['source_slant_range_looks',
+            [None,
              burst_in.burst_misc_metadata.slant_range_looks,
              'Slant range number of looks'],
 
         'RTC/metadata/sourceData/productLevel':  # 1.6.6
-            ['source_product_level',
+            ['source_data_product_level',
              'L1',
              'Product level of the source data'],
         'RTC/metadata/sourceData/geometry':  # 1.6.7
-            ['source_geometry',
+            ['source_data_geometry',
              'slant range',
              'Geometry of the source data'],
         'RTC/metadata/sourceData/azimuthSpacing':  # 1.6.7
@@ -371,7 +371,7 @@ def get_metadata_dict(product_id: str,
              burst_in.azimuth_time_interval,
              'Azimuth spacing of the source data in seconds'], 
         'RTC/metadata/sourceData/slantRangeSpacing':  # 1.6.7
-            ['source_slant_range_spacing',
+            ['source_data_slant_range_spacing',
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'], 
 
@@ -385,18 +385,18 @@ def get_metadata_dict(product_id: str,
         #     'Slant range resolution of the source data in meters'],
 
         'RTC/metadata/sourceData/nearRangeIncidenceAngle':  # 1.6.7
-            ['near_range_incidence_angle',
+            [None,
              burst_in.burst_misc_metadata.inc_angle_near_range,
              'Near range incidence angle in meters'],
         'RTC/metadata/sourceData/farRangeIncidenceAngle':  # 1.6.7
-            ['far_range_incidence_angle',
+            [None,
              burst_in.burst_misc_metadata.inc_angle_far_range,
              'Far range incidence angle in meters'],
         # Source for the max. NESZ:
         # (https://sentinels.copernicus.eu/web/sentinel/user-guides/
         #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
         'RTC/metadata/sourceData/maxNoiseEquivalentSigmaZero':  # 1.6.9
-            ['max_noise_equivalent_sigma_zero',
+            [None,
              -22,
              'Maximum Noise equivalent sigma0 in dB'],
 
