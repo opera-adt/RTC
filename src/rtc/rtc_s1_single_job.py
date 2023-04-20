@@ -901,12 +901,15 @@ def run_single_job(cfg: RunConfig):
 
         # Calculate geolocation correction LUT
         if cfg.groups.processing.apply_correction_luts:
+            az_step = cfg.groups.processing.correction_lut_azimuth_spacing
+            rg_step = cfg.groups.processing.correction_lut_range_spacing
             # Calculates the LUTs for one polarization in `burst_pol_dict`
             pol_burst_for_lut = next(iter(burst_pol_dict))
             burst_for_lut = burst_pol_dict[pol_burst_for_lut]
             rg_lut, az_lut = compute_correction_lut(burst_for_lut,
                                                     dem_raster,
-                                                    burst_scratch_path)
+                                                    burst_scratch_path,
+                                                    rg_step, az_step)
         else:
             rg_lut = isce3.core.LUT2d()
             az_lut = isce3.core.LUT2d()
