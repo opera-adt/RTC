@@ -130,6 +130,11 @@ processing_options:
    # Compute geolocation correction LUTs and apply it
    apply_correction_luts: bool(required=False)
 
+   # slant range spacing of the correction LUT in meters
+   correction_lut_range_spacing: num(required=False)
+   # Azimuth time spacing of the correction LUT in seconds
+   correction_lut_azimuth_spacing: num(required=False)
+
    # Apply RTC
    apply_rtc: bool(required=False)
 
