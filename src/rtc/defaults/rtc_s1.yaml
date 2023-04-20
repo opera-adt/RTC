@@ -110,6 +110,9 @@ runconfig:
             # Apply thermal noise correction
             apply_thermal_noise_correction: True
 
+            # Compute geolocation correction LUTs and apply it
+            apply_correction_luts: True
+
             # OPTIONAL - Apply RTC
             apply_rtc: True
 

@@ -127,6 +127,9 @@ processing_options:
    # Apply thermal noise correction
    apply_thermal_noise_correction: bool(required=False)
 
+   # Compute geolocation correction LUTs and apply it
+   apply_correction_luts: bool(required=False)
+
    # Apply RTC
    apply_rtc: bool(required=False)
 
