@@ -44,9 +44,9 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
         DEM to run rdr2geo
     scratch_path: str
         Scratch path where the radargrid rasters will be saved
-    rg_step:
+    rg_step: float
         Slant range posting of the radar grid to run rdr2geo. Unit: meters
-    az_step=0.25
+    az_step: float
         grid posting in slant range of the radar grid in meters
         Azimuth time posting of the radar grid to run rdr2geo. Unit: seconds
 
@@ -899,11 +899,17 @@ def run_single_job(cfg: RunConfig):
             f'{burst_scratch_path}/{burst_product_id}.{imagery_extension}'
         temp_files_list.append(geo_burst_filename)
 
-        
         # Calculate geolocation correction LUT
-        pol_burst_for_lut = next(iter(burst_pol_dict))
-        burst_for_lut = burst_pol_dict[pol_burst_for_lut]
-        rg_lut, az_lut = compute_correction_lut(burst_for_lut, dem_raster, burst_scratch_path)
+        if cfg.groups.processing.apply_correction_luts:
+            # Calculates the LUTs for one polarization in `burst_pol_dict`
+            pol_burst_for_lut = next(iter(burst_pol_dict))
+            burst_for_lut = burst_pol_dict[pol_burst_for_lut]
+            rg_lut, az_lut = compute_correction_lut(burst_for_lut,
+                                                    dem_raster,
+                                                    burst_scratch_path)
+        else:
+            rg_lut = isce3.core.LUT2d()
+            az_lut = isce3.core.LUT2d()
 
         # Generate output geocoded burst raster
         geo_burst_raster = isce3.io.Raster(
