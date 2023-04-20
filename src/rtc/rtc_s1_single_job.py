@@ -30,6 +30,91 @@ import matplotlib.image as mpimg
 logger = logging.getLogger('rtc_s1')
 
 
+def compute_correction_lut(burst_in, dem_raster, scratch_path,
+                           rg_step=200,
+                           az_step=0.25):
+    '''
+    Compute lookup table for geolocation correction
+
+    Parameters
+    ----------
+    burst_in: Sentinel1BurstSlc
+        Input burst SLC
+    dem_raster: isce3.io.raster
+        DEM to run rdr2geo
+    scratch_path: str
+        Scratch path where the radargrid rasters will be saved
+    rg_step:
+        Slant range posting of the radar grid to run rdr2geo. Unit: meters
+    az_step=0.25
+        grid posting in slant range of the radar grid in meters
+        Azimuth time posting of the radar grid to run rdr2geo. Unit: seconds
+
+    Returns
+    -------
+    rg_lut, az_lut: isce3.core.LUT2d
+        LUT2d for geolocation correction in slant range and azimuth direction
+    '''
+    # Bistatic - azimuth direction
+    bistatic_delay = burst_in.bistatic_delay(range_step=rg_step, az_step=az_step)
+
+    # Calculate rdr2geo rasters
+    epsg = dem_raster.get_epsg()
+    proj = isce3.core.make_projection(epsg)
+    ellipsoid = proj.ellipsoid
+
+    rdr_grid = burst_in.as_isce3_radargrid(az_step=az_step,
+                                        rg_step=rg_step)
+
+    grid_doppler = isce3.core.LUT2d()
+
+    # Initialize the rdr2geo object
+    rdr2geo_obj = isce3.geometry.Rdr2Geo(rdr_grid, burst_in.orbit,
+                                         ellipsoid, grid_doppler,
+                                         threshold=1.0e-8)
+
+    # Get the rdr2geo raster needed for SET computation
+    topo_output = {f'{scratch_path}/height.rdr': gdal.GDT_Float64,
+                   f'{scratch_path}/incidence_angle.rdr': gdal.GDT_Float32}
+    raster_list = [
+        isce3.io.Raster(fname, rdr_grid.width,
+                        rdr_grid.length, 1, dtype, 'ENVI')
+        for fname, dtype in topo_output.items()]
+    height_raster, incidence_raster = raster_list
+
+    rdr2geo_obj.topo(dem_raster, x_raster=None, y_raster=None,
+                     height_raster=height_raster,
+                     incidence_angle_raster=incidence_raster)
+
+    height_raster.close_dataset()
+    incidence_raster.close_dataset()
+
+    # Load the lon / lat / hgt value from the raster
+    height_arr =\
+        gdal.Open(f'{scratch_path}/height.rdr', gdal.GA_ReadOnly).ReadAsArray()
+    incidence_angle_arr =\
+        gdal.Open(f'{scratch_path}/incidence_angle.rdr', gdal.GA_ReadOnly).ReadAsArray()
+
+    # static troposphere - range direction
+    ZPD = 2.3
+    H = 6000.0
+    tropo = ZPD / np.cos(np.deg2rad(incidence_angle_arr)) * np.exp(-1 * height_arr / H)
+
+    # Prepare the computation results into LUT2d
+    az_lut = isce3.core.LUT2d(bistatic_delay.x_start,
+                              bistatic_delay.y_start,
+                              bistatic_delay.x_spacing,
+                              bistatic_delay.y_spacing,
+                              -bistatic_delay.data)
+    
+    rg_lut = isce3.core.LUT2d(bistatic_delay.x_start,
+                              bistatic_delay.y_start,
+                              bistatic_delay.x_spacing,
+                              bistatic_delay.y_spacing,
+                              tropo)
+
+    return rg_lut, az_lut
+
 
 def save_browse(imagery_list, browse_image_filename,
                 pol_list, browse_image_height, browse_image_width,
@@ -813,6 +898,12 @@ def run_single_job(cfg: RunConfig):
         geo_burst_filename = \
             f'{burst_scratch_path}/{burst_product_id}.{imagery_extension}'
         temp_files_list.append(geo_burst_filename)
+
+        
+        # Calculate geolocation correction LUT
+        pol_burst_for_lut = next(iter(burst_pol_dict))
+        burst_for_lut = burst_pol_dict[pol_burst_for_lut]
+        rg_lut, az_lut = compute_correction_lut(burst_for_lut, dem_raster, burst_scratch_path)
 
         # Generate output geocoded burst raster
         geo_burst_raster = isce3.io.Raster(
