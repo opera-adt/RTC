@@ -67,7 +67,7 @@ runconfig:
             save_browse: True
 
             output_imagery_format: COG
-            output_imagery_compression: ZSTD
+            output_imagery_compression: DEFLATE
             output_imagery_nbits: 16
 
             # Optional. Save secondary layers (e.g., inc. angle) within 
