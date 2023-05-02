@@ -18,7 +18,7 @@ runconfig:
             dem_file:
 
             # Digital elevation model source description
-            dem_description:
+            dem_file_description:
 
         static_ancillary_file_group:
 
@@ -152,14 +152,15 @@ runconfig:
             # Geocoding options
             geocoding:
 
-                # OPTIONAL - Apply RSLC metadata valid-samples sub-swath masking
+                # Apply RSLC metadata valid-samples sub-swath masking
                 apply_valid_samples_sub_swath_masking: True
 
-                # OPTIONAL - Apply shadow masking
+                # Apply shadow masking
                 apply_shadow_masking: True
 
-                # OPTIONAL - Algorithm type, area projection or
-                # interpolation: sinc, bilinear, bicubic, nearest, and biquintic
+                # Geocoding algorithm type. Choices "area_projection"
+                # for adaptive multilooking or an interpolation algorithm:
+                # "sinc", "bilinear", "bicubic", "nearest", and "biquintic"
                 algorithm_type: area_projection
     
                 # OPTIONAL - Choices: "single_block", "geogrid", "geogrid_and_radargrid", and "auto" (default)
@@ -209,17 +210,43 @@ runconfig:
                 # Double SLC sampling in the range direction
                 upsample_radargrid: False
 
-                output_epsg:
-                x_posting: 30
-                y_posting: 30
-                x_snap: 30
-                y_snap: 30
-                top_left:
-                    x:
-                    y:
-                bottom_right:
-                    x:
-                    y:
+                mosaic_geogrid:
+
+                    # Product EPSG code. If not provided, `output_epsg` will
+                    # be determined based on the scene center:
+                    # - If center_lat >= 75.0: 3413
+                    # - If center_lat <= -75.0: 3031
+                    # - Otherwise: EPSG code associated with the closest UTM zone
+                    output_epsg:
+                    x_posting: 30
+                    y_posting: 30
+                    x_snap: 30
+                    y_snap: 30
+                    top_left:
+                        x:
+                        y:
+                    bottom_right:
+                        x:
+                        y:
+
+                bursts_geogrid:
+
+                    # Product EPSG code. If not provided, `output_epsg` will
+                    # be determined based on the scene center:
+                    # - If center_lat >= 75.0: 3413
+                    # - If center_lat <= -75.0: 3031
+                    # - Otherwise: EPSG code associated with the closest UTM zone
+                    output_epsg:
+                    x_posting: 30
+                    y_posting: 30
+                    x_snap: 30
+                    y_snap: 30
+                    top_left:
+                        x:
+                        y:
+                    bottom_right:
+                        x:
+                        y:
 
             browse_image_group:
 

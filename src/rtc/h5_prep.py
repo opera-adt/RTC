@@ -236,11 +236,11 @@ def get_metadata_dict(product_id: str,
         product_version = f'{product_version_float:.1f}'
 
     # DEM description
-    dem_description = cfg_in.dem_description
+    dem_file_description = cfg_in.dem_file_description
 
-    if not dem_description:
+    if not dem_file_description:
         # If the DEM description is not provided, use DEM source
-        dem_description = os.path.basename(cfg_in.dem)
+        dem_file_description = os.path.basename(cfg_in.dem)
 
     if burst_in.platform_id == 'S1A':
         platform_id = 'Sentinel-1A'
@@ -380,7 +380,8 @@ def get_metadata_dict(product_id: str,
             ['config_files', cfg_in.run_config_path,
              'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demSource':
-            ['dem_source', dem_description, 'DEM source description']
+            ['dem_source', dem_file_description,
+            'Description of the input digital elevation model (DEM)']
     }
     if is_mosaic:
         return metadata_dict

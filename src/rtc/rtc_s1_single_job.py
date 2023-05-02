@@ -18,8 +18,8 @@ from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
 from rtc.geogrid import snap_coord
 from rtc.runconfig import RunConfig
-from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
-                                  compute_weighted_mosaic_raster_single_band)
+from rtc.mosaic_geobursts import (mosaic_single_output_file,
+                                  mosaic_multiple_output_files)
 from rtc.core import create_logger, save_as_cog, check_ancillary_inputs
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
                          get_metadata_dict,
@@ -1210,9 +1210,11 @@ def run_single_job(cfg: RunConfig):
 
         if len(output_imagery_list) > 0:
 
-            compute_weighted_mosaic_raster_single_band(
+            mosaic_multiple_output_files(
                 output_imagery_list, nlooks_list,
-                output_imagery_filename_list, cfg.geogrid,
+                output_imagery_filename_list, scratch_path,
+                geogrid_in=cfg.geogrid,
+                temp_files_list=temp_files_list,
                 verbose=False)
 
         if save_imagery_as_hdf5:
@@ -1222,13 +1224,15 @@ def run_single_job(cfg: RunConfig):
             mosaic_output_file_list += output_imagery_filename_list
 
         # Mosaic other bands
-        for key in output_metadata_dict.keys():
-            output_file, input_files = output_metadata_dict[key]
+        for key, (output_file, input_files) in output_metadata_dict.items():
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
                 continue
-            compute_weighted_mosaic_raster(
-                input_files, nlooks_list, output_file, cfg.geogrid,
+
+            mosaic_single_output_file(
+                input_files, nlooks_list, output_file, scratch_path,
+                geogrid_in=cfg.geogrid,
+                temp_files_list=temp_files_list,
                 verbose=False)
 
 

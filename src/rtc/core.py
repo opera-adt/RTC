@@ -167,9 +167,9 @@ def _get_ogr_polygon(min_x, max_y, max_x, min_y, file_srs):
     return file_polygon
 
 
-def _get_tile_srs_bbox(tile_min_y_utm, tile_max_y_utm,
-                       tile_min_x_utm, tile_max_x_utm,
-                       tile_srs, polygon_srs, logger=None):
+def get_tile_srs_bbox(tile_min_y_utm, tile_max_y_utm,
+                      tile_min_x_utm, tile_max_x_utm,
+                      tile_srs, polygon_srs, logger=None):
     """Get tile bounding box for a given spatial reference system (SRS)
 
        Parameters
@@ -381,9 +381,9 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
         file_srs = osr.SpatialReference()
         file_srs.ImportFromProj4(file_projection)
         tile_polygon, tile_min_y, tile_max_y, tile_min_x, tile_max_x = \
-            _get_tile_srs_bbox(tile_min_y_utm, tile_max_y_utm,
-                               tile_min_x_utm, tile_max_x_utm,
-                               tile_srs, file_srs)
+            get_tile_srs_bbox(tile_min_y_utm, tile_max_y_utm,
+                              tile_min_x_utm, tile_max_x_utm,
+                              tile_srs, file_srs)
 
         # Create input ancillary polygon
         file_polygon = _get_ogr_polygon(min_x, max_y, max_x, min_y, file_srs)

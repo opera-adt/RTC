@@ -330,7 +330,7 @@ def get_ref_radar_grid_info(ref_path, burst_id):
     return ReferenceRadarInfo(ref_rdr_path, ref_rdr_grid)
 
 
-def check_geocode_dict(geocode_cfg: dict) -> None:
+def check_geogrid_dict(geocode_cfg: dict) -> None:
 
     # check output EPSG
     output_epsg = geocode_cfg['output_epsg']
@@ -402,7 +402,8 @@ class RunConfig:
         groups_cfg = cfg['runconfig']['groups']
 
         geocoding_dict = groups_cfg['processing']['geocoding']
-        check_geocode_dict(geocoding_dict)
+        check_geogrid_dict(geocoding_dict['mosaic_geogrid'])
+        check_geogrid_dict(geocoding_dict['bursts_geogrid'])
 
         # Convert runconfig dict to SimpleNamespace
         sns = wrap_namespace(groups_cfg)
@@ -411,14 +412,12 @@ class RunConfig:
         bursts = runconfig_to_bursts(sns)
 
         # Load geogrids
-        dem_file = groups_cfg['dynamic_ancillary_file_group']['dem_file']
         burst_database_file = groups_cfg['static_ancillary_file_group']['burst_database_file']
         if burst_database_file is None:
-            geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict, dem_file)
+            geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict)
         else:
             geogrid_all, geogrids = generate_geogrids_from_db(bursts, geocoding_dict,
-                                                 dem_file, burst_database_file)
-
+                                                              burst_database_file)
         
         # Empty reference dict for base runconfig class constructor
         empty_ref_dict = {}
@@ -439,8 +438,8 @@ class RunConfig:
         return self.groups.dynamic_ancillary_file_group.dem_file
 
     @property
-    def dem_description(self) -> str:
-        return self.groups.dynamic_ancillary_file_group.dem_description
+    def dem_file_description(self) -> str:
+        return self.groups.dynamic_ancillary_file_group.dem_file_description
 
     @property
     def is_reference(self) -> bool:

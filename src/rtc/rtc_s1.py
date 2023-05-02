@@ -19,8 +19,8 @@ from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    get_radar_grid,
                                    save_browse,
                                    append_metadata_to_geotiff_file)
-from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
-                                  compute_weighted_mosaic_raster_single_band)
+from rtc.mosaic_geobursts import (mosaic_single_output_file,
+                                  mosaic_multiple_output_files)
 from rtc.core import create_logger, save_as_cog, check_ancillary_inputs
 from rtc.version import VERSION as SOFTWARE_VERSION
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
@@ -787,9 +787,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         nlooks_list = output_metadata_dict['nlooks'][1]
 
         if len(output_imagery_list) > 0:
-            compute_weighted_mosaic_raster_single_band(
+
+            mosaic_multiple_output_files(
                 output_imagery_list, nlooks_list,
-                output_imagery_filename_list, cfg.geogrid,
+                output_imagery_filename_list, scratch_path,
+                geogrid_in=cfg.geogrid,
+                temp_files_list=temp_files_list,
                 verbose=False)
 
         if save_imagery_as_hdf5:
@@ -799,13 +802,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             mosaic_output_file_list += output_imagery_filename_list
 
         # Mosaic other bands
-        for key in output_metadata_dict.keys():
-            output_file, input_files = output_metadata_dict[key]
+        for key, (output_file, input_files) in output_metadata_dict.items():
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
                 continue
-            compute_weighted_mosaic_raster(
-                input_files, nlooks_list, output_file, cfg.geogrid, verbose=False)
+
+            mosaic_single_output_file(
+                input_files, nlooks_list, output_file, scratch_path,
+                geogrid_in=cfg.geogrid,
+                temp_files_list=temp_files_list, verbose=False)
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or

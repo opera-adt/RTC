@@ -5,6 +5,7 @@ A module to mosaic Sentinel-1 geobursts from RTC workflow
 import os
 
 import numpy as np
+import tempfile
 from osgeo import osr, gdal
 
 def check_reprojection(geogrid_mosaic,
@@ -104,18 +105,28 @@ def check_reprojection(geogrid_mosaic,
 
 
 def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
-                                  geogrid_in=None, verbose=True):
+                                  scratch_dir, geogrid_in=None,
+                                  temp_files_list=None, verbose=True):
     '''
     Mosaic S-1 geobursts and return the mosaic as dictionary
-    paremeters:
+
+    Parameters:
     -----------
         list_rtc: list
             List of the path to the rtc geobursts
         list_nlooks: list
             List of the nlooks raster that corresponds to list_rtc
-        geogrid_in: isce3.product.GeoGridParameters, default: None
+       scratch_dir: str (optional)
+            Directory for temporary files
+       geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
+       temp_files_list: list (optional)
+              Mutable list of temporary files. If provided,
+              paths to the temporary files generated will be
+              appended to this list
+        verbose: flag (optional)
+            Flag to enable (True) or disable (False) the verbose mode
     Returns
         mosaic_dict: dict
             Mosaic dictionary
@@ -174,8 +185,9 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
         dim_mosaic = (int(np.ceil((ymin_mosaic - ymax_mosaic) / posting_y)),
                       int(np.ceil((xmax_mosaic - xmin_mosaic) / posting_x)))
 
-        with gdal.Open(list_rtc_images[0], gdal.GA_ReadOnly) as raster_in:
-            wkt_projection = raster_in.GetProjectionRef()
+        gdal_ds_raster_in = gdal.Open(list_rtc_images[0], gdal.GA_ReadOnly)
+        wkt_projection = gdal_ds_raster_in.GetProjectionRef()
+        del gdal_ds_raster_in
 
     else:
         # Directly bring the geogrid information from the input parameter
@@ -201,14 +213,61 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
     arr_denominator = np.zeros(dim_mosaic)
 
     for i, path_rtc in enumerate(list_rtc_images):
-        path_nlooks = list_nlooks[i]
+        if i < len(list_nlooks):
+            path_nlooks = list_nlooks[i]
+        else:
+            path_nlooks = None
+
         if verbose:
             print(f'mosaicking: {i+1} of {num_raster}: {os.path.basename(path_rtc)}')
 
         if geogrid_in is not None and check_reprojection(
                 geogrid_in, path_rtc, path_nlooks):
-            # reprojection not implemented
-            raise NotImplementedError
+            if verbose:
+                print(f'    the image requires reprojection/relocation')
+
+                relocated_file = tempfile.NamedTemporaryFile(
+                    dir=scratch_dir, suffix='.tif').name
+
+                if temp_files_list is not None:
+                    temp_files_list.append(relocated_file)
+
+                gdal.Warp(relocated_file, path_rtc,
+                          format='GTiff',
+                          dstSRS=wkt_projection,
+                          outputBounds=[geogrid_in.start_x,
+                                        geogrid_in.max_y,
+                                        geogrid_in.end_x,
+                                        geogrid_in.start_y],
+                          multithread=True,
+                          xRes=geogrid_in.start_x.spacing_x,
+                          yRes=abs(geogrid_in.start_x.spacing_y),
+                          resampleAlg='AVERAGE',
+                          errorThreshold=0)
+                path_rtc = relocated_file
+
+                if path_nlooks is not None:
+                    relocated_file_nlooks = tempfile.NamedTemporaryFile(
+                        dir=scratch_dir, suffix='.tif').name
+
+                    if temp_files_list is not None:
+                        temp_files_list.append(relocated_file_nlooks)
+
+                    gdal.Warp(relocated_file_nlooks, path_nlooks,
+                            format='GTiff',
+                            dstSRS=wkt_projection,
+                            outputBounds=[geogrid_in.start_x,
+                                            geogrid_in.max_y,
+                                            geogrid_in.end_x,
+                                            geogrid_in.start_y],
+                            multithread=True,
+                            xRes=geogrid_in.start_x.spacing_x,
+                            yRes=abs(geogrid_in.start_x.spacing_y),
+                            resampleAlg='AVERAGE',
+                            errorThreshold=0)
+                    path_nlooks = relocated_file_nlooks
+
+   
 
         # TODO: if geogrid_in is None, check reprojection
 
@@ -271,11 +330,13 @@ def compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
 
 
 
-def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
-                                   geogrid_in=None, verbose=True):
+def mosaic_single_output_file(list_rtc_images, list_nlooks, geo_filename,
+                                   scratch_dir, geogrid_in=None,
+                                   temp_files_list=None, verbose=True):
     '''
     Mosaic the snapped S1 geobursts
-    paremeters:
+
+    Parameters:
     -----------
         list_rtc: list
             List of the path to the rtc geobursts
@@ -283,14 +344,21 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
             List of the nlooks raster that corresponds to list_rtc
         geo_filename: str
             Path to the output mosaic
+       scratch_dir: str (optional)
+            Directory for temporary files
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
+       temp_files_list: list (optional)
+              Mutable list of temporary files. If provided,
+              paths to the temporary files generated will be
+              appended to this list
         verbose : bool
             Flag to enable/disable the verbose mode
     '''
     mosaic_dict = compute_weighted_mosaic_array(
-        list_rtc_images, list_nlooks, geogrid_in=geogrid_in,
+        list_rtc_images, list_nlooks, scratch_dir,
+        geogrid_in=geogrid_in, temp_files_list=temp_files_list,
         verbose=verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']
@@ -325,9 +393,9 @@ def compute_weighted_mosaic_raster(list_rtc_images, list_nlooks, geo_filename,
 
 
 
-def compute_weighted_mosaic_raster_single_band(
-        list_rtc_images, list_nlooks, output_file_list, geogrid_in=None,
-        verbose=True):
+def mosaic_multiple_output_files(
+        list_rtc_images, list_nlooks, output_file_list, scratch_dir,
+        geogrid_in=None, temp_files_list=None, verbose=True):
     '''
     Mosaic the snapped S1 geobursts
     paremeters:
@@ -338,14 +406,22 @@ def compute_weighted_mosaic_raster_single_band(
             List of the nlooks raster that corresponds to list_rtc
         output_file_list: list
             Output file list
+       scratch_dir: str (optional)
+            Directory for temporary files
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and projection
             The geogrid of the output mosaic will automatically determined when it is None
+       temp_files_list: list (optional)
+              Mutable list of temporary files. If provided,
+              paths to the temporary files generated will be
+              appended to this list
         verbose : bool
             Flag to enable/disable the verbose mode
     '''
-    mosaic_dict = compute_weighted_mosaic_array(list_rtc_images, list_nlooks,
-                                     geogrid_in=geogrid_in, verbose = verbose)
+    mosaic_dict = compute_weighted_mosaic_array(
+        list_rtc_images, list_nlooks, scratch_dir,
+        geogrid_in=geogrid_in, temp_files_list=temp_files_list,
+        verbose = verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']
     length = mosaic_dict['length']
