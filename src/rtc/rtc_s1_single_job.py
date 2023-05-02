@@ -163,7 +163,9 @@ def append_metadata_to_geotiff_file(input_file, metadata_dict):
        metadata_dict : dict
            Metadata dictionary
     '''
-    logger.info(f'    appending metadata to GeoTIFF file: {input_file}')
+    input_file_basename = os.path.basename(input_file)
+    logger.info('    appending metadata to the GeoTIFF file:'
+                f' {input_file_basename}')
     gdal_ds = gdal.Open(input_file, gdal.GA_Update)
     existing_metadata = gdal_ds.GetMetadata()
     existing_metadata.update(metadata_dict)
@@ -664,8 +666,15 @@ def run_single_job(cfg: RunConfig):
     logger.info(f'Browse images:')
     logger.info(f'    burst height: {browse_image_burst_height}')
     logger.info(f'    burst width: {browse_image_burst_width}')
-    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
-    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
+
+    if save_mosaics:
+        logger.info(f'    mosaic height: {browse_image_mosaic_height}')
+        logger.info(f'    mosaic width: {browse_image_mosaic_width}')
+        logger.info(f'Mosaic geogrid:')
+        for line in str(cfg.geogrid).split('\n'):
+            if not line:
+                continue
+            logger.info(f'    {line}')
 
     # check ancillary input (DEM)
     metadata_dict = {}
@@ -769,6 +778,11 @@ def run_single_job(cfg: RunConfig):
             output_dir_sec_bursts = output_dir_bursts
 
         geogrid = cfg.geogrids[burst_id]
+        logger.info(f'    burst geogrid:')
+        for line in str(geogrid).split('\n'):
+            if not line:
+                continue
+            logger.info(f'        {line}')
 
         # snap coordinates
         x_snap = geogrid.spacing_x
@@ -1214,8 +1228,7 @@ def run_single_job(cfg: RunConfig):
                 output_imagery_list, nlooks_list,
                 output_imagery_filename_list, scratch_path,
                 geogrid_in=cfg.geogrid,
-                temp_files_list=temp_files_list,
-                verbose=False)
+                temp_files_list=temp_files_list)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
@@ -1232,8 +1245,7 @@ def run_single_job(cfg: RunConfig):
             mosaic_single_output_file(
                 input_files, nlooks_list, output_file, scratch_path,
                 geogrid_in=cfg.geogrid,
-                temp_files_list=temp_files_list,
-                verbose=False)
+                temp_files_list=temp_files_list)
 
 
             # TODO: Remove nlooks exception below

@@ -321,7 +321,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
     """
     if logger is None:
         logger = logging.getLogger('rtc_s1')
-    logger.info(f"check ancillary inputs' coverage:")
+    logger.info(f"Check ancillary inputs' coverage:")
 
     # file description (to be printed to the user if an error happens)
     dem_file_description = 'DEM file'

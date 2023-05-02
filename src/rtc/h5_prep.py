@@ -152,11 +152,11 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
     # save orbit
     orbit_group = hdf5_obj.require_group(
         f'{BASE_HDF5_DATASET}/RTC/metadata/orbit')
-    save_orbit(orbit, orbit_group)
+    save_orbit(orbit, orbit_group, os.path.basename(cfg.orbit_file_path))
     return hdf5_obj
 
 
-def save_orbit(orbit, orbit_group):
+def save_orbit(orbit, orbit_group, orbit_file_path):
     orbit.save_to_h5(orbit_group)
     # Add description attributes.
     orbit_group["time"].attrs["description"] = np.string_("Time vector record. This"
@@ -172,9 +172,7 @@ def save_orbit(orbit, orbit_group):
         'referenceEpoch',
         data=np.string_(orbit.reference_epoch.isoformat()))
 
-    # Orbit source/type
-    # TODO: Update orbit type:
-    orbit_file_path = orbit_file
+    # Orbit source/type    
     if 'RESORB' in orbit_file_path:
         orbit_type = 'RES restituted orbit'
     elif 'POEORB' in orbit_file_path:

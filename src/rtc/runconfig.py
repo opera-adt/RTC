@@ -214,7 +214,7 @@ def validate_group_dict(group_cfg: dict) -> None:
     helpers.check_write_dir(product_group['scratch_path'])
 
 
-def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
+def runconfig_to_bursts(cfg: SimpleNamespace) -> (list[Sentinel1BurstSlc], str):
     '''Return bursts based on parameters in given runconfig
 
     Parameters
@@ -224,8 +224,10 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
 
     Returns
     -------
-    _ : list[Sentinel1BurstSlc]
+    bursts : list[Sentinel1BurstSlc]
         List of bursts loaded according to given configuration.
+    orbit_file_path : str
+        Orbit file path
     '''
 
     # dict to store list of bursts keyed by burst_ids
@@ -234,11 +236,11 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
     # extract given SAFE zips to find bursts identified in cfg.burst_id
     for safe_file in cfg.input_file_group.safe_file_path:
         # get orbit file
-        orbit_path = get_orbit_file_from_list(
+        orbit_file_path = get_orbit_file_from_list(
             safe_file,
             cfg.input_file_group.orbit_file_path)
 
-        if not orbit_path:
+        if not orbit_file_path:
             err_str = f"No orbit file correlates to safe file: {os.path.basename(safe_file)}"
             logger.error(err_str)
             raise ValueError(err_str)
@@ -268,7 +270,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
         for pol, i_subswath in pol_subswath_index_pairs:
 
             # loop over burst objs extracted from SAFE zip
-            for burst in load_bursts(safe_file, orbit_path, i_subswath, pol,
+            for burst in load_bursts(safe_file, orbit_file_path, i_subswath, pol,
                                      flag_apply_eap=False):
                 # get burst ID
                 burst_id = str(burst.burst_id)
@@ -300,7 +302,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
         logger.error(err_str)
         raise ValueError(err_str)
 
-    return bursts
+    return bursts, orbit_file_path
 
 
 def get_ref_radar_grid_info(ref_path, burst_id):
@@ -385,6 +387,8 @@ class RunConfig:
     geogrid: GeoGridParameters
     # dict of geogrids associated to burst IDs
     geogrids: dict[str, GeoGridParameters]
+    # orbit file path
+    orbit_file_path: str
 
 
     @classmethod
@@ -409,7 +413,7 @@ class RunConfig:
         sns = wrap_namespace(groups_cfg)
 
         # Load bursts
-        bursts = runconfig_to_bursts(sns)
+        bursts, orbit_file_path = runconfig_to_bursts(sns)
 
         # Load geogrids
         burst_database_file = groups_cfg['static_ancillary_file_group']['burst_database_file']
@@ -423,7 +427,7 @@ class RunConfig:
         empty_ref_dict = {}
 
         return cls(cfg['runconfig']['name'], sns, bursts, empty_ref_dict,
-                   yaml_path, geogrid_all, geogrids)
+                   yaml_path, geogrid_all, geogrids, orbit_file_path)
 
     @property
     def geocoding_params(self) -> dict:

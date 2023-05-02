@@ -404,8 +404,14 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     logger.info(f'Browse images:')
     logger.info(f'    burst height: {browse_image_burst_height}')
     logger.info(f'    burst width: {browse_image_burst_width}')
-    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
-    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
+    if save_mosaics:
+        logger.info(f'    mosaic height: {browse_image_mosaic_height}')
+        logger.info(f'    mosaic width: {browse_image_mosaic_width}')
+        logger.info(f'Mosaic geogrid:')
+        for line in str(cfg.geogrid).split('\n'):
+            if not line:
+                continue
+            logger.info(f'    {line}')
 
     # check ancillary input (DEM)
     metadata_dict = {}
@@ -792,8 +798,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 output_imagery_list, nlooks_list,
                 output_imagery_filename_list, scratch_path,
                 geogrid_in=cfg.geogrid,
-                temp_files_list=temp_files_list,
-                verbose=False)
+                temp_files_list=temp_files_list)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
@@ -810,7 +815,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             mosaic_single_output_file(
                 input_files, nlooks_list, output_file, scratch_path,
                 geogrid_in=cfg.geogrid,
-                temp_files_list=temp_files_list, verbose=False)
+                temp_files_list=temp_files_list)
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
