@@ -328,10 +328,10 @@ def get_metadata_dict(product_id: str,
              1,
              'Number of source data acquisitions'],
         # TODO Review: should we expose this parameter in the runconfig?
-        'RTC/metadata/sourceData/dataAccess':
-            ['source_data_access',
-             'https://search.asf.alaska.edu/',
-             'Data access URL'],
+        # 'RTC/metadata/sourceData/dataAccess':
+        #     ['source_data_access',
+        #      'https://search.asf.alaska.edu/',
+        #      'Data access URL'],
         'RTC/metadata/sourceData/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Radar band'],
         'RTC/metadata/sourceData/processingFacility': #  1.6.6
@@ -344,8 +344,8 @@ def get_metadata_dict(product_id: str,
             ['source_data_processing_date_time',
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing date and time of the source data'],
-        'RTC/metadata/sourceData/processingSoftwareVersion':  # 1.6.6
-            ['source_processing_sw_version',
+        'RTC/metadata/sourceData/softwareVersion':  # 1.6.6
+            ['source_data_software_version',
              str(burst_in.ipf_version),
              'IPF version of the source data'],
         
