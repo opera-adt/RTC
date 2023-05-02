@@ -285,22 +285,22 @@ def get_metadata_dict(product_id: str,
 
         # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'identification/lookDirection':
-             ['look_direction', 'right', 'Look direction can be left or right'],
+            ['look_direction', 'right', 'Look direction can be left or right'],
         'identification/orbitPassDirection':
             ['orbit_pass_direction', burst_in.orbit_direction.lower(),
              'Orbit direction can be ascending or descending'],
         # NOTE: using the same date format as `s1_reader.as_datetime()`
 
         'identification/listOfFrequencies':
-             [None, ['A'],
+            [None, ['A'],
              'List of frequency layers available in the product'],  # TBC
         'identification/isGeocoded':
             [None, True,
              'Flag to indicate radar geometry or geocoded product'],
         'identification/productLevel':
-             ['product_level', 'L2', 'Product level'],
+            ['product_level', 'L2', 'Product level'],
         'identification/productID':
-             ['product_id', product_id, 'Product identificator'],
+            ['product_id', product_id, 'Product identificator'],
         # 'identification/productSource':
         # [platform_id, 'Product source'],
         'identification/isUrgentObservation':
@@ -310,16 +310,16 @@ def get_metadata_dict(product_id: str,
             ['diagnostic_mode_flag', False,
              'Indicates if the radar mode is a diagnostic mode or not: True or False'],
         'identification/processingType':
-             ['processing_type', processing_type,
+            ['processing_type', processing_type,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
         'identification/processingDateTime':
-             ['processing_date_time',
+            ['processing_date_time',
               datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
               'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
         'identification/productVersion':
             ['product_version', product_version, 'Product version'],
         'identification/softwareVersion':
-             ['software_version', str(SOFTWARE_VERSION), 'Software version'],
+            ['software_version', str(SOFTWARE_VERSION), 'Software version'],
         #'identification/CEOSDocumentIdentifier':
         #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
         #     'Product version'],
