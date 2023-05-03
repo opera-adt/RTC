@@ -115,9 +115,11 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     # Breit et al., 2010, TerraSAR-X SAR Processing and Products,
     # IEEE Transactions on Geoscience and Remote Sensing, 48(2), 727-740.
     # DOI: 10.1109/TGRS.2009.2035497
-    ZPD = 2.3
-    H = 6000.0
-    tropo = ZPD / np.cos(np.deg2rad(incidence_angle_arr)) * np.exp(-1 * height_arr / H)
+    zenith_path_delay  = 2.3
+    reference_height = 6000.0
+    tropo = (zenith_path_delay
+             / np.cos(np.deg2rad(incidence_angle_arr))
+             * np.exp(-1 * height_arr / reference_height))
 
     # Prepare the computation results into LUT2d
     az_lut = isce3.core.LUT2d(bistatic_delay.x_start,
