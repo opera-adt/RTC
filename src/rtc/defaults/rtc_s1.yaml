@@ -114,9 +114,9 @@ runconfig:
             apply_correction_luts: True
 
             # slant range spacing of the correction LUT in meters
-            correction_lut_range_spacing: 200
-            # Azimuth time spacing of the correction LUT in seconds
-            correction_lut_azimuth_spacing: 0.028
+            correction_lut_range_spacing: 120
+            # Azimuth time spacing of the correction LUT in meters
+            correction_lut_azimuth_spacing: 120
 
             # OPTIONAL - Apply RTC
             apply_rtc: True

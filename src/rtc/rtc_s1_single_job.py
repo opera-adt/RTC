@@ -31,8 +31,8 @@ logger = logging.getLogger('rtc_s1')
 
 
 def compute_correction_lut(burst_in, dem_raster, scratch_path,
-                           rg_step=200,
-                           az_step=0.25):
+                           rg_step=120,
+                           az_step=120):
     '''
     Compute lookup table for geolocation correction
 
@@ -45,26 +45,39 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     scratch_path: str
         Scratch path where the radargrid rasters will be saved
     rg_step: float
-        Slant range posting of the radar grid to run rdr2geo. Unit: meters
+        LUT spacing in slant range. Unit: meters
     az_step: float
-        grid posting in slant range of the radar grid in meters
-        Azimuth time posting of the radar grid to run rdr2geo. Unit: seconds
+        LUT spacing in azimth direction. Unit: meters
 
     Returns
     -------
     rg_lut, az_lut: isce3.core.LUT2d
         LUT2d for geolocation correction in slant range and azimuth direction
     '''
+
+    # convert az_step in meters into seconds
+    numrow_orbit = burst_in.orbit.position.shape[0]
+    vel_mid = burst_in.orbit.velocity[numrow_orbit // 2, :]
+    spd_mid = np.linalg.norm(vel_mid)
+    pos_mid = burst_in.orbit.position[numrow_orbit // 2, :]
+    alt_mid = np.linalg.norm(pos_mid)
+
+    r = 6371000.0 # geometric mean of WGS84 ellipsoid
+
+    az_step_sec = (az_step * alt_mid) / (spd_mid * r)
+    
+
+
     # Bistatic - azimuth direction
-    bistatic_delay = burst_in.bistatic_delay(range_step=rg_step, az_step=az_step)
+    bistatic_delay = burst_in.bistatic_delay(range_step=rg_step, az_step=az_step_sec)
 
     # Calculate rdr2geo rasters
     epsg = dem_raster.get_epsg()
     proj = isce3.core.make_projection(epsg)
     ellipsoid = proj.ellipsoid
 
-    rdr_grid = burst_in.as_isce3_radargrid(az_step=az_step,
-                                        rg_step=rg_step)
+    rdr_grid = burst_in.as_isce3_radargrid(az_step=az_step_sec,
+                                           rg_step=rg_step)
 
     grid_doppler = isce3.core.LUT2d()
 
