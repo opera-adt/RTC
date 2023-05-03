@@ -34,7 +34,9 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
                            rg_step=120,
                            az_step=120):
     '''
-    Compute lookup table for geolocation correction
+    Compute lookup table for geolocation correction.
+    Applied corrections are: bistatic delay (azimuth),
+                             static troposphere delay (range)
 
     Parameters
     ----------
@@ -108,7 +110,11 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     incidence_angle_arr =\
         gdal.Open(f'{scratch_path}/incidence_angle.rdr', gdal.GA_ReadOnly).ReadAsArray()
 
-    # static troposphere - range direction
+    # static troposphere delay - range direction
+    # reference:
+    # Breit et al., 2010, TerraSAR-X SAR Processing and Products,
+    # IEEE Transactions on Geoscience and Remote Sensing, 48(2), 727-740.
+    # DOI: 10.1109/TGRS.2009.2035497
     ZPD = 2.3
     H = 6000.0
     tropo = ZPD / np.cos(np.deg2rad(incidence_angle_arr)) * np.exp(-1 * height_arr / H)
