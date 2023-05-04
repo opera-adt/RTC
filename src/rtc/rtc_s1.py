@@ -87,7 +87,7 @@ def split_runconfig(cfg_in,
         if parent_logfile_path:
             path_logfile_child = os.path.join(child_output_dir,
                                               burst_id,
-                                              f'{burst_id}.{basename_logfile}')
+                                              f'{basename_logfile}')
             
         else:
             path_logfile_child = None
