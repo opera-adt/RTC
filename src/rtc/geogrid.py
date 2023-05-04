@@ -323,7 +323,7 @@ def _check_pixel_spacing(y_spacing_positive, x_spacing, epsg, product_str):
     return y_spacing, x_spacing
 
 
-def generate_geogrids_from_db(bursts, geo_dict, burst_db_file):
+def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
     '''
     Compute frame and bursts geogrids
 
@@ -346,7 +346,7 @@ def generate_geogrids_from_db(bursts, geo_dict, burst_db_file):
     '''
 
     # Unpack values from geocoding dictionary
-    mosaic_geogrid_dict = geo_dict['mosaic_geogrid']
+    mosaic_geogrid_dict = mosaic_dict['mosaic_geogrid']
     epsg_mosaic = mosaic_geogrid_dict['output_epsg']
     xmin_mosaic = mosaic_geogrid_dict['top_left']['x']
     ymax_mosaic = mosaic_geogrid_dict['top_left']['y']
@@ -396,11 +396,6 @@ def generate_geogrids_from_db(bursts, geo_dict, burst_db_file):
     epsg_bursts_majority = max(epsg_count_dict, key=epsg_count_dict.get)
     srs_bursts_majority = osr.SpatialReference()
     srs_bursts_majority.ImportFromEPSG(epsg_bursts_majority)
-
-
-
-
-    print('*** epsg_bursts_majority:', epsg_bursts_majority)
 
     if epsg_mosaic is None or epsg_mosaic == epsg_bursts_majority:
         epsg_mosaic = epsg_bursts_majority
@@ -469,13 +464,6 @@ def generate_geogrids_from_db(bursts, geo_dict, burst_db_file):
         xmax_burst = geogrid.start_x + geogrid.spacing_x * geogrid.width
         ymin_burst = geogrid.start_y + geogrid.spacing_y * geogrid.length
 
-        print('*** burst coordinates:')
-        print(' .   epsg:', epsg_burst)
-        print(' .   xmin_burst:', xmin_burst)
-        print(' .   xmax_burst:', xmax_burst)
-        print(' .   ymin_burst:', ymin_burst)
-        print(' .   ymax_burst:', ymax_burst)
-
         # Update bursts envelope.
         # We use EPSG bursts majority because the bursts datatabase
         # use only UTM or polar stereographic and we want to avoid
@@ -484,7 +472,6 @@ def generate_geogrids_from_db(bursts, geo_dict, burst_db_file):
         # (for example, computing max long. between -179 and +179)
 
         if epsg_burst != epsg_bursts_majority:
-            print('*** converting bursts coordinates...')
 
             srs_burst = osr.SpatialReference()
             srs_burst.ImportFromEPSG(epsg_burst)
@@ -494,30 +481,12 @@ def generate_geogrids_from_db(bursts, geo_dict, burst_db_file):
                                   xmin_burst, xmax_burst,
                                   srs_burst, srs_bursts_majority)
 
-            print('*** burst coordinates (after):')
-            print(' .   epsg:', epsg_bursts_majority)
-            print(' .   xmin_burst:', xmin_burst)
-            print(' .   xmax_burst:', xmax_burst)
-            print(' .   ymin_burst:', ymin_burst)
-            print(' .   ymax_burst:', ymax_burst)
-
         xmin_all_bursts = min([xmin_all_bursts, xmin_burst])
         ymax_all_bursts = max([ymax_all_bursts, ymax_burst])
         xmax_all_bursts = max([xmax_all_bursts, xmax_burst])
         ymin_all_bursts = min([ymin_all_bursts, ymin_burst])
 
-    print('*** mosaic coordinates (before):')
-    print(' .   epsg:', epsg_bursts_majority)
-    print(' .   xmin_all_bursts:', xmin_all_bursts)
-    print(' .   xmax_all_bursts:', xmax_all_bursts)
-    print(' .   ymin_all_bursts:', ymin_all_bursts)
-    print(' .   ymax_all_bursts:', ymax_all_bursts)
-
     if epsg_mosaic != epsg_bursts_majority:
-
-
-        print('*** converting mosaic coordinates...')
-
 
         srs_mosaic = osr.SpatialReference()
         srs_mosaic.ImportFromEPSG(epsg_mosaic)
@@ -526,15 +495,6 @@ def generate_geogrids_from_db(bursts, geo_dict, burst_db_file):
             get_tile_srs_bbox(ymin_all_bursts, ymax_all_bursts,
                               xmin_all_bursts, xmax_all_bursts,
                               srs_bursts_majority, srs_mosaic)
-
-        print('***  mosaic coordinates (after):')
-        print(' .   epsg:', epsg_mosaic)
-        print(' .   xmin_all_bursts:', xmin_all_bursts)
-        print(' .   xmax_all_bursts:', xmax_all_bursts)
-        print(' .   ymin_all_bursts:', ymin_all_bursts)
-        print(' .   ymax_all_bursts:', ymax_all_bursts)
-
-
 
     # make sure that user's runconfig parameters have precedence
     if xmin_mosaic is None:
@@ -565,7 +525,7 @@ def generate_geogrids_from_db(bursts, geo_dict, burst_db_file):
 
 
 
-def generate_geogrids(bursts, geo_dict):
+def generate_geogrids(bursts, geo_dict, mosaic_dict):
     '''
     Compute frame and bursts geogrids
 
@@ -586,7 +546,7 @@ def generate_geogrids(bursts, geo_dict):
     '''
 
 
-    mosaic_geogrid_dict = geo_dict['mosaic_geogrid']
+    mosaic_geogrid_dict = mosaic_dict['mosaic_geogrid']
     epsg_mosaic = mosaic_geogrid_dict['output_epsg']
     xmin_mosaic = mosaic_geogrid_dict['top_left']['x']
     ymax_mosaic = mosaic_geogrid_dict['top_left']['y']

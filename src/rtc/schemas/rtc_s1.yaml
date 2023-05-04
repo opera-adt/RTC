@@ -142,6 +142,9 @@ processing_options:
     # Geocoding options
     geocoding: include('geocoding_options', required=False)
 
+    # Mosaicking options
+    mosaicking: include('mosaicking_options', required=False)
+
     # Browse image
     browse_image_group: include('browse_image_options', required=False)
 
@@ -224,11 +227,17 @@ geocoding_options:
     # Double SLC sampling in the range direction
     upsample_radargrid: bool(required=False)
 
-    # Mosaic geographic grid
-    mosaic_geogrid: include('output_grid_options', required=False)
-
     # Bursts geographic grid
     bursts_geogrid: include('output_grid_options', required=False)
+
+
+mosaicking_options:
+
+    # Mosaic mode
+    mosaic_mode: enum('average', 'first', 'bursts_center', required=False)
+
+    # Mosaic geographic grid
+    mosaic_geogrid: include('output_grid_options', required=False)
 
 
 output_grid_options:

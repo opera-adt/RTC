@@ -592,20 +592,13 @@ def run_single_job(cfg: RunConfig):
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
-
-
-
-
-    # TODO remove the lines below:
-    if save_mosaics:
-        save_nlooks = True
-
-
-
-
     save_rtc_anf = geocode_namespace.save_rtc_anf
     save_dem = geocode_namespace.save_dem
     save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
+
+    # unpack mosaicking run parameters
+    mosaicking_namespace = cfg.groups.processing.mosaicking
+    mosaic_mode = mosaicking_namespace.mosaic_mode
 
     flag_call_radar_grid = (save_incidence_angle or
                             save_local_inc_angle or save_projection_angle or
@@ -1220,14 +1213,17 @@ def run_single_job(cfg: RunConfig):
             logger.info(f'    {geo_pol_filename}')
             output_imagery_filename_list.append(geo_pol_filename)
 
-        nlooks_list = output_metadata_dict['nlooks'][1]
+        if save_nlooks:
+            nlooks_list = output_metadata_dict['nlooks'][1]
+        else:
+            nlooks_list = []
 
         if len(output_imagery_list) > 0:
 
             mosaic_multiple_output_files(
                 output_imagery_list, nlooks_list,
-                output_imagery_filename_list, scratch_path,
-                geogrid_in=cfg.geogrid,
+                output_imagery_filename_list, mosaic_mode,
+                scratch_dir=scratch_path, geogrid_in=cfg.geogrid,
                 temp_files_list=temp_files_list)
 
         if save_imagery_as_hdf5:
@@ -1243,9 +1239,9 @@ def run_single_job(cfg: RunConfig):
                 continue
 
             mosaic_single_output_file(
-                input_files, nlooks_list, output_file, scratch_path,
-                geogrid_in=cfg.geogrid,
-                temp_files_list=temp_files_list)
+                input_files, nlooks_list, output_file,
+                mosaic_mode, scratch_dir=scratch_path,
+                geogrid_in=cfg.geogrid, temp_files_list=temp_files_list)
 
 
             # TODO: Remove nlooks exception below

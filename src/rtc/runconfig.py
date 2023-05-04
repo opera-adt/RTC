@@ -405,8 +405,12 @@ class RunConfig:
         cfg = load_validate_yaml(yaml_path, workflow_name)
         groups_cfg = cfg['runconfig']['groups']
 
+        # Read mosaic dict
+        mosaic_dict = groups_cfg['processing']['mosaicking']
+        check_geogrid_dict(mosaic_dict['mosaic_geogrid'])
+
+        # Read geocoding dict
         geocoding_dict = groups_cfg['processing']['geocoding']
-        check_geogrid_dict(geocoding_dict['mosaic_geogrid'])
         check_geogrid_dict(geocoding_dict['bursts_geogrid'])
 
         # Convert runconfig dict to SimpleNamespace
@@ -418,10 +422,10 @@ class RunConfig:
         # Load geogrids
         burst_database_file = groups_cfg['static_ancillary_file_group']['burst_database_file']
         if burst_database_file is None:
-            geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict)
+            geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict, mosaic_dict)
         else:
-            geogrid_all, geogrids = generate_geogrids_from_db(bursts, geocoding_dict,
-                                                              burst_database_file)
+            geogrid_all, geogrids = generate_geogrids_from_db(
+                bursts, geocoding_dict, mosaic_dict, burst_database_file)
         
         # Empty reference dict for base runconfig class constructor
         empty_ref_dict = {}

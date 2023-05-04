@@ -210,28 +210,10 @@ runconfig:
                 # Double SLC sampling in the range direction
                 upsample_radargrid: False
 
-                mosaic_geogrid:
-
-                    # Product EPSG code. If not provided, `output_epsg` will
-                    # be determined based on the scene center:
-                    # - If center_lat >= 75.0: 3413
-                    # - If center_lat <= -75.0: 3031
-                    # - Otherwise: EPSG code associated with the closest UTM zone
-                    output_epsg:
-                    x_posting: 30
-                    y_posting: 30
-                    x_snap: 30
-                    y_snap: 30
-                    top_left:
-                        x:
-                        y:
-                    bottom_right:
-                        x:
-                        y:
 
                 bursts_geogrid:
 
-                    # Product EPSG code. If not provided, `output_epsg` will
+                    # Bursts' EPSG code. If not provided, `output_epsg` will
                     # be determined based on the scene center:
                     # - If center_lat >= 75.0: 3413
                     # - If center_lat <= -75.0: 3031
@@ -247,6 +229,32 @@ runconfig:
                     bottom_right:
                         x:
                         y:
+
+            # Mosaicking options
+            mosaicking:
+
+                # OPTIONAL - Choices: "average", "first", "bursts_center" (default)
+                mosaic_mode: bursts_center
+
+                mosaic_geogrid:
+
+                    # Mosaic EPSG code. If not provided, `output_epsg` will
+                    # be determined based on the scene center:
+                    # - If center_lat >= 75.0: 3413
+                    # - If center_lat <= -75.0: 3031
+                    # - Otherwise: EPSG code associated with the closest UTM zone
+                    output_epsg:
+                    x_posting: 30
+                    y_posting: 30
+                    x_snap: 30
+                    y_snap: 30
+                    top_left:
+                        x:
+                        y:
+                    bottom_right:
+                        x:
+                        y:
+
 
             browse_image_group:
 
