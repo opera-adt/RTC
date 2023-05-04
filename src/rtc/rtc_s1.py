@@ -86,7 +86,10 @@ def split_runconfig(cfg_in,
                                            f'burst_runconfig_{burst_id}.yaml')
         if parent_logfile_path:
             path_logfile_child = os.path.join(child_output_dir,
+                                              burst_id,
                                               f'{burst_id}.{basename_logfile}')
+            os.makedirs(os.path.dirname(path_logfile_child), exist_ok=True)
+
         else:
             path_logfile_child = None
 
@@ -206,7 +209,7 @@ def process_child_runconfig(path_runconfig_burst,
         0 when the child process has completed succesfully
     '''
 
-    os.environ['OMP_NUM_THREADS'] = "1"
+    #os.environ['OMP_NUM_THREADS'] = "1"
 
     list_arg_subprocess = ['rtc_s1_single_job.py', path_runconfig_burst]
 
