@@ -208,7 +208,7 @@ def process_child_runconfig(path_runconfig_burst,
         0 when the child process has completed succesfully
     '''
 
-    #os.environ['OMP_NUM_THREADS'] = "1"
+    os.environ['OMP_NUM_THREADS'] = "1"
 
     list_arg_subprocess = ['rtc_s1_single_job.py', path_runconfig_burst]
 
