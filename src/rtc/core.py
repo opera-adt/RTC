@@ -167,6 +167,10 @@ def create_logger(log_file, full_log_formatting=None):
        logger : logging.Logger
               Logger object
     """
+
+    logfile_directory = os.path.dirname(log_file)
+    if logfile_directory:
+        os.makedirs(logfile_directory, exist_ok=True)
     # create logger
 
     logger = logging.getLogger('rtc_s1')

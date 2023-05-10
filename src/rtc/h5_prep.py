@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 import numpy as np
 import h5py
 import logging
@@ -252,8 +253,7 @@ def get_metadata_dict(product_id: str,
     # 'field_name': [corresponding_variables_in_workflow, description]
     metadata_dict = {
         'identification/absoluteOrbitNumber':
-            ['absolute_orbit_number', 
-             burst_in.abs_orbit_number,
+            ['absolute_orbit_number', burst_in.abs_orbit_number,
              'Absolute orbit number'],
         # NOTE: The field below does not exist on opera_rtc.xml
         # 'identification/relativeOrbitNumber':
@@ -265,8 +265,10 @@ def get_metadata_dict(product_id: str,
         #    [mission_id, 'Mission identifier'],
         'identification/platform':
             ['platform', platform_id, 'Platform name'],
+        # Instrument name mentioned at:
+        # https://sentinel.esa.int/documents/247904/349449/s1_sp-1322_1.pdf
         'identification/sensor':
-            ['sensor', platform_id, 'Sensor instrument name'],
+            ['sensor', 'CSAR', 'Sensor instrument name'],
         'identification/productType':
             ['product_type', 'RTC-S1', 'Product type'],
         'identification/project':
@@ -274,19 +276,22 @@ def get_metadata_dict(product_id: str,
         'identification/acquisitionMode':
             ['acquisition_mode', 'Interferometric Wide (IW)',
              'Acquisition mode'],
+        # 'identification/CARDProductType':
+        #    ['card_product_type', 'Normalised Radar Backscatter',
+        #     'CARD Product type'], # 1.3
+
         'identification/lookDirection':
             ['look_direction', 'right', 'Look direction can be left or right'],
         'identification/orbitPassDirection':
             ['orbit_pass_direction', burst_in.orbit_direction.lower(),
-            'Orbit direction can be ascending or descending'],
-        # NOTE: using the same date format as `s1_reader.as_datetime()`
+             'Orbit direction can be ascending or descending'],
 
         'identification/listOfFrequencies':
-             [None, ['A'],
+            [None, ['A'],
              'List of frequency layers available in the product'],  # TBC
         'identification/isGeocoded':
             [None, True,
-            'Flag to indicate radar geometry or geocoded product'],
+             'Flag to indicate radar geometry or geocoded product'],
         'identification/productLevel':
             ['product_level', 'L2', 'Product level'],
         'identification/productID':
@@ -302,18 +307,124 @@ def get_metadata_dict(product_id: str,
         'identification/processingType':
             ['processing_type', processing_type,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
-        # datetime format 'YYYY-MM-DD HH:MM:SS'
         'identification/processingDateTime':
             ['processing_date_time',
-             datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-             'Processing date and time'],
+              datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+              'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
         'identification/productVersion':
             ['product_version', product_version, 'Product version'],
         'identification/softwareVersion':
             ['software_version', str(SOFTWARE_VERSION), 'Software version'],
-        # 'identification/CEOSDocumentIdentifier':
-        #     ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
-        #      'CEOS document identifier'],
+        #'identification/CEOSDocumentIdentifier':
+        #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
+        #     'Product version'],
+        'RTC/metadata/sourceData/numberOfAcquisitions': # 1.6.4
+            ['source_data_number_of_acquisitions',
+             1,
+             'Number of source data acquisitions'],
+        # TODO Review: should we expose this parameter in the runconfig?
+        # 'RTC/metadata/sourceData/dataAccess':
+        #     ['source_data_access',
+        #      'https://search.asf.alaska.edu/',
+        #      'Data access URL'],
+        'RTC/metadata/sourceData/radarBand':  # 1.6.4
+            ['radar_band', 'C', 'Radar band'],
+        'RTC/metadata/sourceData/processingFacility': #  1.6.6
+            ['source_data_processing_facility',
+             (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
+              f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
+              f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
+             'Source data processing facility'],
+        'RTC/metadata/sourceData/processingDateTime':  # 1.6.6
+            ['source_data_processing_date_time',
+             burst_in.burst_misc_metadata.processing_info_dict['stop'],
+             'Processing date and time of the source data'],
+        'RTC/metadata/sourceData/softwareVersion':  # 1.6.6
+            ['source_data_software_version',
+             str(burst_in.ipf_version),
+             'IPF version of the source data'],
+        
+        'RTC/metadata/sourceData/azimuthLooks':  # 1.6.6
+            [None,
+             burst_in.burst_misc_metadata.azimuth_looks,
+             'Azimuth number of looks'],
+        'RTC/metadata/sourceData/slantRangeLooks':  # 1.6.6
+            [None,
+             burst_in.burst_misc_metadata.slant_range_looks,
+             'Slant range number of looks'],
+
+        'RTC/metadata/sourceData/productLevel':  # 1.6.6
+            ['source_data_product_level',
+             'L1',
+             'Product level of the source data'],
+        # 'RTC/metadata/sourceData/geometry':  # 1.6.7
+        #     ['source_data_geometry',
+        #     'slant range',
+        #     'Geometry of the source data'],
+        'RTC/metadata/sourceData/azimuthSpacing':  # 1.6.7
+            ['source_azimuth_spacing',
+             burst_in.azimuth_time_interval,
+             'Azimuth spacing of the source data in seconds'], 
+        'RTC/metadata/sourceData/slantRangeSpacing':  # 1.6.7
+            ['source_data_slant_range_spacing',
+             burst_in.range_pixel_spacing,
+             'Slant range spacing of the source data in meters'], 
+
+        #'RTC/metadata/sourceData/azimuthResolution':  # 1.6.7
+        #    ['source_azimuth_resolution',
+        #     burst_in.azimuth_time_interval,
+        #     'Azimuth time resolution of the source data in seconds'],
+        #'RTC/metadata/sourceData/slantRangeResolution':  # 1.6.7
+        #    ['source_slant_range_resolution',
+        #     burst_in.range_pixel_spacing,
+        #     'Slant range resolution of the source data in meters'],
+
+        'RTC/metadata/sourceData/nearRangeIncidenceAngle':  # 1.6.7
+            [None,
+             burst_in.burst_misc_metadata.inc_angle_near_range,
+             'Near range incidence angle in meters'],
+        'RTC/metadata/sourceData/farRangeIncidenceAngle':  # 1.6.7
+            [None,
+             burst_in.burst_misc_metadata.inc_angle_far_range,
+             'Far range incidence angle in meters'],
+        # Source for the max. NESZ:
+        # (https://sentinels.copernicus.eu/web/sentinel/user-guides/
+        #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
+        'RTC/metadata/sourceData/maxNoiseEquivalentSigmaZero':  # 1.6.9
+            [None,
+             -22,
+             'Maximum Noise equivalent sigma0 in dB'],
+
+        # TODO Review: should we expose this parameter in the runconfig?
+        #'RTC/metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
+        #    ['product_data_access',
+        #     'TBD',
+        #     'URL to access the product data'],
+        'RTC/metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
+            ['post_processing_filtering_applied',
+            False,
+             'Flag to indicate if post-processing filtering has been applied'],
+
+        'RTC/metadata/processingInformation/parameters/noiseCorrectionApplied':  # 3.3
+            ['noise_correction_applied',
+             cfg_in.groups.processing.apply_thermal_noise_correction,
+             'A flag to indicate whether noise removal was applied'],
+    
+        #'RTC/metadata/processingInformation/geoidReference':  # for 4.2
+        #    ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
+
+        #'RTC/grids/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
+        #    ['absolute_accuracy_northing',
+        #     [0.0, 0.0],
+        #     ('An estimate of the absolute localisation error in north direction'
+        #      'provided as bias and standard deviation')],
+
+        #'RTC/grids/processingInformation/absoluteAccuracyEasting':  # placeholder for 4.3
+        #    ['absolute_accuracy_easting',
+        #     [0.0, 0.0],
+        #     ('An estimate of the absolute localisation error in east direction'
+        #      'provided as bias and standard deviation')],
+
         # 'identification/frameNumber':  # TBD
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
@@ -341,9 +452,11 @@ def get_metadata_dict(product_id: str,
 
         'RTC/metadata/processingInformation/algorithms/demInterpolation':
             ['dem_interpolation_algorithm',
-             cfg_in.groups.processing.dem_interpolation_method, 'DEM interpolation method'],
+             cfg_in.groups.processing.dem_interpolation_method,
+             'DEM interpolation method'],
         'RTC/metadata/processingInformation/algorithms/geocoding':
-            ['geocoding_algorithm', cfg_in.groups.processing.geocoding.algorithm_type,
+            ['geocoding_algorithm',
+             cfg_in.groups.processing.geocoding.algorithm_type,
              'Geocoding algorithm'],
         'RTC/metadata/processingInformation/algorithms/radiometricTerrainCorrection':
             ['radiometric_terrain_correction_algorithm',
@@ -371,10 +484,56 @@ def get_metadata_dict(product_id: str,
             ['config_files', cfg_in.run_config_path,
              'List of input config files used'],
         'RTC/metadata/processingInformation/inputs/demSource':
-            ['dem_source', dem_description, 'DEM source description']
+            ['dem_source', dem_description, 'DEM source description'],
     }
+
+    # Add reference to the thermal noise correction algorithm when the correction is applied
+    if cfg_in.groups.processing.apply_thermal_noise_correction:  # 3.3
+        noise_removal_algorithm_reference =\
+            ('https://sentinels.copernicus.eu/documents/247904/2142675/'
+             'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf/'
+             '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000')
+    else:
+        noise_removal_algorithm_reference = '(noise removal not applied)'
+    metadata_dict['RTC/metadata/processingInformation/algorithms/noiseCorrectionAlgorithmReference'] =\
+        ['noise_removal_algorithm_reference',
+         noise_removal_algorithm_reference,
+          'A reference to the noise removal algorithm applied']
+
+    # Add RTC algorithm reference depending on the algorithm applied
+    url_rtc_algorithm_document = '(RTC not applied)'
+    if cfg_in.groups.processing.apply_rtc: # 3.4
+        if cfg_in.groups.processing.rtc.algorithm_type == 'area_projection':
+            url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/9695438'
+        elif cfg_in.groups.processing.rtc.algorithm_type == 'bilinear_distribution':
+            url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/5752845'
+        else:
+            raise NotImplementedError
+    metadata_dict['RTC/metadata/processingInformation/algorithms/radiometricTerrainCorrectionAlgorithmReference'] =\
+        ['rtc_algorithm_reference',
+         url_rtc_algorithm_document,
+         'A reference to the RTC algorithm applied']
+
     if is_mosaic:
         return metadata_dict
+
+    # Metadata only for for burst product
+    # Calculate bounding box
+    xmin_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_x
+    ymax_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_y
+    spacing_x = cfg_in.geogrids[str(burst_in.burst_id)].spacing_x
+    spacing_y = cfg_in.geogrids[str(burst_in.burst_id)].spacing_y
+    width_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].width
+    length_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].length
+    xy_bounding_box = [
+        xmin_geogrid,
+        ymax_geogrid + length_geogrid * spacing_y,
+        xmin_geogrid + width_geogrid * spacing_x,
+        ymax_geogrid
+    ]
+    metadata_dict['identification/boundingBox'] = \
+        ['bounding_box', np.array(xy_bounding_box),
+         'Bounding box of the product, in order of xmin, ymin, xmax, ymax']  # 1.7.5
 
     metadata_dict['identification/boundingPolygon'] = \
         ['bounding_polygon', get_polygon_wkt(burst_in),
@@ -385,18 +544,24 @@ def get_metadata_dict(product_id: str,
         ['burst_id', str(burst_in.burst_id),
          'Burst identification (burst ID)']
 
-    beam_id = str(burst_in.burst_id)[-3:]
+    beam_id = burst_in.swath_name.upper()
     metadata_dict['identification/beamID'] = \
         ['beam_id', beam_id, 'Beam identification (Beam ID)']
 
     metadata_dict['identification/zeroDopplerStartTime'] = \
         ['zero_doppler_start_time',
          burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-         'Azimuth start time of the product']
+         'Azimuth start time of the product'] # 1.6.3
     metadata_dict['identification/zeroDopplerEndTime'] = \
         ['zero_doppler_end_time',
          burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-         'Azimuth stop time of the product']
+         'Azimuth stop time of the product']  # 1.6.3
+
+    # Add RFI metadata into `metadata_dict`
+    rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
+                                              'RTC/metadata/QA/rfiInformation')
+    metadata_dict.update(rfi_metadata_dict)
+
     return metadata_dict
 
 
@@ -427,6 +592,7 @@ def all_metadata_dict_to_geotiff_metadata_dict(metadata_dict):
             geotiff_metadata_dict[key.upper()] = str(value).upper()
             continue
         geotiff_metadata_dict[key.upper()] = value
+
     return geotiff_metadata_dict
 
 
@@ -455,7 +621,7 @@ def populate_metadata_group(product_id: str,
         or burst (False) product
     '''
 
-    metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in,  is_mosaic)
+    metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in, is_mosaic)
 
     for fieldname, (_, data, description) in metadata_dict.items():
         path_dataset_in_h5 = os.path.join(root_path, fieldname)
@@ -468,9 +634,9 @@ def populate_metadata_group(product_id: str,
 
 
 def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
-                       yds, xds, ds_name, standard_name=None,
-                       long_name=None, units=None, fill_value=None,
-                       valid_min=None, valid_max=None, compute_stats=True):
+                      yds, xds, ds_name, standard_name=None,
+                      long_name=None, units=None, fill_value=None,
+                      valid_min=None, valid_max=None, compute_stats=True):
     '''
     write temporary raster file contents to HDF5
 
@@ -576,3 +742,124 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
     del gdal_ds
 
+
+def get_rfi_metadata_dict(burst_in,
+                          rfi_root_path = 'RTC/metadata/QA/rfiInformation'):
+    '''
+    Populate the RFI information into HDF5 object
+
+    Parameters
+    ----------
+    burst_in: Sentinel1BurstSlc
+    rfi_root_path: str
+
+    '''
+    rfi_metadata_dict = {}
+
+    is_rfi_info_empty = burst_in.burst_rfi_info is None
+    rfi_metadata_dict[f'{rfi_root_path}/isRfiInfoAvailable'] =\
+        ['is_rfi_info_available',
+         not is_rfi_info_empty,
+         'A flag whether RFI information is available in the source data']
+
+    if is_rfi_info_empty:
+        return rfi_metadata_dict
+
+    # Create group for RFI info
+    subpath_data_dict = {
+        'rfiMitigationPerformed':
+            ['rfi_mitigation_performed',
+             burst_in.burst_rfi_info.rfi_mitigation_performed,
+             'RFI detection and mitigtion strategy'],
+        'rfiMitigationDomain':
+            ['rfi_mitigation_domain',
+             burst_in.burst_rfi_info.rfi_mitigation_domain,
+             'In which domain(s) the RFI mitigation was performed'],
+        'rfiBurstReport/swath':
+            ['rfi_burst_report_swath',
+             burst_in.burst_rfi_info.rfi_burst_report['swath'],
+             'Swath of the IW RFI burst repost list'],
+        'rfiBurstReport/azimuthTime':
+            ['rfi_burst_report_azimuth_time',
+             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+             'Azimuth time of the burst that corresponds to the RFI report'],
+        'rfiBurstReport/inBandOutBandPowerRatio':
+            ['in_band_out_band_power_ratio',
+             burst_in.burst_rfi_info.rfi_burst_report['inBandOutBandPowerRatio'],
+             'Ratio between the in-band and out-of-band power of the burst.']
+    }
+
+    # Aliases for the improvement of code readability
+    rfi_burst_report_time =\
+        (burst_in.burst_rfi_info.rfi_burst_report['timeDomainRfiReport']
+         if 'timeDomainRfiReport' in
+         burst_in.burst_rfi_info.rfi_burst_report.keys()
+         else None)
+    rfi_burst_report_freq =\
+        (burst_in.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']
+         if 'frequencyDomainRfiBurstReport' in
+         burst_in.burst_rfi_info.rfi_burst_report.keys()
+         else None)
+
+    # Add RFI burst domain report
+    if 'timeDomainRfiReport' in burst_in.burst_rfi_info.rfi_burst_report.keys():
+        # populate the time domain RFI report
+        subpath_data_dict['timeDomainRfiReport/percentageAffectedLines']=\
+            ['time_domain_rfi_report_percentage_affected_lines',
+             rfi_burst_report_time['percentageAffectedLines'],
+             'Percentage of level-0 lines affected by RFI']
+
+        subpath_data_dict['timeDomainRfiReport/avgPercentageAffectedSamples']=\
+            ['time_domain_rfi_report_avg_percentage_affected_samples',
+             rfi_burst_report_time['avgPercentageAffectedSamples'],
+             ('Average percentage of affected level-0 samples '
+              'in the lines containing RFI.')]
+
+        subpath_data_dict['timeDomainRfiReport/maxPercentageAffectedSamples']=\
+            ['time_domain_rfi_report_max_percentage_affected_samples',
+             rfi_burst_report_time['maxPercentageAffectedSamples'],
+             'Maximum percentage of level-0 samples affected by RFI in the same line']
+
+    if 'frequencyDomainRfiBurstReport' in burst_in.burst_rfi_info.rfi_burst_report.keys():
+        # populate the frequency domain RFI report
+        subpath_data_dict['frequencyDomainRfiBurstReport/numSubBlocks']=\
+            ['frequency_domain_rfi_burst_report_num_sub_blocks',
+             rfi_burst_report_freq['numSubBlocks'],
+             'Number of sub-blocks in the current burst']
+        
+        subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize']=\
+            ['frequency_domain_rfi_burst_report_sub_block_size',
+             rfi_burst_report_freq['subBlockSize'],
+             'Number of lines in each sub-block']
+
+        subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
+                           'percentageAffectedLines')]=\
+            ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
+             rfi_burst_report_freq['isolatedRfiReport']['percentageAffectedLines'],
+             'Percentage of level-0 lines affected by RFI.']
+
+        subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
+                           'maxPercentageAffectedBW')]=\
+            ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
+             rfi_burst_report_freq['isolatedRfiReport']['maxPercentageAffectedBW'],
+             'Max. percentage of bandwidth affected by isolated RFI in a single line.']
+
+        subpath_data_dict['frequencyDomainRfiBurstReport/percentageBlocksPersistentRfi']=\
+            ['frequency_domain_rfi_burst_report_percentage_blocks_persistent_rfi',
+             rfi_burst_report_freq['percentageBlocksPersistentRfi'],
+             ('Percentage of processing blocks affected by persistent RFI. '
+              'In this case the RFI detection is performed on the '
+              'mean PSD of each processing block.')]
+
+        subpath_data_dict[('frequencyDomainRfiBurstReport/'
+                           'maxPercentageBWAffectedPersistentRfi')]=\
+            ['frequency_domain_rfi_burst_report_max_percentage_bw_affected_persistent_rfi',
+             rfi_burst_report_freq['maxPercentageBWAffectedPersistentRfi'],
+             ('Max percentage bandwidth affected by '
+              'persistent RFI in a single processing block')]
+
+    for fieldname, data in subpath_data_dict.items():
+            path_in_rfi_dict = os.path.join(rfi_root_path, fieldname)
+            rfi_metadata_dict[path_in_rfi_dict] = data
+
+    return rfi_metadata_dict
