@@ -150,9 +150,6 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
     populate_metadata_group(product_id, hdf5_obj, burst, cfg, BASE_HDF5_DATASET,
                             is_mosaic)
 
-    #populate_rfi_info(hdf5_obj, burst,
-    #                  f'{BASE_HDF5_DATASET}/RTC/metadata/RFIInformation')
-
     # save orbit
     orbit_group = hdf5_obj.require_group(
         f'{BASE_HDF5_DATASET}/RTC/metadata/orbit')
@@ -279,17 +276,15 @@ def get_metadata_dict(product_id: str,
         'identification/acquisitionMode':
             ['acquisition_mode', 'Interferometric Wide (IW)',
              'Acquisition mode'],
-        'identification/CARDProductType':
-            ['card_product_type', 'Normalised Radar Backscatter',
-             'CARD Product type'], # 1.3
+        # 'identification/CARDProductType':
+        #    ['card_product_type', 'Normalised Radar Backscatter',
+        #     'CARD Product type'], # 1.3
 
-        # NOTE: in NISAR, the value has to be in UPPERCASE or lowercase?
         'identification/lookDirection':
             ['look_direction', 'right', 'Look direction can be left or right'],
         'identification/orbitPassDirection':
             ['orbit_pass_direction', burst_in.orbit_direction.lower(),
              'Orbit direction can be ascending or descending'],
-        # NOTE: using the same date format as `s1_reader.as_datetime()`
 
         'identification/listOfFrequencies':
             [None, ['A'],
@@ -324,7 +319,7 @@ def get_metadata_dict(product_id: str,
         #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
         #     'Product version'],
         'RTC/metadata/sourceData/numberOfAcquisitions': # 1.6.4
-            ['number_of_acquisitions',
+            ['source_data_number_of_acquisitions',
              1,
              'Number of source data acquisitions'],
         # TODO Review: should we expose this parameter in the runconfig?
@@ -362,10 +357,10 @@ def get_metadata_dict(product_id: str,
             ['source_data_product_level',
              'L1',
              'Product level of the source data'],
-        'RTC/metadata/sourceData/geometry':  # 1.6.7
-            ['source_data_geometry',
-             'slant range',
-             'Geometry of the source data'],
+        # 'RTC/metadata/sourceData/geometry':  # 1.6.7
+        #     ['source_data_geometry',
+        #     'slant range',
+        #     'Geometry of the source data'],
         'RTC/metadata/sourceData/azimuthSpacing':  # 1.6.7
             ['source_azimuth_spacing',
              burst_in.azimuth_time_interval,
@@ -410,7 +405,7 @@ def get_metadata_dict(product_id: str,
             False,
              'Flag to indicate if post-processing filtering has been applied'],
 
-        'RTC/metadata/processingInformation/noiseCorrectionApplied':  # 3.3
+        'RTC/metadata/processingInformation/parameters/noiseCorrectionApplied':  # 3.3
             ['noise_correction_applied',
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
