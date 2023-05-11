@@ -34,9 +34,9 @@ logger = logging.getLogger('rtc_s1')
 
 
 def split_runconfig(cfg_in,
-                    output_dir_child,
-                    scratch_path_child=None,
-                    path_parent_logfile=None):
+                    child_output_dir,
+                    child_scratch_path=None,
+                    parent_logfile_path=None):
     '''
     Split the input runconfig into single burst runconfigs.
     Writes out the burst runconfigs.
@@ -46,13 +46,13 @@ def split_runconfig(cfg_in,
     ----------
     cfg_in: rtc.runconfig.RunConfig
         Path to the original runconfig
-    output_dir_child: str
+    child_output_dir: str
         Output directory of the child process
-    scratch_path_child: str
+    child_scratch_path: str
         Scratch path to of the child process.
         If `None`, the scratch path of the child processes it will be:
          "[scratch path of parent process]_child_scratch"
-    path_parent_logfile: str
+    parent_logfile_path: str
         Path to the parent processes' logfile
 
     Returns
@@ -74,18 +74,21 @@ def split_runconfig(cfg_in,
 
     # determine the scratch path for the child process
 
-    if not scratch_path_child:
-        scratch_path_child = \
+    if not child_scratch_path:
+        child_scratch_path = \
             os.path.join(cfg_in.groups.product_group.scratch_path,
-                         f'{os.path.basename(output_dir_child)}_child_scratch')
+                         f'{os.path.basename(child_output_dir)}_child_scratch')
 
     # determine the output directory for child process
+    basename_logfile = os.path.basename(parent_logfile_path)
     for burst_id in list_burst_id:
         path_temp_runconfig = os.path.join(cfg_in.scratch_path,
                                            f'burst_runconfig_{burst_id}.yaml')
-        if path_parent_logfile:
-            path_logfile_child = os.path.join(output_dir_child,
-                                              f'{burst_id}.{path_parent_logfile}')
+        if parent_logfile_path:
+            path_logfile_child = os.path.join(child_output_dir,
+                                              burst_id,
+                                              basename_logfile)
+            
         else:
             path_logfile_child = None
 
@@ -110,14 +113,14 @@ def split_runconfig(cfg_in,
                                  'groups',
                                  'product_group',
                                  'output_dir'],
-                                output_dir_child)
+                                child_output_dir)
 
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
                                  'groups',
                                  'product_group',
                                  'scratch_path'],
-                                scratch_path_child)
+                                child_scratch_path)
 
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
@@ -471,15 +474,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     if save_bursts:
         output_path_child = output_dir
-        scratch_path_child = scratch_path
+        child_scratch_path = scratch_path
     else:
         output_path_child = scratch_path
-        scratch_path_child = f'{scratch_path}_child_scratch'
+        child_scratch_path = f'{scratch_path}_child_scratch'
 
     # burst files are saved in scratch dir
     burst_runconfig_list, burst_log_list = split_runconfig(cfg,
                                                            output_path_child,
-                                                           scratch_path_child,
+                                                           child_scratch_path,
                                                            logfile_path)
 
     # determine the number of the processors here
