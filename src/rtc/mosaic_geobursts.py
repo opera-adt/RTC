@@ -162,8 +162,8 @@ def _compute_distance_to_burst_center(image, geotransform):
     length, width = image.shape
     center_of_mass = ndimage.center_of_mass(np.isfinite(image))
 
-    x_vector = np.linspace(0, width, width, dtype=np.float)
-    y_vector = np.linspace(0, length, length, dtype=np.float)
+    x_vector = np.linspace(0, width, width, dtype=np.float32)
+    y_vector = np.linspace(0, length, length, dtype=np.float32)
 
     _, dx, _, _, _, dy = geotransform
 
@@ -423,7 +423,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                 arr_distance_temp = arr_distance[offset_imgy: offset_imgy + length,
                                                  offset_imgx: offset_imgx + width]
                 ind = np.where(np.logical_or(np.isnan(arr_distance_temp),
-                                             arr_new_distance <= arr_distance))
+                                             arr_new_distance <= arr_distance_temp))
 
                 arr_distance_temp[ind] = arr_new_distance[ind]
                 arr_distance[offset_imgy: offset_imgy + length,

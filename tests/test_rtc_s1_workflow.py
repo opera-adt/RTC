@@ -158,7 +158,7 @@ def test_workflow():
                    's1b_los_angeles.tar.gz?download=1')
 
     dataset_dir = os.path.join(test_data_directory, dataset_name)
-    user_runconfig_file = os.path.join(dataset_dir, 'rtc_s1.yaml')
+    user_runconfig_file = os.path.join('runconfigs', 's1b_los_angeles.yaml')
 
     if (FLAG_ALWAYS_DOWNLOAD or not os.path.isdir(dataset_dir) or
             not os.path.isfile(user_runconfig_file)):
@@ -183,7 +183,7 @@ def test_workflow():
     create_logger(log_file, full_log_formatting)
 
     # Get a runconfig dict from command line argumens
-    runconfig_path = os.path.join('data', 's1b_los_angeles', 'rtc_s1.yaml')
+    runconfig_path = os.path.join('runconfigs', 's1b_los_angeles.yaml')
 
     # for output_imagery_format in ['COG', 'HDF5']:
     for output_imagery_format in ['COG']:
