@@ -167,8 +167,11 @@ def create_logger(log_file, full_log_formatting=None):
        logger : logging.Logger
               Logger object
     """
+    if log_file:
+        logfile_directory = os.path.dirname(log_file)
+    else:
+        logfile_directory = None
 
-    logfile_directory = os.path.dirname(log_file)
     if logfile_directory:
         os.makedirs(logfile_directory, exist_ok=True)
     # create logger
