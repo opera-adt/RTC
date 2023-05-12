@@ -167,20 +167,20 @@ def _get_ogr_polygon(min_x, max_y, max_x, min_y, file_srs):
     return file_polygon
 
 
-def get_tile_srs_bbox(tile_min_y_utm, tile_max_y_utm,
-                      tile_min_x_utm, tile_max_x_utm,
+def get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
+                      tile_min_x_projected, tile_max_x_projected,
                       tile_srs, polygon_srs, logger=None):
     """Get tile bounding box for a given spatial reference system (SRS)
 
        Parameters
        ----------
-       tile_min_y_utm: float
+       tile_min_y_projected: float
               Tile minimum Y-coordinate (UTM)
-       tile_max_y_utm: float
+       tile_max_y_projected: float
               Tile maximum Y-coordinate (UTM)
-       tile_min_x_utm: float
+       tile_min_x_projected: float
               Tile minimum X-coordinate (UTM)
-       tile_max_x_utm: float
+       tile_max_x_projected: float
               Tile maximum X-coordinate (UTM)
        tile_srs: osr.SpatialReference
               Tile original spatial reference system (SRS)
@@ -221,13 +221,13 @@ def get_tile_srs_bbox(tile_min_y_utm, tile_max_y_utm,
     tile_x_array = np.zeros((4))
     tile_y_array = np.zeros((4))
     tile_x_array[0], tile_y_array[0], z = transformation.TransformPoint(
-        tile_min_x_utm, tile_max_y_utm, elevation)
+        tile_min_x_projected, tile_max_y_projected, elevation)
     tile_x_array[1], tile_y_array[1], z = transformation.TransformPoint(
-        tile_max_x_utm, tile_max_y_utm, elevation)
+        tile_max_x_projected, tile_max_y_projected, elevation)
     tile_x_array[2], tile_y_array[2], z = transformation.TransformPoint(
-        tile_max_x_utm, tile_min_y_utm, elevation)
+        tile_max_x_projected, tile_min_y_projected, elevation)
     tile_x_array[3], tile_y_array[3], z = transformation.TransformPoint(
-        tile_min_x_utm, tile_min_y_utm, elevation)
+        tile_min_x_projected, tile_min_y_projected, elevation)
     tile_min_y = np.min(tile_y_array)
     tile_max_y = np.max(tile_y_array)
     tile_min_x = np.min(tile_x_array)
@@ -339,10 +339,10 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
     rasters_to_check_dict = {'DEM': (dem_file_description, dem_file)}
 
-    tile_min_x_utm = geogrid.start_x
-    tile_max_y_utm = geogrid.start_y
-    tile_max_x_utm = geogrid.start_x + geogrid.spacing_x * geogrid.width
-    tile_min_y_utm = geogrid.start_y + geogrid.spacing_y * geogrid.length
+    tile_min_x_projected = geogrid.start_x
+    tile_max_y_projected = geogrid.start_y
+    tile_max_x_projected = geogrid.start_x + geogrid.spacing_x * geogrid.width
+    tile_min_y_projected = geogrid.start_y + geogrid.spacing_y * geogrid.length
 
     tile_srs = osr.SpatialReference()
     tile_srs.ImportFromEPSG(geogrid.epsg)
@@ -381,8 +381,8 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
         file_srs = osr.SpatialReference()
         file_srs.ImportFromProj4(file_projection)
         tile_polygon, tile_min_y, tile_max_y, tile_min_x, tile_max_x = \
-            get_tile_srs_bbox(tile_min_y_utm, tile_max_y_utm,
-                              tile_min_x_utm, tile_max_x_utm,
+            get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
+                              tile_min_x_projected, tile_max_x_projected,
                               tile_srs, file_srs)
 
         # Create input ancillary polygon
