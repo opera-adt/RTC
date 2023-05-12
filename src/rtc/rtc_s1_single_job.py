@@ -88,10 +88,14 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     # Get the rdr2geo raster needed for SET computation
     topo_output = {f'{scratch_path}/height.rdr': gdal.GDT_Float64,
                    f'{scratch_path}/incidence_angle.rdr': gdal.GDT_Float32}
-    raster_list = [
-        isce3.io.Raster(fname, rdr_grid.width,
-                        rdr_grid.length, 1, dtype, 'ENVI')
-        for fname, dtype in topo_output.items()]
+
+    raster_list = []
+    for fname, dtype in topo_output.items():
+        topo_output_raster = isce3.io.Raster(fname,
+                                             rdr_grid.width, rdr_grid.length,
+                                             1, dtype, 'ENVI')
+        raster_list.append(topo_output_raster)
+
     height_raster, incidence_raster = raster_list
 
     rdr2geo_obj.topo(dem_raster, x_raster=None, y_raster=None,
