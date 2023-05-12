@@ -1084,6 +1084,10 @@ def run_single_job(cfg: RunConfig):
 
             sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
             geocode_new_isce3_kwargs['sub_swaths'] = sub_swaths
+
+            geocode_new_isce3_kwargs['az_time_correction'] = az_lut
+            geocode_new_isce3_kwargs['slant_range_correction'] = rg_lut
+
             geocode_kwargs['sub_swaths'] = sub_swaths
 
         if apply_shadow_masking:
