@@ -469,7 +469,7 @@ def get_metadata_dict(product_id: str,
             ['radiometric_terrain_correction_algorithm',
              cfg_in.groups.processing.rtc.algorithm_type,
             'Radiometric terrain correction (RTC) algorithm'],
-        'RTC/metadata/processingInformation/algorithms/ISCE3Version':
+        'RTC/metadata/processingInformation/algorithms/isce3Version':
             ['isce3_version', isce3.__version__,
             'Version of the ISCE3 framework used for processing'],
         # 'RTC/metadata/processingInformation/algorithms/RTCVersion':

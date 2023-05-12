@@ -14,7 +14,7 @@ RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
 RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
 
 LIST_EXCLUDE_COMPARISON = \
-    ['//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/ISCE3Version',
+    ['//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/isce3Version',
      '//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/S1ReaderVersion',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/annotationFiles',
      '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/configFiles',
