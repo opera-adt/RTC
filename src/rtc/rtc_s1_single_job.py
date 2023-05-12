@@ -919,8 +919,8 @@ def run_single_job(cfg: RunConfig):
 
         # Calculate geolocation correction LUT
         if cfg.groups.processing.apply_correction_luts:
-            az_step = cfg.groups.processing.correction_lut_azimuth_spacing
-            rg_step = cfg.groups.processing.correction_lut_range_spacing
+            az_step = cfg.groups.processing.correction_lut_azimuth_spacing_in_meters
+            rg_step = cfg.groups.processing.correction_lut_range_spacing_in_meters
             # Calculates the LUTs for one polarization in `burst_pol_dict`
             pol_burst_for_lut = next(iter(burst_pol_dict))
             burst_for_lut = burst_pol_dict[pol_burst_for_lut]
@@ -928,10 +928,7 @@ def run_single_job(cfg: RunConfig):
                                                     dem_raster,
                                                     burst_scratch_path,
                                                     rg_step, az_step)
-        else:
-            rg_lut = isce3.core.LUT2d()
-            az_lut = isce3.core.LUT2d()
-
+        
         # Generate output geocoded burst raster
         geo_burst_raster = isce3.io.Raster(
             geo_burst_filename,
@@ -1082,10 +1079,11 @@ def run_single_job(cfg: RunConfig):
             sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
             geocode_new_isce3_kwargs['sub_swaths'] = sub_swaths
 
+            geocode_kwargs['sub_swaths'] = sub_swaths
+
+        if cfg.groups.processing.apply_correction_luts:
             geocode_new_isce3_kwargs['az_time_correction'] = az_lut
             geocode_new_isce3_kwargs['slant_range_correction'] = rg_lut
-
-            geocode_kwargs['sub_swaths'] = sub_swaths
 
         if apply_shadow_masking:
             # run ISCE3 geocoding
