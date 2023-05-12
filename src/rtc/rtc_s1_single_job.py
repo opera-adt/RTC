@@ -57,7 +57,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
         LUT2d for geolocation correction in slant range and azimuth direction
     '''
 
-    # convert az_step in meters into seconds
+    # approximate conversion of az_step from meters to seconds
     numrow_orbit = burst_in.orbit.position.shape[0]
     vel_mid = burst_in.orbit.velocity[numrow_orbit // 2, :]
     spd_mid = np.linalg.norm(vel_mid)
@@ -67,9 +67,6 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     r = 6371000.0 # geometric mean of WGS84 ellipsoid
 
     az_step_sec = (az_step * alt_mid) / (spd_mid * r)
-    
-
-
     # Bistatic - azimuth direction
     bistatic_delay = burst_in.bistatic_delay(range_step=rg_step, az_step=az_step_sec)
 
