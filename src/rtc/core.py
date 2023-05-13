@@ -341,58 +341,64 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
     geogrid_min_x_projected = geogrid.start_x
     geogrid_max_y_projected = geogrid.start_y
-    geogrid_max_x_projected = geogrid.start_x + geogrid.spacing_x * geogrid.width
-    geogrid_min_y_projected = geogrid.start_y + geogrid.spacing_y * geogrid.length
+    geogrid_max_x_projected = (geogrid.start_x +
+                               geogrid.spacing_x * geogrid.width)
+    geogrid_min_y_projected = (geogrid.start_y +
+                               geogrid.spacing_y * geogrid.length)
 
     geogrid_srs = osr.SpatialReference()
     geogrid_srs.ImportFromEPSG(geogrid.epsg)
 
-    for file_type, (file_description, file_name) in \
+    for ancillary_file_type, \
+        (ancillary_file_description, ancillary_file_name) in \
             rasters_to_check_dict.items():
 
         # check if file was provided
-        if not file_name:
-            error_msg = f'ERROR {file_description} not provided'
+        if not ancillary_file_name:
+            error_msg = f'ERROR {ancillary_file_description} not provided'
             logger.error(error_msg)
             raise ValueError(error_msg)
 
         # check if file exists
-        if not os.path.isfile(file_name):
-            error_msg = f'ERROR {file_description} not found: {file_name}'
+        if not os.path.isfile(ancillary_file_name):
+            error_msg = f'ERROR {ancillary_file_description} not found:'
+            error_msg += f' {ancillary_file_name}'
             logger.error(error_msg)
             raise FileNotFoundError(error_msg)
 
         # test if the reference geogrid is fully covered by the ancillary input
         # by checking all ancillary input vertices are located
         # outside of the reference geogrid.
-        gdal_ds = gdal.Open(file_name, gdal.GA_ReadOnly)
+        ancillary_file_gdal_ds = gdal.Open(ancillary_file_name,
+                                           gdal.GA_ReadOnly)
 
-        file_geotransform = gdal_ds.GetGeoTransform()
-        file_projection = gdal_ds.GetProjection()
-        min_x, dx, _, max_y, _, dy = file_geotransform
-        file_width = gdal_ds.GetRasterBand(1).XSize
-        file_length = gdal_ds.GetRasterBand(1).YSize
+        ancillary_file_geotransform = ancillary_file_gdal_ds.GetGeoTransform()
+        ancillary_file_projection = ancillary_file_gdal_ds.GetProjection()
+        min_x, dx, _, max_y, _, dy = ancillary_file_geotransform
+        ancillary_file_width = ancillary_file_gdal_ds.GetRasterBand(1).XSize
+        ancillary_file_length = ancillary_file_gdal_ds.GetRasterBand(1).YSize
 
-        del gdal_ds
+        del ancillary_file_gdal_ds
 
-        max_x = min_x + file_width * dx
-        min_y = max_y + file_length * dy
+        max_x = min_x + ancillary_file_width * dx
+        min_y = max_y + ancillary_file_length * dy
 
-        file_srs = osr.SpatialReference()
-        file_srs.ImportFromProj4(file_projection)
+        ancillary_file_srs = osr.SpatialReference()
+        ancillary_file_srs.ImportFromProj4(ancillary_file_projection)
         geogrid_polygon, geogrid_min_y, geogrid_max_y, geogrid_min_x, \
             geogrid_max_x = get_geogrid_srs_bbox(
             geogrid_min_y_projected, geogrid_max_y_projected,
             geogrid_min_x_projected, geogrid_max_x_projected,
-            geogrid_srs, file_srs)
+            geogrid_srs, ancillary_file_srs)
 
         # Create input ancillary polygon
-        file_polygon = _get_ogr_polygon(min_x, max_y, max_x, min_y, file_srs)
+        ancillary_file_polygon = _get_ogr_polygon(min_x, max_y, max_x, min_y,
+                                                  ancillary_file_srs)
 
-        coverage_logger_str = file_description + ' coverage'
-        coverage_metadata_str = file_type + '_COVERAGE'
+        coverage_logger_str = ancillary_file_description + ' coverage'
+        coverage_metadata_str = ancillary_file_type + '_COVERAGE'
 
-        if geogrid_polygon.Within(file_polygon):
+        if geogrid_polygon.Within(ancillary_file_polygon):
             # print messages to the user
             logger.info(f'    {coverage_logger_str}: Full')
 
@@ -404,28 +410,29 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
         # If needed, test for antimeridian ("dateline") crossing
         if _antimeridian_crossing_requires_special_handling(
-                file_srs, min_x, geogrid_min_x, geogrid_max_x):
+                ancillary_file_srs, min_x, geogrid_min_x, geogrid_max_x):
 
             logger.info(f'The input RTC-S1 product crosses the antimeridian'
                         ' (dateline). Verifying the'
-                        f' {file_description}: {file_name}')
+                        f' {ancillary_file_description}: {ancillary_file_name}')
 
             # Left side of the antimeridian crossing: -180 -> +180
-            file_polygon_1 = _get_ogr_polygon(-180, 90, max_x, -90, file_srs)
-            intersection_1 = geogrid_polygon.Intersection(file_polygon_1)
-            flag_1_ok = intersection_1.Within(file_polygon)
+            ancillary_file_polygon_1 = _get_ogr_polygon(-180, 90, max_x, -90,
+                                                        ancillary_file_srs)
+            intersection_1 = geogrid_polygon.Intersection(ancillary_file_polygon_1)
+            flag_1_ok = intersection_1.Within(ancillary_file_polygon)
             check_1_str = 'ok' if flag_1_ok else 'fail'
             logger.info(f'    left side (-180 -> +180): {check_1_str}')
 
             # Right side of the antimeridian crossing: +180 -> +360
-            file_polygon_2 = _get_ogr_polygon(
+            ancillary_file_polygon_2 = _get_ogr_polygon(
                 max_x + ANTIMERIDIAN_CROSSING_RIGHT_SIDE_TEST_BUFFER,
-                90, max_x + 360, -90, file_srs)
-            intersection_2 = geogrid_polygon.Intersection(file_polygon_2)
-            file_polygon_2 = _get_ogr_polygon(min_x + 360, max_y,
+                90, max_x + 360, -90, ancillary_file_srs)
+            intersection_2 = geogrid_polygon.Intersection(ancillary_file_polygon_2)
+            ancillary_file_polygon_2 = _get_ogr_polygon(min_x + 360, max_y,
                                               max_x + 360, min_y,
-                                              file_srs)
-            flag_2_ok = intersection_2.Within(file_polygon_2)
+                                              ancillary_file_srs)
+            flag_2_ok = intersection_2.Within(ancillary_file_polygon_2)
             check_2_str = 'ok' if flag_2_ok else 'fail'
             logger.info(f'    right side (+180 -> +360): {check_2_str}')
 
@@ -440,7 +447,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
                 continue
 
         # prepare message to the user
-        msg = f'ERROR the {file_description} with extents'
+        msg = f'ERROR the {ancillary_file_description} with extents'
         msg += f' S/N: [{min_y},{max_y}]'
         msg += f' W/E: [{min_x},{max_x}],'
         msg += ' does not fully cover product geogrid with'
