@@ -299,9 +299,9 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
                            dem_file, geogrid,
                            metadata_dict, logger=None):
     """Check for the existence and coverage of provided ancillary inputs
-       (DEM) wrt. to the HLS tile. The function
+       (e.g., DEM) wrt. to a reference geogrid. The function
        also updates the product's dictionary metadata indicating the coverage
-       of each ancillary input wrt. to the input HLS tile
+       of each ancillary input wrt. to the reference geogrid
 
        Parameters
        ----------
@@ -332,20 +332,20 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
         logger.info(f'    {dem_file_description} coverage:'
                     ' (not tested)')
 
-        # update DSWx-HLS product metadata
+        # update RTC-S1 product metadata
         metadata_dict['DEM_COVERAGE'] = 'NOT_TESTED'
 
         return
 
     rasters_to_check_dict = {'DEM': (dem_file_description, dem_file)}
 
-    tile_min_x_projected = geogrid.start_x
-    tile_max_y_projected = geogrid.start_y
-    tile_max_x_projected = geogrid.start_x + geogrid.spacing_x * geogrid.width
-    tile_min_y_projected = geogrid.start_y + geogrid.spacing_y * geogrid.length
+    geogrid_min_x_projected = geogrid.start_x
+    geogrid_max_y_projected = geogrid.start_y
+    geogrid_max_x_projected = geogrid.start_x + geogrid.spacing_x * geogrid.width
+    geogrid_min_y_projected = geogrid.start_y + geogrid.spacing_y * geogrid.length
 
-    tile_srs = osr.SpatialReference()
-    tile_srs.ImportFromEPSG(geogrid.epsg)
+    geogrid_srs = osr.SpatialReference()
+    geogrid_srs.ImportFromEPSG(geogrid.epsg)
 
     for file_type, (file_description, file_name) in \
             rasters_to_check_dict.items():
@@ -362,9 +362,9 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
             logger.error(error_msg)
             raise FileNotFoundError(error_msg)
 
-        # test if tile is fully covered by the ancillary input
+        # test if the reference geogrid is fully covered by the ancillary input
         # by checking all ancillary input vertices are located
-        # outside of the tile grid.
+        # outside of the reference geogrid.
         gdal_ds = gdal.Open(file_name, gdal.GA_ReadOnly)
 
         file_geotransform = gdal_ds.GetGeoTransform()
@@ -380,10 +380,11 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
         file_srs = osr.SpatialReference()
         file_srs.ImportFromProj4(file_projection)
-        tile_polygon, tile_min_y, tile_max_y, tile_min_x, tile_max_x = \
-            get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
-                              tile_min_x_projected, tile_max_x_projected,
-                              tile_srs, file_srs)
+        geogrid_polygon, geogrid_min_y, geogrid_max_y, geogrid_min_x, \
+            geogrid_max_x = get_geogrid_srs_bbox(
+            geogrid_min_y_projected, geogrid_max_y_projected,
+            geogrid_min_x_projected, geogrid_max_x_projected,
+            geogrid_srs, file_srs)
 
         # Create input ancillary polygon
         file_polygon = _get_ogr_polygon(min_x, max_y, max_x, min_y, file_srs)
@@ -391,11 +392,11 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
         coverage_logger_str = file_description+' coverage'
         coverage_metadata_str = file_type+'_COVERAGE'
 
-        if tile_polygon.Within(file_polygon):
+        if geogrid_polygon.Within(file_polygon):
             # print messages to the user
             logger.info(f'    {coverage_logger_str}: Full')
 
-            # update DSWx-HLS product metadata
+            # update RTC-S1 product metadata
             metadata_dict[coverage_metadata_str] = 'FULL'
             continue
 
@@ -403,15 +404,15 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
         # If needed, test for antimeridian ("dateline") crossing
         if _antimeridian_crossing_requires_special_handling(
-                file_srs, min_x, tile_min_x, tile_max_x):
+                file_srs, min_x, geogrid_min_x, geogrid_max_x):
 
-            logger.info(f'The input HLS product crosses the antimeridian'
+            logger.info(f'The input RTC-S1 product crosses the antimeridian'
                         ' (dateline). Verifying the'
                         f' {file_description}: {file_name}')
 
             # Left side of the antimeridian crossing: -180 -> +180
             file_polygon_1 = _get_ogr_polygon(-180, 90, max_x, -90, file_srs)
-            intersection_1 = tile_polygon.Intersection(file_polygon_1)
+            intersection_1 = geogrid_polygon.Intersection(file_polygon_1)
             flag_1_ok = intersection_1.Within(file_polygon)
             check_1_str = 'ok' if flag_1_ok else 'fail'
             logger.info(f'    left side (-180 -> +180): {check_1_str}')
@@ -420,7 +421,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
             file_polygon_2 = _get_ogr_polygon(
                 max_x + ANTIMERIDIAN_CROSSING_RIGHT_SIDE_TEST_BUFFER,
                 90, max_x + 360, -90, file_srs)
-            intersection_2 = tile_polygon.Intersection(file_polygon_2)
+            intersection_2 = geogrid_polygon.Intersection(file_polygon_2)
             file_polygon_2 = _get_ogr_polygon(min_x + 360, max_y,
                                               max_x + 360, min_y,
                                               file_srs)
@@ -433,7 +434,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
                 logger.info(f'    {coverage_logger_str}:'
                             ' Full (with antimeridian crossing')
 
-                # update DSWx-HLS product metadata
+                # update RTC-S1 product metadata
                 metadata_dict[coverage_metadata_str] = \
                     'FULL_WITH_ANTIMERIDIAN_CROSSING'
                 continue
@@ -442,9 +443,9 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
         msg = f'ERROR the {file_description} with extents'
         msg += f' S/N: [{min_y},{max_y}]'
         msg += f' W/E: [{min_x},{max_x}],'
-        msg += ' does not fully cover input tile with'
-        msg += f' extents S/N: [{tile_min_y},{tile_max_y}]'
-        msg += f' W/E: [{tile_min_x},{tile_max_x}]'
+        msg += ' does not fully cover product geogrid with'
+        msg += f' extents S/N: [{geogrid_min_y},{geogrid_max_y}]'
+        msg += f' W/E: [{geogrid_min_x},{geogrid_max_x}]'
 
         logger.error(msg)
         raise ValueError(msg)
