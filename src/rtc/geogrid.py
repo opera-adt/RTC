@@ -353,8 +353,6 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
     x_snap_mosaic = mosaic_geogrid_dict['x_snap']
     y_snap_mosaic = mosaic_geogrid_dict['y_snap']
 
-
-
     bursts_geogrid_dict = geo_dict['bursts_geogrid']
     epsg_bursts = bursts_geogrid_dict['output_epsg']
     xmin_bursts = bursts_geogrid_dict['top_left']['x']
@@ -393,7 +391,7 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
     srs_bursts_majority = osr.SpatialReference()
     srs_bursts_majority.ImportFromEPSG(epsg_bursts_majority)
 
-    if epsg_mosaic is None or epsg_mosaic == epsg_bursts_majority:
+    if epsg_mosaic is None:
         epsg_mosaic = epsg_bursts_majority
 
     product_mosaic_str = 'Mosaic'
