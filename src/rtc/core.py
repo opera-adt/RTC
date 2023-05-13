@@ -9,6 +9,9 @@ import tempfile
 
 from osgeo import gdal, osr, ogr
 
+# Buffer for antimeridian crossing test (33 arcsec: ~ 1km)
+ANTIMERIDIAN_CROSSING_RIGHT_SIDE_TEST_BUFFER = 33 * 0.0002777 
+
 class Logger(object):
     """
     Class to redirect stdout and stderr to the logger
