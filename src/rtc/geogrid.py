@@ -298,11 +298,9 @@ def _check_pixel_spacing(y_spacing_positive, x_spacing, epsg, product_str):
         err_str += f' be positive (x_spacing: {x_spacing})'
         logger.error(err_str)
         raise ValueError(err_str)
-    elif x_spacing is None and not epsg:
-        x_spacing = None
-    elif x_spacing is None and epsg == 4326:
+    elif x_spacing is None and epsg and epsg == 4326:
         x_spacing = 0.00027
-    elif x_spacing is None:
+    elif x_spacing is None and epsg:
         x_spacing = 30
 
     # Check spacing in Y direction
@@ -311,13 +309,11 @@ def _check_pixel_spacing(y_spacing_positive, x_spacing, epsg, product_str):
         err_str += f' be positive (y_spacing: {y_spacing_positive})'
         logger.error(err_str)
         raise ValueError(err_str)
-    elif y_spacing_positive is None and not epsg:
-        y_spacing = None
-    elif y_spacing_positive is None and epsg == 4326:
+    elif y_spacing_positive is None and epsg and epsg == 4326:
         y_spacing = -0.00027
-    elif y_spacing_positive is None:
+    elif y_spacing_positive is None and epsg:
         y_spacing = -30
-    else:
+    elif y_spacing_positive is not None:
         y_spacing = - y_spacing_positive
 
     return y_spacing, x_spacing
