@@ -389,8 +389,8 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
         # Create input ancillary polygon
         file_polygon = _get_ogr_polygon(min_x, max_y, max_x, min_y, file_srs)
 
-        coverage_logger_str = file_description+' coverage'
-        coverage_metadata_str = file_type+'_COVERAGE'
+        coverage_logger_str = file_description + ' coverage'
+        coverage_metadata_str = file_type + '_COVERAGE'
 
         if geogrid_polygon.Within(file_polygon):
             # print messages to the user
