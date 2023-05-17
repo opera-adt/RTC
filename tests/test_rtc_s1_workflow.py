@@ -185,7 +185,8 @@ def test_workflow():
     create_logger(log_file, full_log_formatting)
 
     # Get a runconfig dict from command line argumens
-    runconfig_path = os.path.join('runconfigs', 's1b_los_angeles.yaml')
+    runconfig_path = os.path.join(tests_dir, 'runconfigs',
+                                  's1b_los_angeles.yaml')
 
     # for output_imagery_format in ['COG', 'HDF5']:
     for output_imagery_format in ['COG']:
