@@ -435,10 +435,6 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
             y_spacing_bursts = -30
 
         # Initialize geogrid with estimated boundaries
-        geogrid_burst = isce3.product.bbox_to_geogrid(
-            radar_grid, orbit, isce3.core.LUT2d(), x_spacing_bursts,
-            y_spacing_bursts, epsg_burst)
-
         width = int(np.ceil((xmax - xmin) / x_spacing_bursts))
         length = int(np.ceil((ymin - ymax) / y_spacing_bursts))
 
