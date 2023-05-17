@@ -23,7 +23,7 @@ from rtc.mosaic_geobursts import (mosaic_single_output_file,
                                   mosaic_multiple_output_files)
 from rtc.core import create_logger, save_as_cog, check_ancillary_inputs
 from rtc.version import VERSION as SOFTWARE_VERSION
-from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
+from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          get_metadata_dict, all_metadata_dict_to_geotiff_metadata_dict)
 
 from rtc.runconfig import RunConfig, load_parameters
@@ -605,7 +605,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if save_nlooks:
             if save_secondary_layers_as_hdf5:
                 nlooks_file = (f'NETCDF:"{burst_hdf5_in_output}":'
-                               '/science/SENTINEL1/RTC/grids/frequencyA/'
+                               '/data/frequencyA/'
                                'numberOfLooks')
             else:
                 nlooks_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
@@ -621,7 +621,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if save_rtc_anf:
             if save_secondary_layers_as_hdf5:
                 rtc_anf_file = (f'NETCDF:"{burst_hdf5_in_output}":'
-                                '/science/SENTINEL1/RTC/grids/frequencyA/'
+                                '/data/frequencyA/'
                                 'RTCAreaNormalizationFactor')
             else:
                 rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
@@ -662,7 +662,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 # Take the layover shadow mask from HDF5 file if not exists
                 if save_secondary_layers_as_hdf5:
                     layover_shadow_mask_file = (f'NETCDF:{burst_hdf5_in_output}:'
-                                                '/science/SENTINEL1/RTC/grids/'
+                                                '/data/'
                                                 'frequencyA/layoverShadowMask')
 
                 if save_layover_shadow_mask:
@@ -681,7 +681,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         for pol in pol_list:
             if save_imagery_as_hdf5:
                 geo_burst_pol_filename = (f'NETCDF:{burst_hdf5_in_output}:'
-                                          '/science/SENTINEL1/RTC/grids/'
+                                          '/data/'
                                           f'frequencyA/{pol}')
             else:
                 geo_burst_pol_filename = \
@@ -878,8 +878,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
 
-            sensing_start_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
-            sensing_end_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
+            sensing_start_ds = '/identification/zeroDopplerStartTime'
+            sensing_end_ds = '/identification/zeroDopplerEndTime'
             if sensing_start_ds in hdf5_mosaic_obj:
                 del hdf5_mosaic_obj[sensing_start_ds]
             if sensing_end_ds in hdf5_mosaic_obj:

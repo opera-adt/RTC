@@ -21,7 +21,7 @@ from rtc.runconfig import RunConfig
 from rtc.mosaic_geobursts import (mosaic_single_output_file,
                                   mosaic_multiple_output_files)
 from rtc.core import create_logger, save_as_cog, check_ancillary_inputs
-from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
+from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          get_metadata_dict,
                          all_metadata_dict_to_geotiff_metadata_dict)
 from rtc.version import VERSION as SOFTWARE_VERSION
@@ -1209,7 +1209,7 @@ def run_single_job(cfg: RunConfig):
         else:
             for pol in pol_list:
                 geo_burst_pol_filename = (f'NETCDF:{output_hdf5_file_burst}:'
-                                          '/science/SENTINEL1/RTC/grids/'
+                                          '/data/'
                                           f'frequencyA/{pol}')
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
@@ -1423,8 +1423,8 @@ def run_single_job(cfg: RunConfig):
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
 
-            sensing_start_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
-            sensing_end_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
+            sensing_start_ds = f'/identification/zeroDopplerStartTime'
+            sensing_end_ds = f'/identification/zeroDopplerEndTime'
             if sensing_start_ds in hdf5_mosaic_obj:
                 del hdf5_mosaic_obj[sensing_start_ds]
             if sensing_end_ds in hdf5_mosaic_obj:
