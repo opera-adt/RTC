@@ -58,7 +58,7 @@ def check_reprojection(geogrid_mosaic,
         rasters_to_check += [raster_nlooks]
 
     for raster in rasters_to_check:
-        x0, dx, _, y0, _, dy = geotransform = raster.GetGeoTransform()
+        x0, dx, _, y0, _, dy = raster.GetGeoTransform()
         projection = raster.GetProjection()
 
         # check spacing
