@@ -110,6 +110,14 @@ runconfig:
             # Apply thermal noise correction
             apply_thermal_noise_correction: True
 
+            # Compute geolocation correction LUTs and apply it
+            apply_correction_luts: True
+
+            # slant range spacing of the correction LUT in meters
+            correction_lut_range_spacing_in_meters: 120
+            # Azimuth time spacing of the correction LUT in meters
+            correction_lut_azimuth_spacing_in_meters: 120
+
             # OPTIONAL - Apply RTC
             apply_rtc: True
 

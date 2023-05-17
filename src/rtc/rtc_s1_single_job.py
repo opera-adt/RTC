@@ -30,6 +30,113 @@ import matplotlib.image as mpimg
 logger = logging.getLogger('rtc_s1')
 
 
+def compute_correction_lut(burst_in, dem_raster, scratch_path,
+                           rg_step=120,
+                           az_step=120):
+    '''
+    Compute lookup table for geolocation correction.
+    Applied corrections are: bistatic delay (azimuth),
+                             static troposphere delay (range)
+
+    Parameters
+    ----------
+    burst_in: Sentinel1BurstSlc
+        Input burst SLC
+    dem_raster: isce3.io.raster
+        DEM to run rdr2geo
+    scratch_path: str
+        Scratch path where the radargrid rasters will be saved
+    rg_step: float
+        LUT spacing in slant range. Unit: meters
+    az_step: float
+        LUT spacing in azimth direction. Unit: meters
+
+    Returns
+    -------
+    rg_lut, az_lut: isce3.core.LUT2d
+        LUT2d for geolocation correction in slant range and azimuth direction
+    '''
+
+    # approximate conversion of az_step from meters to seconds
+    numrow_orbit = burst_in.orbit.position.shape[0]
+    vel_mid = burst_in.orbit.velocity[numrow_orbit // 2, :]
+    spd_mid = np.linalg.norm(vel_mid)
+    pos_mid = burst_in.orbit.position[numrow_orbit // 2, :]
+    alt_mid = np.linalg.norm(pos_mid)
+
+    r = 6371000.0 # geometric mean of WGS84 ellipsoid
+
+    az_step_sec = (az_step * alt_mid) / (spd_mid * r)
+    # Bistatic - azimuth direction
+    bistatic_delay = burst_in.bistatic_delay(range_step=rg_step, az_step=az_step_sec)
+
+    # Calculate rdr2geo rasters
+    epsg = dem_raster.get_epsg()
+    proj = isce3.core.make_projection(epsg)
+    ellipsoid = proj.ellipsoid
+
+    rdr_grid = burst_in.as_isce3_radargrid(az_step=az_step_sec,
+                                           rg_step=rg_step)
+
+    grid_doppler = isce3.core.LUT2d()
+
+    # Initialize the rdr2geo object
+    rdr2geo_obj = isce3.geometry.Rdr2Geo(rdr_grid, burst_in.orbit,
+                                         ellipsoid, grid_doppler,
+                                         threshold=1.0e-8)
+
+    # Get the rdr2geo raster needed for SET computation
+    topo_output = {f'{scratch_path}/height.rdr': gdal.GDT_Float64,
+                   f'{scratch_path}/incidence_angle.rdr': gdal.GDT_Float32}
+
+    raster_list = []
+    for fname, dtype in topo_output.items():
+        topo_output_raster = isce3.io.Raster(fname,
+                                             rdr_grid.width, rdr_grid.length,
+                                             1, dtype, 'ENVI')
+        raster_list.append(topo_output_raster)
+
+    height_raster, incidence_raster = raster_list
+
+    rdr2geo_obj.topo(dem_raster, x_raster=None, y_raster=None,
+                     height_raster=height_raster,
+                     incidence_angle_raster=incidence_raster)
+
+    height_raster.close_dataset()
+    incidence_raster.close_dataset()
+
+    # Load the lon / lat / hgt value from the raster
+    height_arr =\
+        gdal.Open(f'{scratch_path}/height.rdr', gdal.GA_ReadOnly).ReadAsArray()
+    incidence_angle_arr =\
+        gdal.Open(f'{scratch_path}/incidence_angle.rdr', gdal.GA_ReadOnly).ReadAsArray()
+
+    # static troposphere delay - range direction
+    # reference:
+    # Breit et al., 2010, TerraSAR-X SAR Processing and Products,
+    # IEEE Transactions on Geoscience and Remote Sensing, 48(2), 727-740.
+    # DOI: 10.1109/TGRS.2009.2035497
+    zenith_path_delay  = 2.3
+    reference_height = 6000.0
+    tropo = (zenith_path_delay
+             / np.cos(np.deg2rad(incidence_angle_arr))
+             * np.exp(-1 * height_arr / reference_height))
+
+    # Prepare the computation results into LUT2d
+    az_lut = isce3.core.LUT2d(bistatic_delay.x_start,
+                              bistatic_delay.y_start,
+                              bistatic_delay.x_spacing,
+                              bistatic_delay.y_spacing,
+                              -bistatic_delay.data)
+    
+    rg_lut = isce3.core.LUT2d(bistatic_delay.x_start,
+                              bistatic_delay.y_start,
+                              bistatic_delay.x_spacing,
+                              bistatic_delay.y_spacing,
+                              tropo)
+
+    return rg_lut, az_lut
+
 
 def save_browse(imagery_list, browse_image_filename,
                 pol_list, browse_image_height, browse_image_width,
@@ -833,6 +940,18 @@ def run_single_job(cfg: RunConfig):
             f'{burst_scratch_path}/{burst_product_id}.{imagery_extension}'
         temp_files_list.append(geo_burst_filename)
 
+        # Calculate geolocation correction LUT
+        if cfg.groups.processing.apply_correction_luts:
+            az_step = cfg.groups.processing.correction_lut_azimuth_spacing_in_meters
+            rg_step = cfg.groups.processing.correction_lut_range_spacing_in_meters
+            # Calculates the LUTs for one polarization in `burst_pol_dict`
+            pol_burst_for_lut = next(iter(burst_pol_dict))
+            burst_for_lut = burst_pol_dict[pol_burst_for_lut]
+            rg_lut, az_lut = compute_correction_lut(burst_for_lut,
+                                                    dem_raster,
+                                                    burst_scratch_path,
+                                                    rg_step, az_step)
+        
         # Generate output geocoded burst raster
         geo_burst_raster = isce3.io.Raster(
             geo_burst_filename,
@@ -982,7 +1101,12 @@ def run_single_job(cfg: RunConfig):
 
             sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
             geocode_new_isce3_kwargs['sub_swaths'] = sub_swaths
+
             geocode_kwargs['sub_swaths'] = sub_swaths
+
+        if cfg.groups.processing.apply_correction_luts:
+            geocode_new_isce3_kwargs['az_time_correction'] = az_lut
+            geocode_new_isce3_kwargs['slant_range_correction'] = rg_lut
 
         if apply_shadow_masking:
             # run ISCE3 geocoding
