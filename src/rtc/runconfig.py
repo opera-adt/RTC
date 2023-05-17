@@ -132,7 +132,8 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
             logger.error(err_str)
             raise yamale.YamaleError(err_str) from yamale_err
     else:
-        raise FileNotFoundError
+        error_msg = f'ERROR file not found: {yaml_path}'
+        raise FileNotFoundError(error_msg)
 
     # validate yaml file taken from command line
     try:
