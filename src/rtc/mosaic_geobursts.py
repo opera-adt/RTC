@@ -325,8 +325,8 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         else:
 
             # calculate the burst RTC's offset wrt. the output mosaic in the image coordinate
-            offset_imgx = int((list_geo_transform[i,0] - xmin_mosaic) / posting_x + 0.5)
-            offset_imgy = int((list_geo_transform[i,3] - ymax_mosaic) / posting_y + 0.5)
+            offset_imgx = int((list_geo_transform[i, 0] - xmin_mosaic) / posting_x + 0.5)
+            offset_imgy = int((list_geo_transform[i, 3] - ymax_mosaic) / posting_y + 0.5)
 
         if verbose:
             print(f'        image offset (x, y): ({offset_imgx}, {offset_imgy})')
@@ -343,7 +343,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
 
         for i_band in range(num_bands):
 
-            band_ds = rtc_image_gdal_ds.GetRasterBand(i_band+1)
+            band_ds = rtc_image_gdal_ds.GetRasterBand(i_band + 1)
             arr_rtc = band_ds.ReadAsArray()
             if i_band == 0:
                 length, width = arr_rtc.shape
