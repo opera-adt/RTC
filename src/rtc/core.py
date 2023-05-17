@@ -178,13 +178,13 @@ def get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
        Parameters
        ----------
        tile_min_y_projected: float
-              Tile minimum Y-coordinate (UTM)
+              Tile minimum Y-coordinate
        tile_max_y_projected: float
-              Tile maximum Y-coordinate (UTM)
+              Tile maximum Y-coordinate
        tile_min_x_projected: float
-              Tile minimum X-coordinate (UTM)
+              Tile minimum X-coordinate
        tile_max_x_projected: float
-              Tile maximum X-coordinate (UTM)
+              Tile maximum X-coordinate
        tile_srs: osr.SpatialReference
               Tile original spatial reference system (SRS)
        polygon_srs: osr.SpatialReference
@@ -389,7 +389,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
         ancillary_file_srs = osr.SpatialReference()
         ancillary_file_srs.ImportFromProj4(ancillary_file_projection)
         geogrid_polygon, geogrid_min_y, geogrid_max_y, geogrid_min_x, \
-            geogrid_max_x = get_geogrid_srs_bbox(
+            geogrid_max_x = get_tile_srs_bbox(
             geogrid_min_y_projected, geogrid_max_y_projected,
             geogrid_min_x_projected, geogrid_max_x_projected,
             geogrid_srs, ancillary_file_srs)
