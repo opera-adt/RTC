@@ -325,8 +325,8 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         else:
 
             # calculate the burst RTC's offset wrt. the output mosaic in the image coordinate
-            offset_imgx = int((list_geo_transform[i,0] - xmin_mosaic) / posting_x + 0.5)
-            offset_imgy = int((list_geo_transform[i,3] - ymax_mosaic) / posting_y + 0.5)
+            offset_imgx = int((list_geo_transform[i, 0] - xmin_mosaic) / posting_x + 0.5)
+            offset_imgy = int((list_geo_transform[i, 3] - ymax_mosaic) / posting_y + 0.5)
 
         if verbose:
             print(f'        image offset (x, y): ({offset_imgx}, {offset_imgy})')
