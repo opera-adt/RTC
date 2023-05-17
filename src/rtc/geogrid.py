@@ -324,7 +324,7 @@ def _check_pixel_spacing(y_spacing_positive, x_spacing, epsg, product_str):
 
 def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
     '''
-    Compute frame and bursts geogrids
+    Compute frame and bursts geogrids based on burst database
 
     Parameters
     ----------
@@ -523,6 +523,7 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
                                           y_snap_mosaic)
     return geogrid_mosaic_snapped, geogrids_dict
 
+
 def generate_geogrids(bursts, geo_dict, mosaic_dict):
     '''
     Compute frame and bursts geogrids
@@ -545,8 +546,6 @@ def generate_geogrids(bursts, geo_dict, mosaic_dict):
     geogrids_dict: dict
         Dict containing bursts' geogrids indexed by burst_id
     '''
-
-
     mosaic_geogrid_dict = mosaic_dict['mosaic_geogrid']
     epsg_mosaic = mosaic_geogrid_dict['output_epsg']
     xmin_mosaic = mosaic_geogrid_dict['top_left']['x']
@@ -557,7 +556,6 @@ def generate_geogrids(bursts, geo_dict, mosaic_dict):
     ymin_mosaic = mosaic_geogrid_dict['bottom_right']['y']
     x_snap_mosaic = mosaic_geogrid_dict['x_snap']
     y_snap_mosaic = mosaic_geogrid_dict['y_snap']
-
 
     bursts_geogrid_dict = geo_dict['bursts_geogrid']
     epsg_bursts = bursts_geogrid_dict['output_epsg']
@@ -605,10 +603,6 @@ def generate_geogrids(bursts, geo_dict, mosaic_dict):
     y_spacing_bursts, x_spacing_bursts = _check_pixel_spacing(
         y_spacing_positive_bursts, x_spacing_bursts,
         epsg_bursts, product_burst_str)
-
-
-
-
 
     geogrids_dict = {}
     for burst_id, burst_pol in bursts.items():
