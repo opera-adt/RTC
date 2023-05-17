@@ -423,6 +423,7 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
         else:
             epsg_burst = epsg_bursts
 
+        # If burst X/Y pixel spacings are not set, use default values (~30 m)
         if x_spacing_bursts is None and epsg_burst == 4326:
             x_spacing_bursts = SECONDS_IN_DEG
         elif x_spacing_bursts is None:
