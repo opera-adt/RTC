@@ -195,6 +195,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                 description_list.append(
                     raster_in.GetRasterBand(i_band+1).GetDescription())
 
+        # Close GDAL dataset
         raster_in = None
 
     if geogrid_in is None:
