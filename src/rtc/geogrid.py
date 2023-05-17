@@ -452,14 +452,19 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
                           x_spacing_bursts, y_spacing_bursts)
 
         # Snap coordinates
-        geogrid = snap_geogrid(geogrid_burst, x_snap_bursts, y_snap_bursts)
+        geogrid_burst_snapped = snap_geogrid(geogrid_burst, x_snap_bursts,
+                                             y_snap_bursts)
 
         # Final burst coordinates
-        geogrids_dict[burst_id] = geogrid
-        xmin_burst = geogrid.start_x
-        ymax_burst = geogrid.start_y
-        xmax_burst = geogrid.start_x + geogrid.spacing_x * geogrid.width
-        ymin_burst = geogrid.start_y + geogrid.spacing_y * geogrid.length
+        geogrids_dict[burst_id] = geogrid_burst_snapped
+        xmin_burst = geogrid_burst_snapped.start_x
+        ymax_burst = geogrid_burst_snapped.start_y
+        xmax_burst = (geogrid_burst_snapped.start_x +
+                      geogrid_burst_snapped.spacing_x *
+                      geogrid_burst_snapped.width)
+        ymin_burst = (geogrid_burst_snapped.start_y +
+                      geogrid_burst_snapped.spacing_y *
+                      geogrid_burst_snapped.length)
 
         # Update bursts envelope.
         # We use EPSG bursts majority because the bursts datatabase
@@ -514,8 +519,9 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
                       y_spacing_mosaic)
 
     # Snap coordinates
-    geogrid_mosaic = snap_geogrid(geogrid_mosaic, x_snap_mosaic, y_snap_mosaic)
-    return geogrid_mosaic, geogrids_dict
+    geogrid_mosaic_snapped = snap_geogrid(geogrid_mosaic, x_snap_mosaic,
+                                          y_snap_mosaic)
+    return geogrid_mosaic_snapped, geogrids_dict
 
 
 
@@ -649,18 +655,21 @@ def generate_geogrids(bursts, geo_dict, mosaic_dict):
         check_snap_values(x_snap_bursts, y_snap_bursts, x_spacing_bursts,
                           y_spacing_bursts)
         # Snap coordinates
-        geogrid = snap_geogrid(geogrid_burst, x_snap_bursts, y_snap_bursts)
+        geogrid_snapped = snap_geogrid(geogrid_burst, x_snap_bursts,
+                                       y_snap_bursts)
 
-        xmin_all_bursts = min([xmin_all_bursts, geogrid.start_x])
-        ymax_all_bursts = max([ymax_all_bursts, geogrid.start_y])
+        xmin_all_bursts = min([xmin_all_bursts, geogrid_snapped.start_x])
+        ymax_all_bursts = max([ymax_all_bursts, geogrid_snapped.start_y])
         xmax_all_bursts = max([xmax_all_bursts,
-                                geogrid.start_x + geogrid.spacing_x *
-                                geogrid.width])
+                                geogrid_snapped.start_x +
+                                geogrid_snapped.spacing_x *
+                                geogrid_snapped.width])
         ymin_all_bursts = min([ymin_all_bursts,
-                                geogrid.start_y + geogrid.spacing_y *
-                                geogrid.length])
+                                geogrid_snapped.start_y +
+                                geogrid_snapped.spacing_y *
+                                geogrid_snapped.length])
 
-        geogrids_dict[burst_id] = geogrid
+        geogrids_dict[burst_id] = geogrid_snapped
 
     if xmin_mosaic is None:
         xmin_mosaic = xmin_all_bursts
@@ -682,8 +691,8 @@ def generate_geogrids(bursts, geo_dict, mosaic_dict):
                       y_spacing_mosaic)
 
     # Snap coordinates
-    geogrid_all = snap_geogrid(geogrid_all, x_snap_mosaic, y_snap_mosaic)
-    return geogrid_all, geogrids_dict
+    geogrid_all_snapped = snap_geogrid(geogrid_all, x_snap_mosaic, y_snap_mosaic)
+    return geogrid_all_snapped, geogrids_dict
 
 
 def geogrid_as_dict(grid):
