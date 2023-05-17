@@ -14,6 +14,9 @@ from rtc.core import get_tile_srs_bbox
 
 logger = logging.getLogger('rtc_s1')
 
+# 1 arcsec (not using 1.0/3600.0 to avoid repeating decimals)
+SECONDS_IN_DEG = 0.0002777
+
 
 def assign_check_geogrid(geogrid, xmin=None, ymax=None,
                          xmax=None, ymin=None):
@@ -299,7 +302,7 @@ def _check_pixel_spacing(y_spacing_positive, x_spacing, epsg, product_str):
         logger.error(err_str)
         raise ValueError(err_str)
     elif x_spacing is None and epsg and epsg == 4326:
-        x_spacing = 0.00027
+        x_spacing = SECONDS_IN_DEG
     elif x_spacing is None and epsg:
         x_spacing = 30
 
@@ -310,7 +313,7 @@ def _check_pixel_spacing(y_spacing_positive, x_spacing, epsg, product_str):
         logger.error(err_str)
         raise ValueError(err_str)
     elif y_spacing_positive is None and epsg and epsg == 4326:
-        y_spacing = -0.00027
+        y_spacing = -SECONDS_IN_DEG
     elif y_spacing_positive is None and epsg:
         y_spacing = -30
     elif y_spacing_positive is not None:
@@ -418,12 +421,12 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
             epsg_burst = epsg_bursts
 
         if x_spacing_bursts is None and epsg_burst == 4326:
-            x_spacing_bursts = 0.00027
+            x_spacing_bursts = SECONDS_IN_DEG
         elif x_spacing_bursts is None:
             x_spacing_bursts = 30
 
         if y_spacing_bursts is None and epsg_burst == 4326:
-            y_spacing_bursts = -0.00027
+            y_spacing_bursts = -SECONDS_IN_DEG
         elif y_spacing_bursts is None:
             y_spacing_bursts = -30
 
