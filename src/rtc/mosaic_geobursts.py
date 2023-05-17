@@ -395,11 +395,9 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                             offset_imgy: offset_imgy + length,
                             offset_imgx: offset_imgx + width] = arr_temp
 
-
         rtc_image_gdal_ds = None
         nlooks_gdal_ds = None
  
-
     if mosaic_mode.lower() == 'average':
         # Mode: average
         for i_band in range(num_bands):
@@ -423,8 +421,6 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         'posting_y': posting_y
     }
     return mosaic_dict
-
-
 
 
 def mosaic_single_output_file(list_rtc_images, list_nlooks, geo_filename,
@@ -487,7 +483,6 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, geo_filename,
         gdal_band = raster_out.GetRasterBand(i_band+1)
         gdal_band.WriteArray(arr_numerator[i_band])
         gdal_band.SetDescription(description_list[i_band])
-
 
 
 def mosaic_multiple_output_files(
