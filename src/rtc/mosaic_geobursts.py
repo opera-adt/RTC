@@ -186,9 +186,9 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
             num_bands = raster_in.RasterCount
 
         elif num_bands != raster_in.RasterCount:
-            raise ValueError(f'ERROR the file: {os.path.basename(path_rtc)}'
+            raise ValueError(f'ERROR: the file "{os.path.basename(path_rtc)}"'
                              f' has {raster_in.RasterCount} bands. Expected:'
-                             f' {num_bands}') 
+                             f' {num_bands}.') 
 
         if len(description_list) == 0:
             for i_band in range(num_bands):
