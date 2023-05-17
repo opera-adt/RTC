@@ -423,7 +423,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
     return mosaic_dict
 
 
-def mosaic_single_output_file(list_rtc_images, list_nlooks, geo_filename,
+def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
                               mosaic_mode, scratch_dir='', geogrid_in=None,
                               temp_files_list=None, verbose=True):
     '''
@@ -435,7 +435,7 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, geo_filename,
             List of the path to the rtc geobursts
         list_nlooks: list
             List of the nlooks raster that corresponds to list_rtc
-        geo_filename: str
+        mosaic_filename: str
             Path to the output mosaic
         scratch_dir: str (optional)
             Directory for temporary files
@@ -472,7 +472,7 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, geo_filename,
 
     # Write out the array
     drv_out = gdal.GetDriverByName('Gtiff')
-    raster_out = drv_out.Create(geo_filename,
+    raster_out = drv_out.Create(mosaic_filename,
                                 width, length, num_bands,
                                 datatype_mosaic)
 
