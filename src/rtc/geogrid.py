@@ -341,8 +341,8 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
 
     Returns
     -------
-    geogrid_all: isce3.product.GeoGridParameters
-        Frame geogrid
+    geogrid_mosaic_snapped: isce3.product.GeoGridParameters
+        Mosaic geogrid
     geogrids_dict: dict
         Dict containing bursts geogrids indexed by burst_id
     '''
@@ -523,11 +523,6 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
                                           y_snap_mosaic)
     return geogrid_mosaic_snapped, geogrids_dict
 
-
-
-
-
-
 def generate_geogrids(bursts, geo_dict, mosaic_dict):
     '''
     Compute frame and bursts geogrids
@@ -545,8 +540,8 @@ def generate_geogrids(bursts, geo_dict, mosaic_dict):
 
     Returns
     -------
-    geogrid_all: isce3.product.GeoGridParameters
-        Frame geogrid
+    geogrid_all_snapped: isce3.product.GeoGridParameters
+        Mosaic geogrid
     geogrids_dict: dict
         Dict containing bursts' geogrids indexed by burst_id
     '''
