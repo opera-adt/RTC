@@ -333,6 +333,9 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
     geo_dict: dict
         Dictionary containing runconfig processing.geocoding
         parameters
+    mosaic_dict: dict
+        Dictionary containing runconfig processing.mosaicking
+        parameters
     burst_db_file : str
         Location of burst database sqlite file
 
@@ -532,6 +535,9 @@ def generate_geogrids(bursts, geo_dict, mosaic_dict):
         List of S-1 burst SLC objects
     geo_dict: dict
         Dictionary containing runconfig processing.geocoding
+        parameters
+    mosaic_dict: dict
+        Dictionary containing runconfig processing.mosaicking
         parameters
 
     Returns
