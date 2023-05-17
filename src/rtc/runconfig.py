@@ -215,7 +215,7 @@ def validate_group_dict(group_cfg: dict) -> None:
     helpers.check_write_dir(product_group['scratch_path'])
 
 
-def runconfig_to_bursts(cfg: SimpleNamespace) -> (list[Sentinel1BurstSlc], str):
+def runconfig_to_bursts(cfg: SimpleNamespace):
     '''Return bursts based on parameters in given runconfig
 
     Parameters
