@@ -100,49 +100,6 @@ def check_reprojection(geogrid_mosaic,
     return flag_requires_reprojection
 
 
-def update_coordinates_to_epsg(coordinates_list, epsg):
-    '''
-    Update list of coordinates from EPSG4326 (geographic) to another
-    EPSG code
-
-    Parameters:
-    -----------
-       coordinates_list: list((float, float))
-           List of coordinates, i.e., list of tuples (y, x)
-       epsg: int
-            EPSG code
-
-    Returns
-       output_coordinate_list : list((float, float))
-           List of coordinates , i.e., list of tuples (y, x), in given EPSG code
-    '''
-
-    srs_reference = osr.SpatialReference()
-    srs_reference.ImportFromEPSG(4326)
-
-    srs_mosaic = osr.SpatialReference()
-    srs_mosaic.ImportFromEPSG(epsg)
-
-    if srs_mosaic.IsSame(srs_reference):
-        return coordinates_list
-
-    if srs_mosaic.IsGeographic():
-        try:
-            srs_mosaic.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
-        except AttributeError:
-            pass
-
-    transformation = osr.CoordinateTransformation(srs_reference, srs_mosaic)
-
-    output_coordinate_list = []
-    for (y, x) in coordinates_list:
-        print('point input:', y, x)
-        new_x, new_y, _ = transformation.TransformPoint(x, y, 0)
-        print('point output:', y, x)
-        output_coordinate_list.append((new_y, new_x))
-    return output_coordinate_list
-
-
 def _compute_distance_to_burst_center(image, geotransform):
     '''
     Compute distance from burst center
