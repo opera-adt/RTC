@@ -539,7 +539,7 @@ def generate_geogrids(bursts, geo_dict, mosaic_dict):
     geogrid_all: isce3.product.GeoGridParameters
         Frame geogrid
     geogrids_dict: dict
-        Dict containing bursts geogrids indexed by burst_id
+        Dict containing bursts' geogrids indexed by burst_id
     '''
 
 
