@@ -343,7 +343,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
 
         for i_band in range(num_bands):
 
-            band_ds = rtc_image_gdal_ds.GetRasterBand(i_band+1)
+            band_ds = rtc_image_gdal_ds.GetRasterBand(i_band + 1)
             arr_rtc = band_ds.ReadAsArray()
             if i_band == 0:
                 length, width = arr_rtc.shape
