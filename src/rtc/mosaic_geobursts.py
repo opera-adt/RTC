@@ -490,9 +490,10 @@ def mosaic_multiple_output_files(
         scratch_dir='', geogrid_in=None, temp_files_list=None, verbose=True):
     '''
     Mosaic the snapped S1 geobursts
-    paremeters:
+
+    Paremeters:
     -----------
-        list_rtc: list
+        list_rtc_images: list
             List of the path to the rtc geobursts
         list_nlooks: list
             List of the nlooks raster that corresponds to list_rtc
