@@ -403,7 +403,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         # `arr_numerator` holds the accumulated sum. Now, we divide it
         # by `arr_denominator` to get the average value
         for i_band in range(num_bands):
-            valid_ind = np.where(arr_denominator > 0)
+            valid_ind = arr_denominator > 0
             arr_numerator[i_band][valid_ind] = \
                 arr_numerator[i_band][valid_ind] / arr_denominator[valid_ind]
 
