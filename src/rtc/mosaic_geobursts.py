@@ -407,8 +407,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
             arr_numerator[i_band][valid_ind] = \
                 arr_numerator[i_band][valid_ind] / arr_denominator[valid_ind]
 
-            invalid_ind = np.where(arr_denominator == 0)
-            arr_numerator[i_band][invalid_ind] = np.nan
+            arr_numerator[i_band][arr_denominator == 0] = np.nan
 
     mosaic_dict = {
         'mosaic_array': arr_numerator,
