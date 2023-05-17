@@ -87,12 +87,12 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
 
         # assert that VV image is present
         geo_vv_file = (f'NETCDF:"{geo_h5_filename}":'
-                       '/science/SENTINEL1/RTC/grids/frequencyA/VV')
+                       '/data/frequencyA/VV')
         assert(_is_valid_gdal_reference(geo_vv_file))
 
         # assert that HH image is not present
         geo_hh_file = (f'NETCDF:"{geo_h5_filename}":'
-                       '/science/SENTINEL1/RTC/grids/frequencyA/HH')
+                       '/data/frequencyA/HH')
         assert(not(_is_valid_gdal_reference(geo_hh_file)))
 
     else:
@@ -115,7 +115,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
                    'localIncidenceAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           '/science/SENTINEL1/RTC/grids/frequencyA/'
+                           '/data/frequencyA/'
                            f'{ds_name}')
             assert(_is_valid_gdal_reference(current_file))
 
@@ -123,7 +123,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
         ds_list = ['incidenceAngle', 'projectionAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           '/science/SENTINEL1/RTC/grids/frequencyA/'
+                           '/data/frequencyA/'
                            f'{ds_name}')
             assert(not(_is_valid_gdal_reference(current_file)))
 
@@ -157,8 +157,10 @@ def test_workflow():
     dataset_url = ('https://zenodo.org/record/7753472/files/'
                    's1b_los_angeles.tar.gz?download=1')
 
+    tests_dir = os.path.dirname(__file__)
     dataset_dir = os.path.join(test_data_directory, dataset_name)
-    user_runconfig_file = os.path.join('runconfigs', 's1b_los_angeles.yaml')
+    user_runconfig_file = os.path.join(tests_dir, 'runconfigs',
+                                       's1b_los_angeles.yaml')
 
     if (FLAG_ALWAYS_DOWNLOAD or not os.path.isdir(dataset_dir) or
             not os.path.isfile(user_runconfig_file)):
