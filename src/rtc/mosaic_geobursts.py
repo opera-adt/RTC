@@ -119,8 +119,8 @@ def _compute_distance_to_burst_center(image, geotransform):
     length, width = image.shape
     center_of_mass = ndimage.center_of_mass(np.isfinite(image))
 
-    x_vector = np.linspace(0, width, width, dtype=np.float32)
-    y_vector = np.linspace(0, length, length, dtype=np.float32)
+    x_vector = np.arange(width, dtype=np.float32)
+    y_vector = np.arange(length, dtype=np.float32)
 
     _, dx, _, _, _, dy = geotransform
 
