@@ -428,7 +428,7 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
                               mosaic_mode, scratch_dir='', geogrid_in=None,
                               temp_files_list=None, verbose=True):
     '''
-    Mosaic the snapped S1 geobursts
+    Mosaic RTC images saving the output into a single multi-band file
 
     Parameters:
     -----------
@@ -490,7 +490,7 @@ def mosaic_multiple_output_files(
         list_rtc_images, list_nlooks, output_file_list, mosaic_mode,
         scratch_dir='', geogrid_in=None, temp_files_list=None, verbose=True):
     '''
-    Mosaic the snapped S1 geobursts
+    Mosaic RTC images saving each mosaicked band into a separate file
 
     Paremeters:
     -----------
