@@ -344,7 +344,7 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
     geogrid_mosaic_snapped: isce3.product.GeoGridParameters
         Mosaic geogrid
     geogrids_dict: dict
-        Dict containing bursts geogrids indexed by burst_id
+        Dict containing bursts' geogrids indexed by burst_id
     '''
 
     # Unpack values from geocoding dictionary

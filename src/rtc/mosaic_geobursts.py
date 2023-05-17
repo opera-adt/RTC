@@ -9,6 +9,7 @@ import tempfile
 from osgeo import osr, gdal
 from scipy import ndimage
 
+
 def check_reprojection(geogrid_mosaic,
                        rtc_image: str,
                        nlooks_image: str = None) -> bool:
@@ -129,7 +130,6 @@ def _compute_distance_to_burst_center(image, geotransform):
                        (dx * (x_distance_image - center_of_mass[1])) ** 2 )
 
     return distance
-
 
 
 def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir='',
