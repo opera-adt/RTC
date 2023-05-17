@@ -239,7 +239,17 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         wkt_projection = srs_mosaic.ExportToWkt()
 
     if verbose:
-        print(f'    mosaic dimension: {dim_mosaic}, number of bands: {num_bands}')
+        print(f'    mosaic geogrid:')
+        print(f'        start X:', xmin_mosaic)
+        print(f'        end X:', xmax_mosaic)
+        print(f'        start Y:', ymax_mosaic)
+        print(f'        end Y:', ymin_mosaic)
+        print(f'        spacing X:', posting_x)
+        print(f'        spacing Y:', posting_y)
+        print(f'        width:', dim_mosaic[1])
+        print(f'        length:', dim_mosaic[0])
+        print(f'        projection:', wkt_projection)
+        print(f'        number of bands: {num_bands}')
 
     if mosaic_mode.lower() == 'average':
         arr_numerator = np.zeros((num_bands, dim_mosaic[0], dim_mosaic[1]),
