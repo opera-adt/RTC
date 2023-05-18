@@ -186,7 +186,9 @@ def get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
        tile_max_x_projected: float
               Tile maximum X-coordinate
        tile_srs: osr.SpatialReference
-              Tile original spatial reference system (SRS)
+              Tile original spatial reference system (SRS). If the polygon
+              SRS is geographic, its Axis Mapping Strategy will
+              be updated to osr.OAMS_TRADITIONAL_GIS_ORDER
        polygon_srs: osr.SpatialReference
               Polygon spatial reference system (SRS). If the polygon
               SRS is geographic, its Axis Mapping Strategy will
@@ -211,6 +213,13 @@ def get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
 
     # forces returned values from TransformPoint() to be (x, y, z)
     # rather than (y, x, z) for geographic SRS
+    if tile_srs.IsGeographic():
+        try:
+            tile_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+        except AttributeError:
+            logger.warning('WARNING Could not set the ancillary input SRS axis'
+                           ' mapping strategy (SetAxisMappingStrategy())'
+                           ' to osr.OAMS_TRADITIONAL_GIS_ORDER')
     if polygon_srs.IsGeographic():
         try:
             polygon_srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
