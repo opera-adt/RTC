@@ -267,9 +267,9 @@ def _antimeridian_crossing_requires_special_handling(
     file_min_x: float
         Ancillary file min longitude value in degrees
     tile_min_x: float
-        MGRS tile min longitude value in degrees
+        Tile min longitude value in degrees
     tile_max_x: float
-        MGRS tile max longitude value in degrees
+        Tile max longitude value in degrees
 
     Returns
     -------
