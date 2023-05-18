@@ -18,7 +18,8 @@ from rtc.version import VERSION as SOFTWARE_VERSION
 
 from nisar.workflows.h5_prep import set_get_geo_info
 
-FREQ_GRID_DS = '/data/frequencyA'
+# Data base HDF5 group
+DATA_BASE_GROUP = '/data'
 
 logger = logging.getLogger('rtc_s1')
 
@@ -58,7 +59,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                    save_imagery=True, save_secondary_layers=True):
 
     # save grids metadata
-    h5_ds = os.path.join(FREQ_GRID_DS, 'listOfPolarizations')
+    h5_ds = f'{DATA_BASE_GROUP}/listOfPolarizations'
     if h5_ds in hdf5_obj:
         del hdf5_obj[h5_ds]
     pol_list_s2 = np.array(pol_list, dtype='S2')
@@ -66,19 +67,17 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     dset.attrs['description'] = np.string_(
                 'List of processed polarization layers')
 
-    h5_ds = os.path.join(FREQ_GRID_DS, 'radiometricTerrainCorrectionFlag')
+    h5_ds = f'{DATA_BASE_GROUP}/radiometricTerrainCorrectionFlag'
     if h5_ds in hdf5_obj:
         del hdf5_obj[h5_ds]
     dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
 
-
-
     # save geogrid coordinates
-    yds, xds = set_get_geo_info(hdf5_obj, FREQ_GRID_DS, geogrid)
+    yds, xds = set_get_geo_info(hdf5_obj, DATA_BASE_GROUP, geogrid)
 
     if save_imagery:
         # save RTC imagery
-        save_hdf5_dataset(geo_burst_filename, hdf5_obj, FREQ_GRID_DS,
+        save_hdf5_dataset(geo_burst_filename, hdf5_obj, DATA_BASE_GROUP,
                            yds, xds, pol_list,
                            long_name=output_radiometry_str,
                            units='',
@@ -88,7 +87,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     if save_secondary_layers:
         # save nlooks
         if nlooks_file:
-            save_hdf5_dataset(nlooks_file, hdf5_obj, FREQ_GRID_DS,
+            save_hdf5_dataset(nlooks_file, hdf5_obj, DATA_BASE_GROUP,
                                yds, xds, 'numberOfLooks',
                                long_name = 'number of looks',
                                units = '',
@@ -96,7 +95,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
 
         # save rtc
         if rtc_anf_file:
-            save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
+            save_hdf5_dataset(rtc_anf_file, hdf5_obj, DATA_BASE_GROUP,
                                yds, xds, 'RTCAreaNormalizationFactor',
                                long_name = 'RTC area factor',
                                units = '',
@@ -104,14 +103,14 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
 
         # save layover shadow mask
         if layover_shadow_mask_file:
-            save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, FREQ_GRID_DS,
+            save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, DATA_BASE_GROUP,
                                yds, xds, 'layoverShadowMask',
                                long_name = 'Layover/shadow mask',
                                units = '',
                                valid_min = 0)
 
         for ds_hdf5, filename in radar_grid_file_dict.items():
-             save_hdf5_dataset(filename, hdf5_obj, FREQ_GRID_DS, yds, xds, ds_hdf5,
+             save_hdf5_dataset(filename, hdf5_obj, DATA_BASE_GROUP, yds, xds, ds_hdf5,
                                 long_name = '', units = '')
 
     logger.info(f'file saved: {output_hdf5_file}')
@@ -432,18 +431,18 @@ def get_metadata_dict(product_id: str,
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
 
-        f'{FREQ_GRID_DS}/rangeBandwidth':
+        f'{DATA_BASE_GROUP}/rangeBandwidth':
             ['range_bandwidth', burst_in.range_bandwidth,
              'Processed range bandwidth in Hz'],
         # 'frequencyA/azimuthBandwidth':
-        f'{FREQ_GRID_DS}/centerFrequency':
+        f'{DATA_BASE_GROUP}/centerFrequency':
             ['center_frequency', burst_in.radar_center_frequency,
              'Center frequency of the processed image in Hz'],
-        f'{FREQ_GRID_DS}/slantRangeSpacing':
+        f'{DATA_BASE_GROUP}/slantRangeSpacing':
             ['slant_range_spacing', burst_in.range_pixel_spacing,
              'Slant range spacing of grid. '
              'Distance in meters between consecutive range samples'],
-        f'{FREQ_GRID_DS}/zeroDopplerTimeSpacing':
+        f'{DATA_BASE_GROUP}/zeroDopplerTimeSpacing':
             ['zero_doppler_time_spacing', burst_in.azimuth_time_interval,
              'Time interval in the along track direction for raster layers'],
         # f'{FREQ_GRID_DS}/faradayRotationFlag':
