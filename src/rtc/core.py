@@ -277,7 +277,7 @@ def _antimeridian_crossing_requires_special_handling(
         Flag that indicate if the ancillary input requires special handling
     '''
 
-    # Flag to indicate if the if the MGRS tile crosses the antimeridian.
+    # Flag to indicate if the if the tile crosses the antimeridian.
     flag_tile_crosses_antimeridian = tile_min_x < 180 and tile_max_x >= 180
 
     # Flag to test if the ancillary input file is in geographic
