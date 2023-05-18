@@ -263,9 +263,9 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     # convert object reference to the path to which it is pointing
     # Example:
     # attribute `REFERENCE_LIST` in
-    # /data/frequencyA/xCoordinates'
+    # /data/xCoordinates'
     # attribute `DIMENSION_LIST` in
-    # /data/frequencyA/VH
+    # /data/VH
     if (len(val_1.shape) >= 1) and ('shape' in dir(val_1[0])):
         if (isinstance(val_1[0], np.void) or
         ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)))):

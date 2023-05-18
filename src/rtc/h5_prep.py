@@ -434,7 +434,7 @@ def get_metadata_dict(product_id: str,
         f'{DATA_BASE_GROUP}/rangeBandwidth':
             ['range_bandwidth', burst_in.range_bandwidth,
              'Processed range bandwidth in Hz'],
-        # 'frequencyA/azimuthBandwidth':
+        # 'azimuthBandwidth':
         f'{DATA_BASE_GROUP}/centerFrequency':
             ['center_frequency', burst_in.radar_center_frequency,
              'Center frequency of the processed image in Hz'],

@@ -87,12 +87,12 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
 
         # assert that VV image is present
         geo_vv_file = (f'NETCDF:"{geo_h5_filename}":'
-                       '/data/frequencyA/VV')
+                       '/data/VV')
         assert(_is_valid_gdal_reference(geo_vv_file))
 
         # assert that HH image is not present
         geo_hh_file = (f'NETCDF:"{geo_h5_filename}":'
-                       '/data/frequencyA/HH')
+                       '/data/HH')
         assert(not(_is_valid_gdal_reference(geo_hh_file)))
 
     else:
@@ -115,7 +115,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
                    'localIncidenceAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           '/data/frequencyA/'
+                           '/data/'
                            f'{ds_name}')
             assert(_is_valid_gdal_reference(current_file))
 
@@ -123,7 +123,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
         ds_list = ['incidenceAngle', 'projectionAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           '/data/frequencyA/'
+                           '/data/'
                            f'{ds_name}')
             assert(not(_is_valid_gdal_reference(current_file)))
 

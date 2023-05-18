@@ -1210,7 +1210,7 @@ def run_single_job(cfg: RunConfig):
             for pol in pol_list:
                 geo_burst_pol_filename = (f'NETCDF:{output_hdf5_file_burst}:'
                                           '/data/'
-                                          f'frequencyA/{pol}')
+                                          f'{pol}')
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
 

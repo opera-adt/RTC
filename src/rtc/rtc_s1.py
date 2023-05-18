@@ -605,7 +605,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if save_nlooks:
             if save_secondary_layers_as_hdf5:
                 nlooks_file = (f'NETCDF:"{burst_hdf5_in_output}":'
-                               '/data/frequencyA/'
+                               '/data/'
                                'numberOfLooks')
             else:
                 nlooks_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
@@ -621,7 +621,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if save_rtc_anf:
             if save_secondary_layers_as_hdf5:
                 rtc_anf_file = (f'NETCDF:"{burst_hdf5_in_output}":'
-                                '/data/frequencyA/'
+                                '/data/'
                                 'RTCAreaNormalizationFactor')
             else:
                 rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
@@ -663,7 +663,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 if save_secondary_layers_as_hdf5:
                     layover_shadow_mask_file = (f'NETCDF:{burst_hdf5_in_output}:'
                                                 '/data/'
-                                                'frequencyA/layoverShadowMask')
+                                                'layoverShadowMask')
 
                 if save_layover_shadow_mask:
                     output_metadata_dict['layover_shadow_mask'][1].append(
@@ -682,7 +682,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if save_imagery_as_hdf5:
                 geo_burst_pol_filename = (f'NETCDF:{burst_hdf5_in_output}:'
                                           '/data/'
-                                          f'frequencyA/{pol}')
+                                          f'{pol}')
             else:
                 geo_burst_pol_filename = \
                     os.path.join(output_path_child, burst_id,
