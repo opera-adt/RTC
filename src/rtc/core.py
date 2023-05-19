@@ -394,6 +394,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
         del ancillary_gdal_ds
 
+        # End (final) X/Y coordinates of the ancillary input
         ancillary_xf = ancillary_x0 + ancillary_width * ancillary_dx
         ancillary_yf = ancillary_y0 + ancillary_length * ancillary_dy
 
