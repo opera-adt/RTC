@@ -230,8 +230,8 @@ def get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
     transformation = osr.CoordinateTransformation(tile_srs, polygon_srs)
 
     elevation = 0
-    tile_x_array = np.zeros((4))
-    tile_y_array = np.zeros((4))
+    tile_x_array = np.zeros(4)
+    tile_y_array = np.zeros(4)
     tile_x_array[0], tile_y_array[0], z = transformation.TransformPoint(
         tile_min_x_projected, tile_max_y_projected, elevation)
     tile_x_array[1], tile_y_array[1], z = transformation.TransformPoint(
