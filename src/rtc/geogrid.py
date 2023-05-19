@@ -317,7 +317,7 @@ def _check_pixel_spacing(y_spacing_positive, x_spacing, epsg, product_str):
     elif y_spacing_positive is None and epsg:
         y_spacing = -30
     elif y_spacing_positive is not None:
-        y_spacing = - y_spacing_positive
+        y_spacing = -y_spacing_positive
 
     return y_spacing, x_spacing
 
