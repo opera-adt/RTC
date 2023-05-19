@@ -577,17 +577,26 @@ def get_metadata_dict(product_id: str,
          'Azimuth stop time of the product']  # 1.6.3
 
     metadata_dict['metadata/sourceData/swaths/zeroDopplerStartTime'] = \
-        ['zero_doppler_start_time',
+        ['source_data_zero_doppler_start_time',
          burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
          'Azimuth start time of the product'] # 1.6.3
     metadata_dict['metadata/sourceData/swaths/zeroDopplerEndTime'] = \
-        ['zero_doppler_end_time',
+        ['source_data_zero_doppler_end_time',
          burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
          'Azimuth stop time of the product']  # 1.6.3
+    metadata_dict['metadata/sourceData/swaths/numberOfAzimuthLines'] = \
+        ['source_data_number_of_azimuth_lines',
+         burst_in.length,
+         'Number of azimuth lines within the source data product']
+
     metadata_dict['metadata/sourceData/swaths/slantRangeStart'] = \
-        ['slant_range_start',
+        ['source_data_slant_range_start',
          burst_in.starting_range,
          'Source data slant range start distance']
+    metadata_dict['metadata/sourceData/swaths/numberOfRangeSamples'] = \
+        ['source_data_number_of_range_samples',
+         burst_in.width,
+         'Number of slant range samples for each azimuth line within the source data']
 
     # Add RFI metadata into `metadata_dict`
     rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
