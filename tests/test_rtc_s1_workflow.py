@@ -10,6 +10,7 @@ from rtc.runconfig import RunConfig, load_parameters
 from rtc.core import create_logger
 from rtc.rtc_s1_single_job import get_rtc_s1_parser, run_single_job
 from rtc.rtc_s1 import run_parallel
+from rtc.h5_prep import DATA_BASE_GROUP
 
 
 from rtc.version import VERSION as SOFTWARE_VERSION
@@ -87,12 +88,12 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
 
         # assert that VV image is present
         geo_vv_file = (f'NETCDF:"{geo_h5_filename}":'
-                       '/data/VV')
+                       f'{DATA_BASE_GROUP}/VV')
         assert(_is_valid_gdal_reference(geo_vv_file))
 
         # assert that HH image is not present
         geo_hh_file = (f'NETCDF:"{geo_h5_filename}":'
-                       '/data/HH')
+                       f'{DATA_BASE_GROUP}/HH')
         assert(not(_is_valid_gdal_reference(geo_hh_file)))
 
     else:
@@ -115,7 +116,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
                    'localIncidenceAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           '/data/'
+                           f'{DATA_BASE_GROUP}/'
                            f'{ds_name}')
             assert(_is_valid_gdal_reference(current_file))
 
@@ -123,7 +124,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
         ds_list = ['incidenceAngle', 'projectionAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           '/data/'
+                           f'{DATA_BASE_GROUP}/'
                            f'{ds_name}')
             assert(not(_is_valid_gdal_reference(current_file)))
 
