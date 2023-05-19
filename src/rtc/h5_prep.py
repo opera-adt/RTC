@@ -67,11 +67,6 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     dset.attrs['description'] = np.string_(
                 'List of processed polarization layers')
 
-    h5_ds = f'{DATA_BASE_GROUP}/radiometricTerrainCorrectionFlag'
-    if h5_ds in hdf5_obj:
-        del hdf5_obj[h5_ds]
-    dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
-
     # save geogrid coordinates
     yds, xds = set_get_geo_info(hdf5_obj, DATA_BASE_GROUP, geogrid)
 
@@ -269,12 +264,22 @@ def get_metadata_dict(product_id: str,
             ['platform', platform_id, 'Platform name'],
         # Instrument name mentioned at:
         # https://sentinel.esa.int/documents/247904/349449/s1_sp-1322_1.pdf
-        'identification/sensor':
-            ['sensor', 'CSAR', 'Sensor instrument name'],
+        'identification/instrumentName':
+            ['instrument_name', 'CSAR', 'Name of the instrument used to'
+             ' collect the remote sensing data provided in this product'],
         'identification/productType':
             ['product_type', 'RTC-S1', 'Product type'],
         'identification/project':
             ['project', 'OPERA', 'Project name'],
+        'identification/productVersion':
+            ['product_version', product_version,
+             'Product version which represents the structure of the product'
+              ' and the science content governed by the algorithm, input data,'
+               ' and processing parameter'],
+        'identification/productSpecificationVersion':
+            ['product_specification_version', product_version,
+             'Product specification version which represents the schema of'
+              ' this product'],
         'identification/acquisitionMode':
             ['acquisition_mode', 'Interferometric Wide (IW)',
              'Acquisition mode'],
@@ -287,25 +292,26 @@ def get_metadata_dict(product_id: str,
         'identification/orbitPassDirection':
             ['orbit_pass_direction', burst_in.orbit_direction.lower(),
              'Orbit direction can be ascending or descending'],
-
-        'identification/listOfFrequencies':
-            [None, ['A'],
-             'List of frequency layers available in the product'],  # TBC
-        'identification/isGeocoded':
-            [None, True,
-             'Flag to indicate radar geometry or geocoded product'],
-        'identification/productLevel':
-            ['product_level', 'L2', 'Product level'],
-        'identification/productID':
-            ['product_id', product_id, 'Product identificator'],
-        # 'identification/productSource':
-        # [platform_id, 'Product source'],
         'identification/isUrgentObservation':
             ['is_urgent_observation', False,
              'List of booleans indicating if datatakes are nominal or urgent'],
         'identification/diagnosticModeFlag':
             ['diagnostic_mode_flag', False,
-             'Indicates if the radar mode is a diagnostic mode or not: True or False'],
+             'Indicates if the radar mode is a diagnostic mode or not: True or'
+             ' False'],
+        'identification/isGeocoded':
+            [None, True,
+             'Flag to indicate whether the primary product data is in radar'
+             ' geometry ("False") or map geometry ("True")'],
+        'identification/productLevel':
+            ['product_level', 'L2',
+             'Product level. L0A: Unprocessed instrument data; L0B:'
+             ' Reformatted, unprocessed instrument data; L1: Processed'
+             ' instrument data in radar coordinates system; and L2:'
+             ' Processed instrument data in geocoded coordinates system'],
+        'identification/productID':
+            ['product_id', product_id, 'Product identifier'],
+
         'identification/processingType':
             ['processing_type', processing_type,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
@@ -313,31 +319,35 @@ def get_metadata_dict(product_id: str,
             ['processing_date_time',
               datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
               'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
-        'identification/productVersion':
-            ['product_version', product_version, 'Product version'],
-        'identification/softwareVersion':
-            ['software_version', str(SOFTWARE_VERSION), 'Software version'],
+        'identification/radarBand':  # 1.6.4
+            ['radar_band', 'C', 'Acquired frequency band'],
+        # 'metadata/processingCenter':
+        #     ['source_data_processing_center',
+        #      (f'organization: "Jet Propulsion Laboratory", '
+        #       f'site: "Pasadena, CA", '
+        #       f'country: "United States of America"'),
+        #      'Source data processing center'],
+ 
         #'identification/CEOSDocumentIdentifier':
         #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
         #     'Product version'],
         'metadata/sourceData/numberOfAcquisitions': # 1.6.4
-            ['source_data_number_of_acquisitions',
-             1,
+            ['source_data_number_of_acquisitions', 1,
              'Number of source data acquisitions'],
         # TODO Review: should we expose this parameter in the runconfig?
         # 'metadata/sourceData/dataAccess':
         #     ['source_data_access',
         #      'https://search.asf.alaska.edu/',
         #      'Data access URL'],
-        'metadata/sourceData/radarBand':  # 1.6.4
-            ['radar_band', 'C', 'Radar band'],
-        'metadata/sourceData/processingFacility': #  1.6.6
-            ['source_data_processing_facility',
-             (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
-              f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
-              f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
-             'Source data processing facility'],
-        'metadata/sourceData/processingDateTime':  # 1.6.6
+        # 'metadata/sourceData/radarBand':  # 1.6.4
+        #    ['radar_band', 'C', 'Acquired frequency band'],
+        # 'metadata/sourceData/processingCenter': #  1.6.6
+        #     ['source_data_processing_center',
+        #      (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
+        #       f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
+        #       f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
+        #      'Source data processing center'],
+        'identification/processingDateTime':  # 1.6.6
             ['source_data_processing_date_time',
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing date and time of the source data'],
@@ -359,15 +369,18 @@ def get_metadata_dict(product_id: str,
             ['source_data_product_level',
              'L1',
              'Product level of the source data'],
+        f'metadata/sourceData/swaths/centerFrequency':
+            ['center_frequency', burst_in.radar_center_frequency,
+             'Center frequency of the processed image in Hz'],
         # 'metadata/sourceData/geometry':  # 1.6.7
         #     ['source_data_geometry',
         #     'slant range',
         #     'Geometry of the source data'],
-        'metadata/sourceData/azimuthSpacing':  # 1.6.7
-            ['source_azimuth_spacing',
+        'metadata/sourceData/swaths/zeroDopplerTimeSpacing':  # 1.6.7
+            ['source_data_zero_doppler_time_spacing',
              burst_in.azimuth_time_interval,
              'Azimuth spacing of the source data in seconds'], 
-        'metadata/sourceData/slantRangeSpacing':  # 1.6.7
+        'metadata/sourceData/swaths/slantRangeSpacing':  # 1.6.7
             ['source_data_slant_range_spacing',
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'], 
@@ -397,6 +410,8 @@ def get_metadata_dict(product_id: str,
              -22,
              'Maximum Noise equivalent sigma0 in dB'],
 
+        'metadata/processingInformation/algorithms/softwareVersion':
+            ['software_version', str(SOFTWARE_VERSION), 'Software version'],
         # TODO Review: should we expose this parameter in the runconfig?
         #'metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
         #    ['product_data_access',
@@ -410,8 +425,23 @@ def get_metadata_dict(product_id: str,
         'metadata/processingInformation/parameters/noiseCorrectionApplied':  # 3.3
             ['noise_correction_applied',
              cfg_in.groups.processing.apply_thermal_noise_correction,
-             'A flag to indicate whether noise removal was applied'],
-    
+             'Flag to indicate if noise removal has been applied'],
+        'metadata/processingInformation/parameters/radiometricTerrainCorrectionApplied':
+            ['rtc_applied',
+             cfg_in.groups.processing.apply_rtc,
+             'Flag to indicate if radiometric terrain correction (RTC) has been applied'],
+        'metadata/processingInformation/parameters/dryTroposphericGeolocationCorrectionApplied':
+            ['dry_tropospheric_correction_applied',
+             cfg_in.groups.processing.apply_dry_tropospheric_delay_correction,
+             'Flag to indicate if the dry tropospheric correction has been applied'],
+        'metadata/processingInformation/parameters/wetTroposphericGeolocationCorrectionApplied':
+            ['wet_tropospheric_correction_applied',
+             False,
+             'Flag to indicate if the wet tropospheric correction has been applied'],
+        'metadata/processingInformation/parameters/bistaticDelayCorrectionApplied':
+            ['bistatic_delay_correction_applied',
+             cfg_in.groups.processing.apply_bistatic_delay_correction,
+             'Flag to indicate if the bistatic delay correction has been applied'],
         #'metadata/processingInformation/geoidReference':  # for 4.2
         #    ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
 
@@ -431,20 +461,6 @@ def get_metadata_dict(product_id: str,
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
 
-        f'{DATA_BASE_GROUP}/rangeBandwidth':
-            ['range_bandwidth', burst_in.range_bandwidth,
-             'Processed range bandwidth in Hz'],
-        # 'azimuthBandwidth':
-        f'{DATA_BASE_GROUP}/centerFrequency':
-            ['center_frequency', burst_in.radar_center_frequency,
-             'Center frequency of the processed image in Hz'],
-        f'{DATA_BASE_GROUP}/slantRangeSpacing':
-            ['slant_range_spacing', burst_in.range_pixel_spacing,
-             'Slant range spacing of grid. '
-             'Distance in meters between consecutive range samples'],
-        f'{DATA_BASE_GROUP}/zeroDopplerTimeSpacing':
-            ['zero_doppler_time_spacing', burst_in.azimuth_time_interval,
-             'Time interval in the along track direction for raster layers'],
         # f'{FREQ_GRID_DS}/faradayRotationFlag':
         #    ['faraday_rotation_flag', False,
         #     'Flag to indicate if Faraday Rotation correction was applied'],
@@ -469,7 +485,7 @@ def get_metadata_dict(product_id: str,
             'Version of the ISCE3 framework used for processing'],
         # 'metadata/processingInformation/algorithms/RTCVersion':
         #     [str(SOFTWARE_VERSION), 'RTC-S1 SAS version used for processing'],
-        'metadata/processingInformation/algorithms/S1ReaderVersion':
+        'metadata/processingInformation/algorithms/s1ReaderVersion':
             ['s1_reader_version', release_version,
              'Version of the OPERA s1-reader used for processing'],
 
@@ -481,7 +497,7 @@ def get_metadata_dict(product_id: str,
         'metadata/processingInformation/inputs/annotationFiles':
             ['annotation_files', [burst_in.burst_calibration.basename_cads,
              burst_in.burst_noise.basename_nads],
-             'List of input calibration files used'],
+             'List of input annotation files used'],
         'metadata/processingInformation/inputs/configFiles':
             ['config_files', cfg_in.run_config_path,
              'List of input config files used'],
