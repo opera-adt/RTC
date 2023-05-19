@@ -355,6 +355,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
     geogrid_x0_projected = geogrid.start_x
     geogrid_y0_projected = geogrid.start_y
+    # define end (final) geogrid X/Y edge coordinates
     geogrid_xf_projected = (geogrid.start_x +
                             geogrid.spacing_x * geogrid.width)
     geogrid_yf_projected = (geogrid.start_y +
@@ -394,7 +395,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
         del ancillary_gdal_ds
 
-        # End (final) X/Y coordinates of the ancillary input
+        # define end (final) ancillary input X/Y edge coordinates
         ancillary_xf = ancillary_x0 + ancillary_width * ancillary_dx
         ancillary_yf = ancillary_y0 + ancillary_length * ancillary_dy
 
