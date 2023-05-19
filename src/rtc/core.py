@@ -291,17 +291,19 @@ def _antimeridian_crossing_requires_special_handling(
 
     # Flag to test if the ancillary input file is in geographic
     # coordinates and if its longitude domain is represented
-    # within the [-180, +180] range, rather than the [0, +360] interval.
-    # This is verified by the test `min_x < -170`. There's no specific reason
-    # why -170 is used. It could be -160, or even 0.
-    flag_input_geographic_and_longitude_not_0_360 = \
-        file_srs.IsGeographic() and file_min_x < -170
+    # within the [-180, +180] range, rather than, for example, inside
+    # the [0, +360] interval.
+    # This is verified by the test `min_x < -165`. There's no specific reason
+    # why -165 is used. It could be -160, or even 0. However, testing for
+    # -165 is more general than -160 or 0, but still not too close to -180.
+    flag_input_geographic_and_longitude_lt_m165 = \
+        file_srs.IsGeographic() and file_min_x < -165
 
     # If both are true, tile requires special handling due to the
     # antimeridian crossing
     flag_requires_special_handling = (
         flag_tile_crosses_antimeridian and
-        flag_input_geographic_and_longitude_not_0_360)
+        flag_input_geographic_and_longitude_lt_m165)
 
     return flag_requires_special_handling
 
