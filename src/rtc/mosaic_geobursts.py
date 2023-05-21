@@ -10,9 +10,9 @@ from osgeo import osr, gdal
 from scipy import ndimage
 
 
-def check_reprojection(geogrid_mosaic,
-                       rtc_image: str,
-                       nlooks_image: str = None) -> bool:
+def requires_reprojection(geogrid_mosaic,
+                          rtc_image: str,
+                          nlooks_image: str = None) -> bool:
     '''
     Check if the reprojection is required to mosaic input raster
 
@@ -76,13 +76,13 @@ def check_reprojection(geogrid_mosaic,
         srs_mosaic.ImportFromEPSG(geogrid_mosaic.epsg)
 
         if projection != srs_mosaic.ExportToWkt():
-            srs_1 = osr.SpatialReference()
-            srs_1.SetWellKnownGeogCS(projection)
+            proj = osr.SpatialReference(wkt=projection)
+            epsg_1 = proj.GetAttrValue('AUTHORITY', 1)
 
-            srs_2 = osr.SpatialReference()
-            srs_2.SetWellKnownGeogCS(projection)
+            proj = osr.SpatialReference(wkt=srs_mosaic.ExportToWkt())
+            epsg_2 = proj.GetAttrValue('AUTHORITY', 1)
 
-            if not srs_1.IsSame(srs_2):
+            if epsg_1 != epsg_2:
                 flag_requires_reprojection = True
                 return flag_requires_reprojection
 
@@ -270,7 +270,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         if verbose:
             print(f'    mosaicking ({i+1}/{num_raster}): {os.path.basename(path_rtc)}')
 
-        if geogrid_in is not None and check_reprojection(
+        if geogrid_in is not None and requires_reprojection(
                 geogrid_in, path_rtc, path_nlooks):
             if verbose:
                 print('        the image requires reprojection/relocation')
