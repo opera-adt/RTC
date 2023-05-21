@@ -184,6 +184,9 @@ geocoding_options:
     # OPTIONAL - Apply shadow masking
     apply_shadow_masking: bool(required=False)
 
+    # Skip geocoding already processed, which is tested by the existence of the output files
+    skip_if_output_files_exist: bool(required=False)
+
     # Geocoding algorithm type, area projection or interpolation:
     # sinc, bilinear, bicubic, nearest, and biquintic
     algorithm_type: enum('area_projection', 'sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic', required=False)

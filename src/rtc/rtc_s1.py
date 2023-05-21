@@ -337,9 +337,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # unpack geocode run parameters
     geocode_namespace = cfg.groups.processing.geocoding
 
+    apply_valid_samples_sub_swath_masking = \
+        cfg.groups.processing.geocoding.apply_valid_samples_sub_swath_masking
     apply_shadow_masking = \
         cfg.groups.processing.geocoding.apply_shadow_masking
 
+    skip_if_output_files_exist = \
+        cfg.groups.processing.geocoding.skip_if_output_files_exist
 
     clip_max = geocode_namespace.clip_max
     clip_min = geocode_namespace.clip_min
@@ -395,6 +399,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 f' {flag_apply_thermal_noise_correction}')
     logger.info(f'    apply absolute radiometric correction:'
                 f' {flag_apply_abs_rad_correction}')
+    logger.info(f'    apply valid samples sub-swath masking:'
+                f' {apply_valid_samples_sub_swath_masking}')
+    logger.info(f'    apply shadow masking:'
+                f' {apply_shadow_masking}')
+    logger.info(f'    skip if already processed:'
+                f' {skip_if_output_files_exist}')
     logger.info(f'    scratch dir: {scratch_path}')
     logger.info(f'    output dir: {output_dir}')
     logger.info(f'    save bursts: {save_bursts}')
@@ -692,7 +702,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
         # Bundle the single-pol geo burst files into .vrt
-        geo_burst_filename += '.vrt'
+        geo_burst_filename.replace(f'.{imagery_extension}', '.vrt')
         os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
         gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
                       options=vrt_options_mosaic)

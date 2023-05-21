@@ -159,12 +159,15 @@ runconfig:
 
             # Geocoding options
             geocoding:
-
+     
                 # Apply RSLC metadata valid-samples sub-swath masking
                 apply_valid_samples_sub_swath_masking: True
 
                 # Apply shadow masking
                 apply_shadow_masking: True
+  
+                # Skip geocoding already processed, which is tested by the existence of the output files
+                skip_if_output_files_exist: False
 
                 # Geocoding algorithm type. Choices "area_projection"
                 # for adaptive multilooking or an interpolation algorithm:
@@ -242,7 +245,7 @@ runconfig:
             mosaicking:
 
                 # OPTIONAL - Choices: "average", "first", "bursts_center" (default)
-                mosaic_mode: bursts_center
+                mosaic_mode: first
 
                 mosaic_geogrid:
 
