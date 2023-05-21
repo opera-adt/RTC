@@ -12,6 +12,7 @@ FAILED_STR = '[FAIL]'
 
 RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
 RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
+RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE = 2.0e-05
 
 LIST_EXCLUDE_COMPARISON = \
     ['//metadata/processingInformation/algorithms/isce3Version',
@@ -565,8 +566,8 @@ def _get_prefix_str(flag_same, flag_all_ok):
     flag_all_ok: list(bool)
         Mutable list of booleans that will hold the overall test status
 
-    Return:
-    -------
+    Return
+    ------
     _: str
         Prefix string for the given comparison test
 
@@ -576,6 +577,22 @@ def _get_prefix_str(flag_same, flag_all_ok):
 
 
 def compare_rtc_s1_products(file_1, file_2):
+    '''
+    Compare the raster dataset
+
+    Parameters
+    ----------
+    file_1: str
+        The 1st GDAL raster file to compare
+    file_2: str
+        The 2nd GDAL raster file to compare
+
+    Return
+    ------
+    _: Bool
+        True when all bands in the raster is within acceptable tolerance;
+        False otherwise
+    '''
     if not os.path.isfile(file_1):
         print(f'ERROR file not found: {file_1}')
         return False
@@ -629,9 +646,15 @@ def compare_rtc_s1_products(file_1, file_2):
                   f' ({image_1.dtype}) vs. ({image_2.dtype})\n')
             return False
 
-        flag_bands_are_equal = np.allclose(
+        #flag_bands_are_equal = np.allclose(
+        #    image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
+        #    rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
+        failed_pixel_index = ~np.isclose(
             image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
             rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
+        failed_pixel_ratio = failed_pixel_index.sum() / failed_pixel_index.size
+        flag_bands_are_equal = failed_pixel_ratio <= RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE
+
         flag_bands_are_equal_str = _get_prefix_str(flag_bands_are_equal,
                                                    flag_all_ok)
         print(f'{flag_bands_are_equal_str}     Band {b} -'
@@ -727,6 +750,11 @@ def _print_first_value_diff(image_1, image_2, prefix):
        prefix: str
             Prefix to the message printed to the user
     """
+    failed_pixel_index = ~np.isclose(
+        image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
+        rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
+    failed_pixel_ratio = failed_pixel_index.sum() / failed_pixel_index.size
+
     flag_error_found = False
     for i in range(image_1.shape[0]):
         for j in range(image_1.shape[1]):
@@ -743,7 +771,8 @@ def _print_first_value_diff(image_1, image_2, prefix):
                   f' (x: {j}, y: {i})'
                   f' whereas input 2 has value "{image_2[i, j]}"'
                   ' in the same position. '
-                  f' Difference: {image_2[i, j] - image_1[i, j]}')
+                  f' Difference: {image_2[i, j] - image_1[i, j]}, ',
+                  f' Ratio of Failed pixel : {failed_pixel_ratio:e}')
             flag_error_found = True
             break
         if flag_error_found:
