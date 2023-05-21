@@ -64,7 +64,7 @@ def split_runconfig(cfg_in,
         List of the burst logfiles
     '''
 
-    with open(cfg_in.run_config_path, 'r+', encoding='utf8') as fin:
+    with open(cfg_in.run_config_path, 'r', encoding='utf8') as fin:
         runconfig_dict_in = yaml.safe_load(fin.read())
 
     runconfig_burst_list = []
