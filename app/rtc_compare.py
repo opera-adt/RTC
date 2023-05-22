@@ -649,7 +649,9 @@ def compare_rtc_s1_products(file_1, file_2):
         failed_pixel_index = ~np.isclose(
             image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
             rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
-        failed_pixel_ratio = failed_pixel_index.sum() / np.isfinite(image_1 + image_2).sum()
+        number_valid_pixels = np.logical_or(np.isfinite(image_1),
+            np.isfinite(image_2)).sum()
+        failed_pixel_ratio = failed_pixel_index.sum() / number_valid_pixels
         flag_bands_are_equal =\
             failed_pixel_ratio <= RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE
         flag_bands_are_equal_str = _get_prefix_str(flag_bands_are_equal,
