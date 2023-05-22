@@ -851,7 +851,8 @@ def run_single_job(cfg: RunConfig):
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
-        burst_id_file_name = burst_id[1:].upper().replace('_', '-')
+        #burst_id_file_name = burst_id[1:].upper().replace('_', '-')
+        burst_id_file_name = burst_id.upper().replace('_', '-')
         burst_product_id = \
             product_id.replace('{burst_id}', burst_id_file_name)
 
