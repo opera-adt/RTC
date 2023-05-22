@@ -105,7 +105,7 @@ def _compute_distance_to_burst_center(image, geotransform):
     '''
     Compute distance from burst center
 
-    Parameters:
+    Parameters
     -----------
        image: np.ndarray
            Input image
@@ -137,7 +137,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
     '''
     Mosaic S-1 geobursts and return the mosaic as dictionary
 
-    Parameters:
+    Parameters
     -----------
        list_rtc: list
            List of the path to the rtc geobursts
@@ -440,7 +440,7 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
     '''
     Mosaic RTC images saving the output into a single multi-band file
 
-    Parameters:
+    Parameters
     -----------
         list_rtc: list
             List of the path to the rtc geobursts
