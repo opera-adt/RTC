@@ -381,7 +381,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                                      offset_imgx: offset_imgx + width].copy()
 
             if i_band == 0 and mosaic_mode.lower() == 'first':
-                ind = np.where(np.isnan(arr_temp))
+                ind = np.isnan(arr_temp)
             elif i_band == 0 and mosaic_mode.lower() == 'bursts_center':
                 geotransform = rtc_image_gdal_ds.GetGeoTransform()
 
@@ -390,8 +390,8 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
 
                 arr_distance_temp = arr_distance[offset_imgy: offset_imgy + length,
                                                  offset_imgx: offset_imgx + width]
-                ind = np.where(np.logical_or(np.isnan(arr_distance_temp),
-                                             arr_new_distance <= arr_distance_temp))
+                ind = np.logical_or(np.isnan(arr_distance_temp),
+                                    arr_new_distance <= arr_distance_temp)
 
                 arr_distance_temp[ind] = arr_new_distance[ind]
                 arr_distance[offset_imgy: offset_imgy + length,
