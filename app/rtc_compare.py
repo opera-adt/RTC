@@ -650,15 +650,17 @@ def compare_rtc_s1_products(file_1, file_2):
             image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
             rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
         failed_pixel_ratio = failed_pixel_index.sum() / failed_pixel_index.size
-        flag_bands_are_equal = failed_pixel_ratio <= RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE
-                  print(f' Difference: {image_2[i, j] - image_1[i, j]}, ',
-                           f' Percentage of pixels with values difference above threshold: {failed_pixel_ratio*100:.2f}%')
+        flag_bands_are_equal =\
+            failed_pixel_ratio <= RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE
         flag_bands_are_equal_str = _get_prefix_str(flag_bands_are_equal,
                                                    flag_all_ok)
         print(f'{flag_bands_are_equal_str}     Band {b} -'
               f' {gdal_band_1.GetDescription()}"')
         if not flag_bands_are_equal:
+            print(' Percentage of pixels with values difference above threshold:'
+                  f' {failed_pixel_ratio*100:.2f}%,')
             _print_first_value_diff(image_1, image_2, prefix)
+            return False
 
     # compare geotransforms
     flag_same_geotransforms = np.array_equal(geotransform_1, geotransform_2)
