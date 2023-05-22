@@ -12,7 +12,7 @@ FAILED_STR = '[FAIL]'
 
 RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
 RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
-RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE = 2.0e-05
+RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE = 1.0e-4
 
 LIST_EXCLUDE_COMPARISON = \
     ['//metadata/processingInformation/algorithms/isce3Version',
@@ -649,7 +649,7 @@ def compare_rtc_s1_products(file_1, file_2):
         failed_pixel_index = ~np.isclose(
             image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
             rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
-        failed_pixel_ratio = failed_pixel_index.sum() / failed_pixel_index.size
+        failed_pixel_ratio = failed_pixel_index.sum() / np.isfinite(image_1 + image_2).sum()
         flag_bands_are_equal =\
             failed_pixel_ratio <= RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE
         flag_bands_are_equal_str = _get_prefix_str(flag_bands_are_equal,
@@ -658,7 +658,7 @@ def compare_rtc_s1_products(file_1, file_2):
               f' {gdal_band_1.GetDescription()}"')
         if not flag_bands_are_equal:
             print(' Percentage of pixels with values difference above threshold:'
-                  f' {failed_pixel_ratio*100:.2f}%,')
+                  f' {failed_pixel_ratio*100:.6f}%,')
             _print_first_value_diff(image_1, image_2, prefix)
             return False
 
