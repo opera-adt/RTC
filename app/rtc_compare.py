@@ -646,9 +646,6 @@ def compare_rtc_s1_products(file_1, file_2):
                   f' ({image_1.dtype}) vs. ({image_2.dtype})\n')
             return False
 
-        #flag_bands_are_equal = np.allclose(
-        #    image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
-        #    rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
         failed_pixel_index = ~np.isclose(
             image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
             rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)

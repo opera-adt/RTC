@@ -550,7 +550,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
-        #burst_id_file_name = burst_id[1:].upper().replace('_', '-')
         burst_id_file_name = burst_id.upper().replace('_', '-')
         print('burst ID name:', burst_id_file_name)    
         burst_product_id = \
