@@ -566,8 +566,8 @@ def _get_prefix_str(flag_same, flag_all_ok):
     flag_all_ok: list(bool)
         Mutable list of booleans that will hold the overall test status
 
-    Return
-    ------
+    Returns
+    -------
     _: str
         Prefix string for the given comparison test
 
@@ -587,11 +587,11 @@ def compare_rtc_s1_products(file_1, file_2):
     file_2: str
         The 2nd GDAL raster file to compare
 
-    Return
-    ------
-    _: Bool
-        True when all bands in the raster is within acceptable tolerance;
-        False otherwise
+    Returns
+    -------
+    _ : bool
+        True, when all bands in the raster is within acceptable tolerance;
+        False, otherwise
     '''
     if not os.path.isfile(file_1):
         print(f'ERROR file not found: {file_1}')
