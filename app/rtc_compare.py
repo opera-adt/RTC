@@ -651,7 +651,8 @@ def compare_rtc_s1_products(file_1, file_2):
             rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
         failed_pixel_ratio = failed_pixel_index.sum() / failed_pixel_index.size
         flag_bands_are_equal = failed_pixel_ratio <= RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE
-
+                  print(f' Difference: {image_2[i, j] - image_1[i, j]}, ',
+                           f' Percentage of pixels with values difference above threshold: {failed_pixel_ratio*100:.2f}%')
         flag_bands_are_equal_str = _get_prefix_str(flag_bands_are_equal,
                                                    flag_all_ok)
         print(f'{flag_bands_are_equal_str}     Band {b} -'
@@ -768,8 +769,7 @@ def _print_first_value_diff(image_1, image_2, prefix):
                   f' (x: {j}, y: {i})'
                   f' whereas input 2 has value "{image_2[i, j]}"'
                   ' in the same position. '
-                  f' Difference: {image_2[i, j] - image_1[i, j]}, ',
-                  f' Ratio of Failed pixel : {failed_pixel_ratio:e}')
+                  f' Difference: {image_2[i, j] - image_1[i, j]}')
             flag_error_found = True
             break
         if flag_error_found:
