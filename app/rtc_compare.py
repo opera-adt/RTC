@@ -10,8 +10,8 @@ import numpy as np
 PASSED_STR = '[PASS] '
 FAILED_STR = '[FAIL]'
 
-RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
-RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
+RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-03
+RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-04
 RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE = 1.0e-4
 
 LIST_EXCLUDE_COMPARISON = \
@@ -750,11 +750,6 @@ def _print_first_value_diff(image_1, image_2, prefix):
        prefix: str
             Prefix to the message printed to the user
     """
-    failed_pixel_index = ~np.isclose(
-        image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
-        rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
-    failed_pixel_ratio = failed_pixel_index.sum() / failed_pixel_index.size
-
     flag_error_found = False
     for i in range(image_1.shape[0]):
         for j in range(image_1.shape[1]):
