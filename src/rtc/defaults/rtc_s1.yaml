@@ -209,6 +209,9 @@ runconfig:
                 # Save layover shadow mask
                 save_layover_shadow_mask: True
 
+                # Number of iterations to dilate layover/shadow mask in slant range with size (3, 3)
+                shadow_dilation_number_iterations: 1
+
                 # OPTIONAL - Absolute radiometric correction
                 abs_rad_cal: 1
 

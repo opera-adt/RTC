@@ -13,6 +13,7 @@ from osgeo import gdal
 import argparse
 
 import isce3
+from scipy.ndimage import morphology
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
@@ -86,7 +87,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
                                          threshold=1.0e-8)
 
     # Get the rdr2geo raster needed for SET computation
-    topo_output = {f'{scratch_path}/height.rdr': gdal.GDT_Float64,
+    topo_output = {f'{scratch_path}/height.rdr': gdal.GDT_Float32,
                    f'{scratch_path}/incidence_angle.rdr': gdal.GDT_Float32}
 
     raster_list = []
@@ -105,11 +106,12 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     height_raster.close_dataset()
     incidence_raster.close_dataset()
 
-    # Load the lon / lat / hgt value from the raster
+    # Load height and incidence angle layers
     height_arr =\
         gdal.Open(f'{scratch_path}/height.rdr', gdal.GA_ReadOnly).ReadAsArray()
     incidence_angle_arr =\
-        gdal.Open(f'{scratch_path}/incidence_angle.rdr', gdal.GA_ReadOnly).ReadAsArray()
+        gdal.Open(f'{scratch_path}/incidence_angle.rdr',
+                  gdal.GA_ReadOnly).ReadAsArray()
 
     # static troposphere delay - range direction
     # reference:
@@ -484,6 +486,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 dem_raster: isce3.io.Raster,
                                 filename_out: str,
                                 output_raster_format: str,
+                                scratch_dir: str,
+                                shadow_dilation_number_iterations: int,
                                 threshold_rdr2geo: float=1.0e-7,
                                 numiter_rdr2geo: int=25,
                                 extraiter_rdr2geo: int=10,
@@ -512,6 +516,10 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         Path to the geocoded layover/shadow mask
     output_raster_format: str
         File format of the layover/shadow mask
+    scratch_dir: str
+        Temporary Directory
+    shadow_dilation_number_iterations: int
+        Number of iterations to dilate layover/shadow mask
     threshold_rdr2geo: float
         Iteration threshold for rdr2geo
     numiter_rdr2geo: int
@@ -536,9 +544,6 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     # determine the output filename
     str_datetime = burst_in.sensing_start.strftime('%Y%m%d_%H%M%S.%f')
 
-    path_layover_shadow_mask = (f'layover_shadow_mask_{burst_in.burst_id}_'
-                                f'{burst_in.polarization}_{str_datetime}')
-
     # Run topo to get layover/shadow mask
     ellipsoid = isce3.core.Ellipsoid()
 
@@ -555,11 +560,64 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                           extraiter=extraiter_rdr2geo,
                           lines_per_block=lines_per_block_rdr2geo)
 
-    slantrange_layover_shadow_mask_raster = isce3.io.Raster(path_layover_shadow_mask,
-        radar_grid.width, radar_grid.length, 1, gdal.GDT_Byte, 'MEM')
-
+    if shadow_dilation_number_iterations > 0:
+        path_layover_shadow_mask_file = os.path.join(
+            scratch_dir, 'layover_shadow_mask_slant_range.tif')
+        slantrange_layover_shadow_mask_raster = isce3.io.Raster(
+            path_layover_shadow_mask_file, radar_grid.width, radar_grid.length,
+            1, gdal.GDT_Byte, 'GTiff')
+    else:
+        path_layover_shadow_mask = (f'layover_shadow_mask_{burst_in.burst_id}_'
+                                    f'{burst_in.polarization}_{str_datetime}')
+        slantrange_layover_shadow_mask_raster = isce3.io.Raster(
+            path_layover_shadow_mask, radar_grid.width, radar_grid.length,
+            1, gdal.GDT_Byte, 'MEM')
+ 
     rdr2geo_obj.topo(dem_raster, None, None, None,
                      layover_shadow_raster=slantrange_layover_shadow_mask_raster)
+
+    if shadow_dilation_number_iterations > 0:
+        '''
+        constants from ISCE3:
+            SHADOW_VALUE = 1;
+            LAYOVER_VALUE = 2;
+            LAYOVER_AND_SHADOW_VALUE = 3;
+        We only want to dilate values 1 and 3
+        '''
+
+        # flush raster data to the disk
+        slantrange_layover_shadow_mask_raster.close_dataset()
+        del slantrange_layover_shadow_mask_raster
+
+        # read layover/shadow mask
+        gdal_ds = gdal.Open(path_layover_shadow_mask_file,
+                            gdal.GA_Update)
+        gdal_band = gdal_ds.GetRasterBand(1)
+        slantrange_layover_shadow_mask = gdal_band.ReadAsArray()
+
+        # save layover pixels and substitute them with 0
+        ind = np.where(slantrange_layover_shadow_mask == 2)
+        slantrange_layover_shadow_mask[ind] = 0
+
+        # perform grey dilation
+        slantrange_layover_shadow_mask = \
+            morphology.grey_dilation(slantrange_layover_shadow_mask,
+                                     size=(shadow_dilation_number_iterations,
+                                           shadow_dilation_number_iterations))
+
+        # restore layover pixels
+        slantrange_layover_shadow_mask[ind] = 2
+
+        # write dilated layover/shadow mask
+        gdal_band.WriteArray(slantrange_layover_shadow_mask)
+
+        # flush updates to the disk
+        gdal_band.FlushCache()
+        gdal_band = None
+        gdal_ds = None
+
+        slantrange_layover_shadow_mask_raster = isce3.io.Raster(
+            path_layover_shadow_mask_file)
 
     # geocode the layover/shadow mask
     geo = isce3.geocode.GeocodeFloat32()
@@ -577,7 +635,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                 int(geogrid_in.length),
                 int(geogrid_in.epsg))
 
-    geocoded_layover_shadow_mask_raster = isce3.io.Raster(filename_out, 
+    geocoded_layover_shadow_mask_raster = isce3.io.Raster(filename_out,
                                       geogrid_in.width, geogrid_in.length, 1,
                                       gdal.GDT_Byte, output_raster_format)
 
@@ -715,6 +773,7 @@ def run_single_job(cfg: RunConfig):
 
     memory_mode = geocode_namespace.memory_mode
     geogrid_upsampling = geocode_namespace.geogrid_upsampling
+    shadow_dilation_number_iterations = geocode_namespace.shadow_dilation_number_iterations
     abs_cal_factor = geocode_namespace.abs_rad_cal
     clip_max = geocode_namespace.clip_max
     clip_min = geocode_namespace.clip_min
@@ -1083,6 +1142,8 @@ def run_single_job(cfg: RunConfig):
                     dem_raster,
                     layover_shadow_mask_file,
                     output_raster_format,
+                    burst_scratch_path,
+                    shadow_dilation_number_iterations=shadow_dilation_number_iterations,
                     threshold_rdr2geo=cfg.rdr2geo_params.threshold,
                     numiter_rdr2geo=cfg.rdr2geo_params.numiter,
                     threshold_geo2rdr=cfg.geo2rdr_params.threshold,

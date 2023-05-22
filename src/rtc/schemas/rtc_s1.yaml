@@ -223,8 +223,11 @@ geocoding_options:
     # Save the interpolated DEM used to generate the RTC product
     save_dem: bool(required=False)
 
-    # Save layover shadow mask
+    # Save layover/shadow mask
     save_layover_shadow_mask: bool(required=False)
+
+    # Number of iterations to dilate layover/shadow mask in slant range with size (3, 3)
+    shadow_dilation_number_iterations: int(min=0, required=False)
 
     # OPTIONAL - Absolute radiometric correction
     abs_rad_cal: num(required=False)
