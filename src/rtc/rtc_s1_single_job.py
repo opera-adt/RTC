@@ -31,6 +31,51 @@ import matplotlib.image as mpimg
 
 logger = logging.getLogger('rtc_s1')
 
+layer_names_dict = {
+    'VV': 'RTC-S1 VV Backscatter (Gamma0)',
+    'VH': 'RTC-S1 VH Backscatter (Gamma0)',
+    'layover_shadow_mask': 'Layover/Shadow Mask',
+    'rtc_anf_gamma0_to_beta0': ('RTC Area Normalization Factor'
+                                ' Gamma0 to Beta0'),
+    'incidence_angle': 'Incidence Angle',
+    'local_incidence_angle': 'Local Incidence Angle',
+    
+    # TODO improve description below
+    'projection_angle' : 'Projection Angle',
+    'rtc_anf_psi': ('RTC Area Normalization Factor'
+                    ' Gamma0 to Beta0 (Projection Angle - Psi)'),
+    'range_slope': 'Range Slope',
+    'dem': 'Digital Elevation Model (DEM)'
+}
+
+layer_description_dict = {
+    'VV': ('Radiometric terrain corrected Sentinel-1 VV backscatter'
+           ' coefficient normalized to gamma0'),
+    'VH': ('Radiometric terrain corrected Sentinel-1 VH backscatter'
+           ' coefficient normalized to gamma0'),
+    'layover_shadow_mask': ('Layover/shadow mask. Values: 0: not masked;'
+                            '1: shadow; 2: layover; 3: layover and shadow'),
+    'rtc_anf_gamma0_to_beta0': ('Radiometric terrain correction (RTC)'
+                                ' area normalization factor (ANF)'
+                                ' gamma0 to beta0'),
+    'incidence_angle': ('Incidence angle is defined as the angle between'
+                        ' the line-of-sight (LOS) vector and the normal to'
+                        ' the ellipsoid at the target height'),
+    'local_incidence_angle': ('Local incidence angle is defined as the angle'
+                              ' between the line-of-sight (LOS) vector and the'
+                              ' normal to the ellipsoid at the target height'),
+    
+    # TODO improve description below
+    'projection_angle' : 'Projection angle (psi)',
+    'rtc_anf_psi': ('Radiometric terrain correction (RTC)'
+                    ' area normalization factor (ANF) '
+                    ' gamma0 to beta0 computed with'
+                    ' the projection angle method'),
+    'range_slope': 'Range slope',
+    'dem': 'Digital elevation model (DEM)'
+}
+
+
 
 def compute_correction_lut(burst_in, dem_raster, scratch_path,
                            rg_step=120,
@@ -263,7 +308,7 @@ def save_browse(imagery_list, browse_image_filename,
     mpimg.imsave(browse_image_filename, image, format='png')
 
 
-def append_metadata_to_geotiff_file(input_file, metadata_dict):
+def append_metadata_to_geotiff_file(input_file, metadata_dict, product_id):
     '''Append metadata to GeoTIFF file
 
        Parameters
@@ -272,14 +317,45 @@ def append_metadata_to_geotiff_file(input_file, metadata_dict):
            Input GeoTIFF file
        metadata_dict : dict
            Metadata dictionary
+       product_id : str
+           Product ID
     '''
     input_file_basename = os.path.basename(input_file)
     logger.info('    appending metadata to the GeoTIFF file:'
                 f' {input_file_basename}')
     gdal_ds = gdal.Open(input_file, gdal.GA_Update)
     existing_metadata = gdal_ds.GetMetadata()
+
+    # Update existing metadata with RTC-S1 metadata
     existing_metadata.update(metadata_dict)
+    layer_id = input_file_basename.replace(f'{product_id}_', '').split('.')[0]
+
+    # Update metadata file name
+    existing_metadata['FILE_NAME'] = input_file_basename
+
+    # Update metadata layer name (short description)
+    if layer_id in layer_names_dict.keys():
+        layer_name = layer_names_dict[layer_id]
+        existing_metadata['LAYER_NAME'] = layer_name
+
+        # Save layer name using SetDescription()
+        gdal_ds.SetDescription(layer_name)
+
+        band_out = gdal_ds.GetRasterBand(1)
+        band_out.SetDescription(layer_name)
+        band_out.FlushCache()
+
+        del band_out
+
+    # Update metadata layer description (long description)
+    if layer_id in layer_description_dict.keys():
+        layer_description = layer_description_dict[layer_id]
+        existing_metadata['LAYER_DESCRIPTION'] = layer_description
+
+    # Write metadata
     gdal_ds.SetMetadata(existing_metadata)
+
+    # Close GDAL dataset
     del gdal_ds
 
 
@@ -327,9 +403,7 @@ def _separate_pol_channels(multi_band_file, output_file_list,
         raster_out.SetProjection(projection)
         raster_out.SetGeoTransform(geotransform)
 
-        description = f'RTC-S1 {output_radiometry_str} ({pol_list[b]})'
         band_out = raster_out.GetRasterBand(1)
-        band_out.SetDescription(description)
         band_out.WriteArray(band_image)
         band_out.FlushCache()
         del band_out
@@ -912,7 +986,7 @@ def run_single_job(cfg: RunConfig):
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc_area_normalization_factor', output_dir_sec_mosaic_raster,
+        save_rtc_anf, 'rtc_anf_gamma0_to_beta0', output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
 
     temp_files_list = []
@@ -1070,7 +1144,7 @@ def run_single_job(cfg: RunConfig):
         out_geo_rtc_obj = None
         if save_rtc_anf:
             rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
-                            f'_rtc_anf.{imagery_extension}')
+                            f'_rtc_anf_gamma0_to_beta0.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -1298,7 +1372,7 @@ def run_single_job(cfg: RunConfig):
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
-            output_metadata_dict['rtc_area_normalization_factor'][1].append(rtc_anf_file)
+            output_metadata_dict['rtc_anf_gamma0_to_beta0'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
 
@@ -1334,7 +1408,7 @@ def run_single_job(cfg: RunConfig):
                     save_secondary_layers=save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
 
-        # save browse image (burst)
+        # Save browse image (burst)
         if flag_process and flag_save_browse:
             browse_image_filename = \
                 os.path.join(output_dir_bursts, f'{burst_product_id}.png')
@@ -1344,6 +1418,7 @@ def run_single_job(cfg: RunConfig):
                         burst_scratch_path, logger)
             output_file_list.append(browse_image_filename)
 
+        # Append metadata to burst GeoTIFFs
         if (flag_process and (not flag_bursts_files_are_temporary or
                 save_secondary_layers_as_hdf5)):
             metadata_dict = get_metadata_dict(burst_product_id, burst, cfg,
@@ -1354,14 +1429,16 @@ def run_single_job(cfg: RunConfig):
                 if not current_file.endswith('.tif'):
                     continue
                 append_metadata_to_geotiff_file(current_file,
-                                                geotiff_metadata_dict)
+                                                geotiff_metadata_dict,
+                                                burst_product_id)
 
         # Create mosaic HDF5
         if (save_hdf5_metadata and save_mosaics
                 and burst_index == 0):
             hdf5_mosaic_obj = create_hdf5_file(mosaic_product_id,
                 output_hdf5_file, orbit, burst, cfg, is_mosaic=True)
-        
+
+        # Save mosaic metadata for later use
         if (save_mosaics and burst_index == 0):
             mosaic_metadata_dict = get_metadata_dict(mosaic_product_id, burst, cfg,
                 is_mosaic=True)
@@ -1447,10 +1524,8 @@ def run_single_job(cfg: RunConfig):
             else:
                 output_file_list.append(output_file)
                 mosaic_output_file_list.append(output_file)
-                
 
-
-        # save browse image (mosaic)
+        # Save browse image (mosaic)
         if flag_save_browse:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
@@ -1461,9 +1536,6 @@ def run_single_job(cfg: RunConfig):
             output_file_list.append(browse_image_filename)
             mosaic_output_file_list.append(browse_image_filename)
 
-
-
-
         # Save HDF5
         if save_hdf5_metadata:
             if save_nlooks:
@@ -1472,7 +1544,7 @@ def run_single_job(cfg: RunConfig):
                 nlooks_mosaic_file = None
             if save_rtc_anf:
                 rtc_anf_mosaic_file = output_metadata_dict[
-                    'rtc_area_normalization_factor'][0]
+                    'rtc_anf_gamma0_to_beta0'][0]
             else:
                 rtc_anf_mosaic_file = None
             if save_layover_shadow_mask:
@@ -1522,13 +1594,16 @@ def run_single_job(cfg: RunConfig):
             hdf5_mosaic_obj.close()
             output_file_list.append(output_hdf5_file)
 
+    # Append metadata to mosaic GeoTIFFs
     if save_mosaics:
         for current_file in mosaic_output_file_list:
             if not current_file.endswith('.tif'):
                 continue
             append_metadata_to_geotiff_file(current_file,
-                                            mosaic_geotiff_metadata_dict)
+                                            mosaic_geotiff_metadata_dict,
+                                            mosaic_product_id)
 
+    # Save GeoTIFFs as cloud optimized GeoTIFFs (COGs)
     if output_imagery_format == 'COG':
         logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
         for filename in output_file_list:

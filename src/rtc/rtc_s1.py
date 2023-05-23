@@ -636,7 +636,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                 'RTCAreaNormalizationFactor')
             else:
                 rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
-                                f'_rtc_anf.{imagery_extension}')
+                                f'_rtc_anf_gamma0_to_beta0.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -759,6 +759,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 mosaic_product_id, output_hdf5_file, orbit, burst, cfg,
                 is_mosaic=True)
 
+        # Save mosaic metadata for later use
         if (save_mosaics and burst_index == 0):
             mosaic_metadata_dict = get_metadata_dict(mosaic_product_id, burst, cfg,
                 is_mosaic=True)
@@ -844,9 +845,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 output_file_list.append(output_file)
                 mosaic_output_file_list.append(output_file)
 
-
-
-        # save browse image (mosaic)
+        # Save browse image (mosaic)
         if flag_save_browse:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
@@ -916,12 +915,14 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             hdf5_mosaic_obj.close()
             output_file_list.append(output_hdf5_file)
 
+    # Append metadata to mosaic GeoTIFFs
     if save_mosaics:
         for current_file in mosaic_output_file_list:
             if not current_file.endswith('.tif'):
                 continue
             append_metadata_to_geotiff_file(current_file,
-                                            mosaic_geotiff_metadata_dict)
+                                            mosaic_geotiff_metadata_dict,
+                                            mosaic_product_id)
 
     if output_imagery_format == 'COG':
         logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
