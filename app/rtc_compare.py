@@ -10,18 +10,17 @@ import numpy as np
 PASSED_STR = '[PASS] '
 FAILED_STR = '[FAIL]'
 
-RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-03
-RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-04
-RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE = 1.0e-4
+RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
+RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
 
 LIST_EXCLUDE_COMPARISON = \
-    ['//metadata/processingInformation/algorithms/isce3Version',
-     '//metadata/processingInformation/algorithms/S1ReaderVersion',
-     '//metadata/processingInformation/inputs/annotationFiles',
-     '//metadata/processingInformation/inputs/configFiles',
-     '//metadata/processingInformation/inputs/demFiles',
-     '//metadata/processingInformation/inputs/orbitFiles',
-     '//identification/processingDateTime',
+    ['//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/ISCEVersion',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/S1ReaderVersion',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/annotationFiles',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/configFiles',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/demFiles',
+     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/orbitFiles',
+     '//science/SENTINEL1/identification/processingDateTime',
      ]
 
 
@@ -264,9 +263,9 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     # convert object reference to the path to which it is pointing
     # Example:
     # attribute `REFERENCE_LIST` in
-    # /data/xCoordinates'
+    # /science/SENTINEL1/RTC/grids/frequencyA/xCoordinates'
     # attribute `DIMENSION_LIST` in
-    # /data/VH
+    # /science/SENTINEL1/RTC/grids/frequencyA/VH
     if (len(val_1.shape) >= 1) and ('shape' in dir(val_1[0])):
         if (isinstance(val_1[0], np.void) or
         ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)))):
@@ -566,7 +565,7 @@ def _get_prefix_str(flag_same, flag_all_ok):
     flag_all_ok: list(bool)
         Mutable list of booleans that will hold the overall test status
 
-    Returns
+    Return:
     -------
     _: str
         Prefix string for the given comparison test
@@ -577,22 +576,6 @@ def _get_prefix_str(flag_same, flag_all_ok):
 
 
 def compare_rtc_s1_products(file_1, file_2):
-    '''
-    Compare the raster dataset
-
-    Parameters
-    ----------
-    file_1: str
-        The 1st GDAL raster file to compare
-    file_2: str
-        The 2nd GDAL raster file to compare
-
-    Returns
-    -------
-    _ : bool
-        True, when all bands in the raster is within acceptable tolerance;
-        False, otherwise
-    '''
     if not os.path.isfile(file_1):
         print(f'ERROR file not found: {file_1}')
         return False
@@ -646,23 +629,15 @@ def compare_rtc_s1_products(file_1, file_2):
                   f' ({image_1.dtype}) vs. ({image_2.dtype})\n')
             return False
 
-        failed_pixel_index = ~np.isclose(
+        flag_bands_are_equal = np.allclose(
             image_1, image_2, atol=RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE,
             rtol=RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE, equal_nan=True)
-        number_valid_pixels = np.logical_or(np.isfinite(image_1),
-            np.isfinite(image_2)).sum()
-        failed_pixel_ratio = failed_pixel_index.sum() / number_valid_pixels
-        flag_bands_are_equal =\
-            failed_pixel_ratio <= RTC_S1_PRODUCTS_FAILED_PIXEL_RATIO_TOLERANCE
         flag_bands_are_equal_str = _get_prefix_str(flag_bands_are_equal,
                                                    flag_all_ok)
         print(f'{flag_bands_are_equal_str}     Band {b} -'
               f' {gdal_band_1.GetDescription()}"')
         if not flag_bands_are_equal:
-            print(' Percentage of pixels with values difference above threshold:'
-                  f' {failed_pixel_ratio*100:.6f}%,')
             _print_first_value_diff(image_1, image_2, prefix)
-            return False
 
     # compare geotransforms
     flag_same_geotransforms = np.array_equal(geotransform_1, geotransform_2)
@@ -726,8 +701,8 @@ def _compare_rtc_s1_metadata(metadata_1, metadata_2):
                 break
             # Exclude metadata fields that are not required to be the same
             if k1 in ['PROCESSING_DATE_TIME', 'DEM_SOURCE', 'ISCE3_VERSION',
-                      'S1_READER_VERSION', 'ANNOTATION_FILES', 'CONFIG_FILES',
-                      'DEM_FILES', 'ORBIT_FILES']:
+                      'ANNOTATION_FILES', 'CONFIG_FILES', 'DEM_FILES',
+                      'ORBIT_FILES']:
                 continue
             if metadata_2[k1] != v1:
                 flag_same_metadata = False
