@@ -58,6 +58,9 @@ def requires_reprojection(geogrid_mosaic,
     if nlooks_image is not None:
         rasters_to_check += [raster_nlooks]
 
+    proj_mosaic = osr.SpatialReference(wkt=srs_mosaic.ExportToWkt())
+    epsg_mosaic = proj_mosaic.GetAttrValue('AUTHORITY', 1)
+
     for raster in rasters_to_check:
         x0, dx, _, y0, _, dy = raster.GetGeoTransform()
         projection = raster.GetProjection()
@@ -76,13 +79,10 @@ def requires_reprojection(geogrid_mosaic,
         srs_mosaic.ImportFromEPSG(geogrid_mosaic.epsg)
 
         if projection != srs_mosaic.ExportToWkt():
-            proj = osr.SpatialReference(wkt=projection)
-            epsg_1 = proj.GetAttrValue('AUTHORITY', 1)
+            proj_raster = osr.SpatialReference(wkt=projection)
+            epsg_raster = proj_raster.GetAttrValue('AUTHORITY', 1)
 
-            proj = osr.SpatialReference(wkt=srs_mosaic.ExportToWkt())
-            epsg_2 = proj.GetAttrValue('AUTHORITY', 1)
-
-            if epsg_1 != epsg_2:
+            if epsg_raster != epsg_mosaic:
                 flag_requires_reprojection = True
                 return flag_requires_reprojection
 
