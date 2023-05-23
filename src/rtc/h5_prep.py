@@ -274,7 +274,7 @@ def get_metadata_dict(product_id: str,
         'identification/project':
             ['project', 'OPERA', 'Project name'],
         'identification/institution':
-            ['institution', 'Jet Propulsion Laboratory', 'Institution name'],
+            ['institution', 'NASA JPL', 'Institution name'],
         'identification/productVersion':
             ['product_version', product_version,
              'Product version which represents the structure of the product'
