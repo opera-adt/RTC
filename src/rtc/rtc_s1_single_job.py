@@ -362,7 +362,6 @@ def append_metadata_to_geotiff_file(input_file, metadata_dict, product_id):
 
 
 def _separate_pol_channels(multi_band_file, output_file_list,
-                           pol_list, output_radiometry_str,
                            output_raster_format, logger):
     """Save a multi-band raster file as individual single-band files
 
@@ -370,10 +369,6 @@ def _separate_pol_channels(multi_band_file, output_file_list,
        ----------
        multi_band_file : str
            Multi-band raster file
-       pol_list : list(str)
-           List of polarization channels
-       output_radiometry_str: str
-           Output radiometry
        output_file_list : list(str)
            Output file list
        output_raster_format : str
@@ -1351,7 +1346,6 @@ def run_single_job(cfg: RunConfig):
         if flag_process and not flag_bursts_files_are_temporary:
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
-                                   pol_list, output_radiometry_str,
                                    output_raster_format, logger)
 
             output_file_list += output_burst_imagery_list
