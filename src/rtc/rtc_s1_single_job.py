@@ -2,7 +2,6 @@
 RTC-S1 Science Application Software (single job)
 '''
 
-import datetime
 import os
 import time
 import tempfile
@@ -681,7 +680,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         slantrange_layover_shadow_mask = \
             ndimage.grey_dilation(slantrange_layover_shadow_mask,
                                   size=(shadow_dilation_number_iterations,
-                                  shadow_dilation_number_iterations))
+                                        shadow_dilation_number_iterations))
 
         # restore layover pixels
         slantrange_layover_shadow_mask[ind] = 2
@@ -1356,6 +1355,7 @@ def run_single_job(cfg: RunConfig):
                                    output_raster_format, logger)
 
             output_file_list += output_burst_imagery_list
+
 
         if save_nlooks:
             del out_geo_nlooks_obj
