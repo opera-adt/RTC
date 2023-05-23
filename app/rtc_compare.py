@@ -15,7 +15,7 @@ RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-04
 
 LIST_EXCLUDE_COMPARISON = \
     ['//metadata/processingInformation/algorithms/isce3Version',
-     '//metadata/processingInformation/algorithms/S1ReaderVersion',
+     '//metadata/processingInformation/algorithms/s1ReaderVersion',
      '//metadata/processingInformation/inputs/annotationFiles',
      '//metadata/processingInformation/inputs/configFiles',
      '//metadata/processingInformation/inputs/demFiles',
