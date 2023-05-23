@@ -20,6 +20,7 @@ from nisar.workflows.h5_prep import set_get_geo_info
 
 # Data base HDF5 group
 DATA_BASE_GROUP = '/data'
+PRODUCT_SPECIFICATION_VERSION = 0.1
 
 logger = logging.getLogger('rtc_s1')
 
@@ -277,7 +278,7 @@ def get_metadata_dict(product_id: str,
               ' and the science content governed by the algorithm, input data,'
                ' and processing parameter'],
         'identification/productSpecificationVersion':
-            ['product_specification_version', product_version,
+            ['product_specification_version', PRODUCT_SPECIFICATION_VERSION,
              'Product specification version which represents the schema of'
               ' this product'],
         'identification/acquisitionMode':
