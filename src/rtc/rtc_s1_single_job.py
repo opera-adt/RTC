@@ -1082,7 +1082,7 @@ def run_single_job(cfg: RunConfig):
                 geo_burst_pol_filename = (f'NETCDF:{output_hdf5_file_burst}:'
                                           '/data/'
                                           f'{pol}')
-            output_burst_imagery_list.append(geo_burst_pol_filename)
+                output_burst_imagery_list.append(geo_burst_pol_filename)
 
         # skip geocoding if output files exist
         flag_process = (not skip_if_output_files_exist or
