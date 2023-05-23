@@ -1080,7 +1080,7 @@ def run_single_job(cfg: RunConfig):
         else:
             for pol in pol_list:
                 geo_burst_pol_filename = (f'NETCDF:{output_hdf5_file_burst}:'
-                                          '/data/'
+                                          f'{DATA_BASE_GROUP}/'
                                           f'{pol}')
                 output_burst_imagery_list.append(geo_burst_pol_filename)
 
@@ -1356,13 +1356,6 @@ def run_single_job(cfg: RunConfig):
                                    output_raster_format, logger)
 
             output_file_list += output_burst_imagery_list
-
-        else:
-            for pol in pol_list:
-                geo_burst_pol_filename = (f'NETCDF:{output_hdf5_file_burst}:'
-                                          f'{DATA_BASE_GROUP}/'
-                                          f'{pol}')
-            output_burst_imagery_list.append(geo_burst_pol_filename)
 
         if save_nlooks:
             del out_geo_nlooks_obj
