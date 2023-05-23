@@ -1090,7 +1090,7 @@ def run_single_job(cfg: RunConfig):
                                      for f in output_burst_imagery_list]))
         if not flag_process:
             logger.info(f'    found geocoded files for burst {burst_id}!'
-                        ' Skipping burst process.') 
+                        ' Skipping burst process.')
         else:
             logger.info(f'    reading burst SLCs')
 
