@@ -1125,7 +1125,7 @@ def run_single_job(cfg: RunConfig):
                 # layover/shadow mask is temporary
                 layover_shadow_mask_file = \
                     (f'{burst_scratch_path}/{burst_product_id}'
-                    f'_layover_shadow_mask.{imagery_extension}')
+                     f'_layover_shadow_mask.{imagery_extension}')
             else:
                 # layover/shadow mask is saved in `output_dir_sec_bursts`
                 layover_shadow_mask_file = \
