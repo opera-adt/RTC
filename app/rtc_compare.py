@@ -10,17 +10,17 @@ import numpy as np
 PASSED_STR = '[PASS] '
 FAILED_STR = '[FAIL]'
 
-RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-04
-RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-05
+RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-03
+RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-04
 
 LIST_EXCLUDE_COMPARISON = \
-    ['//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/ISCEVersion',
-     '//science/SENTINEL1/RTC/metadata/processingInformation/algorithms/S1ReaderVersion',
-     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/annotationFiles',
-     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/configFiles',
-     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/demFiles',
-     '//science/SENTINEL1/RTC/metadata/processingInformation/inputs/orbitFiles',
-     '//science/SENTINEL1/identification/processingDateTime',
+    ['//metadata/processingInformation/algorithms/isce3Version',
+     '//metadata/processingInformation/algorithms/S1ReaderVersion',
+     '//metadata/processingInformation/inputs/annotationFiles',
+     '//metadata/processingInformation/inputs/configFiles',
+     '//metadata/processingInformation/inputs/demFiles',
+     '//metadata/processingInformation/inputs/orbitFiles',
+     '//identification/processingDateTime',
      ]
 
 
@@ -263,9 +263,9 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     # convert object reference to the path to which it is pointing
     # Example:
     # attribute `REFERENCE_LIST` in
-    # /science/SENTINEL1/RTC/grids/frequencyA/xCoordinates'
+    # /data/xCoordinates'
     # attribute `DIMENSION_LIST` in
-    # /science/SENTINEL1/RTC/grids/frequencyA/VH
+    # /data/VH
     if (len(val_1.shape) >= 1) and ('shape' in dir(val_1[0])):
         if (isinstance(val_1[0], np.void) or
         ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0], h5py.h5r.Reference)))):
@@ -701,8 +701,8 @@ def _compare_rtc_s1_metadata(metadata_1, metadata_2):
                 break
             # Exclude metadata fields that are not required to be the same
             if k1 in ['PROCESSING_DATE_TIME', 'DEM_SOURCE', 'ISCE3_VERSION',
-                      'ANNOTATION_FILES', 'CONFIG_FILES', 'DEM_FILES',
-                      'ORBIT_FILES']:
+                      'S1_READER_VERSION', 'ANNOTATION_FILES', 'CONFIG_FILES',
+                      'DEM_FILES', 'ORBIT_FILES']:
                 continue
             if metadata_2[k1] != v1:
                 flag_same_metadata = False

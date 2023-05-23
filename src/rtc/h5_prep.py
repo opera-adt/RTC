@@ -18,9 +18,8 @@ from rtc.version import VERSION as SOFTWARE_VERSION
 
 from nisar.workflows.h5_prep import set_get_geo_info
 
-BASE_HDF5_DATASET = f'/science/SENTINEL1'
-FREQ_GRID_SUB_PATH = 'RTC/grids/frequencyA'
-FREQ_GRID_DS = f'{BASE_HDF5_DATASET}/{FREQ_GRID_SUB_PATH}'
+# Data base HDF5 group
+DATA_BASE_GROUP = '/data'
 
 logger = logging.getLogger('rtc_s1')
 
@@ -60,7 +59,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                    save_imagery=True, save_secondary_layers=True):
 
     # save grids metadata
-    h5_ds = os.path.join(FREQ_GRID_DS, 'listOfPolarizations')
+    h5_ds = f'{DATA_BASE_GROUP}/listOfPolarizations'
     if h5_ds in hdf5_obj:
         del hdf5_obj[h5_ds]
     pol_list_s2 = np.array(pol_list, dtype='S2')
@@ -68,19 +67,17 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     dset.attrs['description'] = np.string_(
                 'List of processed polarization layers')
 
-    h5_ds = os.path.join(FREQ_GRID_DS, 'radiometricTerrainCorrectionFlag')
+    h5_ds = f'{DATA_BASE_GROUP}/radiometricTerrainCorrectionFlag'
     if h5_ds in hdf5_obj:
         del hdf5_obj[h5_ds]
     dset = hdf5_obj.create_dataset(h5_ds, data=bool(flag_apply_rtc))
 
-
-
     # save geogrid coordinates
-    yds, xds = set_get_geo_info(hdf5_obj, FREQ_GRID_DS, geogrid)
+    yds, xds = set_get_geo_info(hdf5_obj, DATA_BASE_GROUP, geogrid)
 
     if save_imagery:
         # save RTC imagery
-        save_hdf5_dataset(geo_burst_filename, hdf5_obj, FREQ_GRID_DS,
+        save_hdf5_dataset(geo_burst_filename, hdf5_obj, DATA_BASE_GROUP,
                            yds, xds, pol_list,
                            long_name=output_radiometry_str,
                            units='',
@@ -90,7 +87,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     if save_secondary_layers:
         # save nlooks
         if nlooks_file:
-            save_hdf5_dataset(nlooks_file, hdf5_obj, FREQ_GRID_DS,
+            save_hdf5_dataset(nlooks_file, hdf5_obj, DATA_BASE_GROUP,
                                yds, xds, 'numberOfLooks',
                                long_name = 'number of looks',
                                units = '',
@@ -98,7 +95,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
 
         # save rtc
         if rtc_anf_file:
-            save_hdf5_dataset(rtc_anf_file, hdf5_obj, FREQ_GRID_DS,
+            save_hdf5_dataset(rtc_anf_file, hdf5_obj, DATA_BASE_GROUP,
                                yds, xds, 'RTCAreaNormalizationFactor',
                                long_name = 'RTC area factor',
                                units = '',
@@ -106,14 +103,14 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
 
         # save layover shadow mask
         if layover_shadow_mask_file:
-            save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, FREQ_GRID_DS,
+            save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, DATA_BASE_GROUP,
                                yds, xds, 'layoverShadowMask',
                                long_name = 'Layover/shadow mask',
                                units = '',
                                valid_min = 0)
 
         for ds_hdf5, filename in radar_grid_file_dict.items():
-             save_hdf5_dataset(filename, hdf5_obj, FREQ_GRID_DS, yds, xds, ds_hdf5,
+             save_hdf5_dataset(filename, hdf5_obj, DATA_BASE_GROUP, yds, xds, ds_hdf5,
                                 long_name = '', units = '')
 
     logger.info(f'file saved: {output_hdf5_file}')
@@ -129,7 +126,7 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
     output_hdf5_file: h5py.File
         HDF5 object into which write the metadata
     orbit: isce3.core.Orbit
-        Orbit file
+        Orbit ISCE3 object
     burst: Sentinel1BurstCls
         Source burst of the RTC
     cfg: RunConfig
@@ -147,17 +144,15 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
     hdf5_obj.attrs["reference_document"] = np.string_("TBD")
     hdf5_obj.attrs["title"] = np.string_("OPERA L2 RTC-S1 Product")
 
-    populate_metadata_group(product_id, hdf5_obj, burst, cfg, BASE_HDF5_DATASET,
-                            is_mosaic)
+    populate_metadata_group(product_id, hdf5_obj, burst, cfg, is_mosaic)
 
     # save orbit
-    orbit_group = hdf5_obj.require_group(
-        f'{BASE_HDF5_DATASET}/RTC/metadata/orbit')
-    save_orbit(orbit, orbit_group)
+    orbit_group = hdf5_obj.require_group('/metadata/orbit')
+    save_orbit(orbit, orbit_group, os.path.basename(cfg.orbit_file_path))
     return hdf5_obj
 
 
-def save_orbit(orbit, orbit_group):
+def save_orbit(orbit, orbit_group, orbit_file_path):
     orbit.save_to_h5(orbit_group)
     # Add description attributes.
     orbit_group["time"].attrs["description"] = np.string_("Time vector record. This"
@@ -173,11 +168,18 @@ def save_orbit(orbit, orbit_group):
         'referenceEpoch',
         data=np.string_(orbit.reference_epoch.isoformat()))
 
-    # Orbit source/type
-    # TODO: Update orbit type:
-    d = orbit_group.require_dataset("orbitType", (), "S10", data=np.string_("POE"))
-    d.attrs["description"] = np.string_("PrOE (or) NOE (or) MOE (or) POE"
-                                        " (or) Custom")
+    # Orbit source/type    
+    if 'RESORB' in orbit_file_path:
+        orbit_type = 'RES restituted orbit'
+    elif 'POEORB' in orbit_file_path:
+        orbit_type = 'POE precise orbit'
+    else:
+        orbit_type = 'Undefined'
+
+    d = orbit_group.require_dataset("orbitType", (), "S10",
+                                    data=np.string_(orbit_type))
+    d.attrs["description"] = np.string_(
+        "Type of orbit file used in processing")
 
 
 def get_metadata_dict(product_id: str,
@@ -228,11 +230,11 @@ def get_metadata_dict(product_id: str,
         product_version = f'{product_version_float:.1f}'
 
     # DEM description
-    dem_description = cfg_in.dem_description
+    dem_file_description = cfg_in.dem_file_description
 
-    if not dem_description:
+    if not dem_file_description:
         # If the DEM description is not provided, use DEM source
-        dem_description = os.path.basename(cfg_in.dem)
+        dem_file_description = os.path.basename(cfg_in.dem)
 
     if burst_in.platform_id == 'S1A':
         platform_id = 'Sentinel-1A'
@@ -318,108 +320,108 @@ def get_metadata_dict(product_id: str,
         #'identification/CEOSDocumentIdentifier':
         #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
         #     'Product version'],
-        'RTC/metadata/sourceData/numberOfAcquisitions': # 1.6.4
+        'metadata/sourceData/numberOfAcquisitions': # 1.6.4
             ['source_data_number_of_acquisitions',
              1,
              'Number of source data acquisitions'],
         # TODO Review: should we expose this parameter in the runconfig?
-        # 'RTC/metadata/sourceData/dataAccess':
+        # 'metadata/sourceData/dataAccess':
         #     ['source_data_access',
         #      'https://search.asf.alaska.edu/',
         #      'Data access URL'],
-        'RTC/metadata/sourceData/radarBand':  # 1.6.4
+        'metadata/sourceData/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Radar band'],
-        'RTC/metadata/sourceData/processingFacility': #  1.6.6
+        'metadata/sourceData/processingFacility': #  1.6.6
             ['source_data_processing_facility',
              (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
               f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
               f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
              'Source data processing facility'],
-        'RTC/metadata/sourceData/processingDateTime':  # 1.6.6
+        'metadata/sourceData/processingDateTime':  # 1.6.6
             ['source_data_processing_date_time',
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing date and time of the source data'],
-        'RTC/metadata/sourceData/softwareVersion':  # 1.6.6
+        'metadata/sourceData/softwareVersion':  # 1.6.6
             ['source_data_software_version',
              str(burst_in.ipf_version),
              'IPF version of the source data'],
         
-        'RTC/metadata/sourceData/azimuthLooks':  # 1.6.6
+        'metadata/sourceData/azimuthLooks':  # 1.6.6
             [None,
              burst_in.burst_misc_metadata.azimuth_looks,
              'Azimuth number of looks'],
-        'RTC/metadata/sourceData/slantRangeLooks':  # 1.6.6
+        'metadata/sourceData/slantRangeLooks':  # 1.6.6
             [None,
              burst_in.burst_misc_metadata.slant_range_looks,
              'Slant range number of looks'],
 
-        'RTC/metadata/sourceData/productLevel':  # 1.6.6
+        'metadata/sourceData/productLevel':  # 1.6.6
             ['source_data_product_level',
              'L1',
              'Product level of the source data'],
-        # 'RTC/metadata/sourceData/geometry':  # 1.6.7
+        # 'metadata/sourceData/geometry':  # 1.6.7
         #     ['source_data_geometry',
         #     'slant range',
         #     'Geometry of the source data'],
-        'RTC/metadata/sourceData/azimuthSpacing':  # 1.6.7
+        'metadata/sourceData/azimuthSpacing':  # 1.6.7
             ['source_azimuth_spacing',
              burst_in.azimuth_time_interval,
              'Azimuth spacing of the source data in seconds'], 
-        'RTC/metadata/sourceData/slantRangeSpacing':  # 1.6.7
+        'metadata/sourceData/slantRangeSpacing':  # 1.6.7
             ['source_data_slant_range_spacing',
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'], 
 
-        #'RTC/metadata/sourceData/azimuthResolution':  # 1.6.7
+        #'metadata/sourceData/azimuthResolution':  # 1.6.7
         #    ['source_azimuth_resolution',
         #     burst_in.azimuth_time_interval,
         #     'Azimuth time resolution of the source data in seconds'],
-        #'RTC/metadata/sourceData/slantRangeResolution':  # 1.6.7
+        #'metadata/sourceData/slantRangeResolution':  # 1.6.7
         #    ['source_slant_range_resolution',
         #     burst_in.range_pixel_spacing,
         #     'Slant range resolution of the source data in meters'],
 
-        'RTC/metadata/sourceData/nearRangeIncidenceAngle':  # 1.6.7
+        'metadata/sourceData/nearRangeIncidenceAngle':  # 1.6.7
             [None,
              burst_in.burst_misc_metadata.inc_angle_near_range,
              'Near range incidence angle in meters'],
-        'RTC/metadata/sourceData/farRangeIncidenceAngle':  # 1.6.7
+        'metadata/sourceData/farRangeIncidenceAngle':  # 1.6.7
             [None,
              burst_in.burst_misc_metadata.inc_angle_far_range,
              'Far range incidence angle in meters'],
         # Source for the max. NESZ:
         # (https://sentinels.copernicus.eu/web/sentinel/user-guides/
         #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
-        'RTC/metadata/sourceData/maxNoiseEquivalentSigmaZero':  # 1.6.9
+        'metadata/sourceData/maxNoiseEquivalentSigmaZero':  # 1.6.9
             [None,
              -22,
              'Maximum Noise equivalent sigma0 in dB'],
 
         # TODO Review: should we expose this parameter in the runconfig?
-        #'RTC/metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
+        #'metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
         #    ['product_data_access',
         #     'TBD',
         #     'URL to access the product data'],
-        'RTC/metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
+        'metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
             ['post_processing_filtering_applied',
             False,
              'Flag to indicate if post-processing filtering has been applied'],
 
-        'RTC/metadata/processingInformation/parameters/noiseCorrectionApplied':  # 3.3
+        'metadata/processingInformation/parameters/noiseCorrectionApplied':  # 3.3
             ['noise_correction_applied',
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'A flag to indicate whether noise removal was applied'],
     
-        #'RTC/metadata/processingInformation/geoidReference':  # for 4.2
+        #'metadata/processingInformation/geoidReference':  # for 4.2
         #    ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
 
-        #'RTC/grids/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
+        #'data/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
         #    ['absolute_accuracy_northing',
         #     [0.0, 0.0],
         #     ('An estimate of the absolute localisation error in north direction'
         #      'provided as bias and standard deviation')],
 
-        #'RTC/grids/processingInformation/absoluteAccuracyEasting':  # placeholder for 4.3
+        #'data/processingInformation/absoluteAccuracyEasting':  # placeholder for 4.3
         #    ['absolute_accuracy_easting',
         #     [0.0, 0.0],
         #     ('An estimate of the absolute localisation error in east direction'
@@ -429,62 +431,63 @@ def get_metadata_dict(product_id: str,
         # 'identification/plannedDatatakeId':
         # 'identification/plannedObservationId':
 
-        f'{FREQ_GRID_SUB_PATH}/rangeBandwidth':
+        f'{DATA_BASE_GROUP}/rangeBandwidth':
             ['range_bandwidth', burst_in.range_bandwidth,
              'Processed range bandwidth in Hz'],
-        # 'frequencyA/azimuthBandwidth':
-        f'{FREQ_GRID_SUB_PATH}/centerFrequency':
+        # 'azimuthBandwidth':
+        f'{DATA_BASE_GROUP}/centerFrequency':
             ['center_frequency', burst_in.radar_center_frequency,
              'Center frequency of the processed image in Hz'],
-        f'{FREQ_GRID_SUB_PATH}/slantRangeSpacing':
+        f'{DATA_BASE_GROUP}/slantRangeSpacing':
             ['slant_range_spacing', burst_in.range_pixel_spacing,
              'Slant range spacing of grid. '
              'Distance in meters between consecutive range samples'],
-        f'{FREQ_GRID_SUB_PATH}/zeroDopplerTimeSpacing':
+        f'{DATA_BASE_GROUP}/zeroDopplerTimeSpacing':
             ['zero_doppler_time_spacing', burst_in.azimuth_time_interval,
              'Time interval in the along track direction for raster layers'],
-        # f'{FREQ_GRID_SUB_PATH}/faradayRotationFlag':
+        # f'{FREQ_GRID_DS}/faradayRotationFlag':
         #    ['faraday_rotation_flag', False,
         #     'Flag to indicate if Faraday Rotation correction was applied'],
-        # f'{FREQ_GRID_SUB_PATH}/polarizationOrientationFlag':
+        # f'{FREQ_GRID_DS}/polarizationOrientationFlag':
         #    ['polarization_orientation_flag', False,
         #    'Flag to indicate if Polarization Orientation correction was applied'],
 
-        'RTC/metadata/processingInformation/algorithms/demInterpolation':
+        'metadata/processingInformation/algorithms/demInterpolation':
             ['dem_interpolation_algorithm',
              cfg_in.groups.processing.dem_interpolation_method,
              'DEM interpolation method'],
-        'RTC/metadata/processingInformation/algorithms/geocoding':
+        'metadata/processingInformation/algorithms/geocoding':
             ['geocoding_algorithm',
              cfg_in.groups.processing.geocoding.algorithm_type,
              'Geocoding algorithm'],
-        'RTC/metadata/processingInformation/algorithms/radiometricTerrainCorrection':
+        'metadata/processingInformation/algorithms/radiometricTerrainCorrection':
             ['radiometric_terrain_correction_algorithm',
              cfg_in.groups.processing.rtc.algorithm_type,
             'Radiometric terrain correction (RTC) algorithm'],
-        'RTC/metadata/processingInformation/algorithms/ISCEVersion':
+        'metadata/processingInformation/algorithms/isce3Version':
             ['isce3_version', isce3.__version__,
             'Version of the ISCE3 framework used for processing'],
-        # 'RTC/metadata/processingInformation/algorithms/RTCVersion':
+        # 'metadata/processingInformation/algorithms/RTCVersion':
         #     [str(SOFTWARE_VERSION), 'RTC-S1 SAS version used for processing'],
-        'RTC/metadata/processingInformation/algorithms/S1ReaderVersion':
+        'metadata/processingInformation/algorithms/S1ReaderVersion':
             ['s1_reader_version', release_version,
              'Version of the OPERA s1-reader used for processing'],
 
-        'RTC/metadata/processingInformation/inputs/l1SLCGranules':
+        'metadata/processingInformation/inputs/l1SLCGranules':
             ['l1_slc_granules', l1_slc_granules,
              'List of input L1 SLC products used'],
-        'RTC/metadata/processingInformation/inputs/orbitFiles':
+        'metadata/processingInformation/inputs/orbitFiles':
             ['orbit_files', orbit_files, 'List of input orbit files used'],
-        'RTC/metadata/processingInformation/inputs/annotationFiles':
+        'metadata/processingInformation/inputs/annotationFiles':
             ['annotation_files', [burst_in.burst_calibration.basename_cads,
              burst_in.burst_noise.basename_nads],
              'List of input calibration files used'],
-        'RTC/metadata/processingInformation/inputs/configFiles':
+        'metadata/processingInformation/inputs/configFiles':
             ['config_files', cfg_in.run_config_path,
              'List of input config files used'],
-        'RTC/metadata/processingInformation/inputs/demSource':
-            ['dem_source', dem_description, 'DEM source description'],
+        'metadata/processingInformation/inputs/demSource':
+            ['dem_source', dem_file_description,
+            'Description of the input digital elevation model (DEM)']
     }
 
     # Add reference to the thermal noise correction algorithm when the correction is applied
@@ -495,7 +498,7 @@ def get_metadata_dict(product_id: str,
              '11d3bd86-5d6a-4e07-b8bb-912c1093bf91?t=1511973926000')
     else:
         noise_removal_algorithm_reference = '(noise removal not applied)'
-    metadata_dict['RTC/metadata/processingInformation/algorithms/noiseCorrectionAlgorithmReference'] =\
+    metadata_dict['metadata/processingInformation/algorithms/noiseCorrectionAlgorithmReference'] =\
         ['noise_removal_algorithm_reference',
          noise_removal_algorithm_reference,
           'A reference to the noise removal algorithm applied']
@@ -509,7 +512,7 @@ def get_metadata_dict(product_id: str,
             url_rtc_algorithm_document = 'https://ieeexplore.ieee.org/document/5752845'
         else:
             raise NotImplementedError
-    metadata_dict['RTC/metadata/processingInformation/algorithms/radiometricTerrainCorrectionAlgorithmReference'] =\
+    metadata_dict['metadata/processingInformation/algorithms/radiometricTerrainCorrectionAlgorithmReference'] =\
         ['rtc_algorithm_reference',
          url_rtc_algorithm_document,
          'A reference to the RTC algorithm applied']
@@ -559,7 +562,7 @@ def get_metadata_dict(product_id: str,
 
     # Add RFI metadata into `metadata_dict`
     rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
-                                              'RTC/metadata/QA/rfiInformation')
+                                              'metadata/QA/rfiInformation')
     metadata_dict.update(rfi_metadata_dict)
 
     return metadata_dict
@@ -600,7 +603,6 @@ def populate_metadata_group(product_id: str,
                             h5py_obj: h5py.File,
                             burst_in: Sentinel1BurstSlc,
                             cfg_in: RunConfig,
-                            root_path: str,
                             is_mosaic: bool):
     '''Populate RTC metadata based on Sentinel1BurstSlc and RunConfig
 
@@ -614,8 +616,6 @@ def populate_metadata_group(product_id: str,
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
-    root_path: str
-        Root path inside the HDF5 object on which the metadata will be placed
     is_mosaic: bool
         Flag to indicate if the RTC-S1 product is a mosaic (True)
         or burst (False) product
@@ -623,8 +623,7 @@ def populate_metadata_group(product_id: str,
 
     metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in, is_mosaic)
 
-    for fieldname, (_, data, description) in metadata_dict.items():
-        path_dataset_in_h5 = os.path.join(root_path, fieldname)
+    for path_dataset_in_h5, (_, data, description) in metadata_dict.items():
         if isinstance(data, str):
             dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data))
         else:
@@ -744,7 +743,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
 
 def get_rfi_metadata_dict(burst_in,
-                          rfi_root_path = 'RTC/metadata/QA/rfiInformation'):
+                          rfi_root_path = 'metadata/QA/rfiInformation'):
     '''
     Populate the RFI information into HDF5 object
 

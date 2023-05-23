@@ -18,7 +18,7 @@ runconfig:
             dem_file: str(required=False)
 
             # Digital elevation model description
-            dem_description: str(required=False)
+            dem_file_description: str(required=False)
 
         static_ancillary_file_group:
 
@@ -69,7 +69,7 @@ runconfig:
             # Save browse image(s)
             save_browse: bool(required=False)
 
-            output_imagery_format: enum('HDF5', 'NETCDF', 'ENVI', 'GTiff', 'COG', required=False)
+            output_imagery_format: enum('HDF5', 'NETCDF', 'GTiff', 'COG', 'ENVI', required=False)
             output_imagery_compression: str(required=False)
             output_imagery_nbits: int(min=1, required=False)
 
@@ -89,73 +89,75 @@ runconfig:
 
 ---
 geo2rdr_options:
-   # Convergence threshold for rdr2geo algorithm
-   threshold: num(min=0, required=False)
-   # Maximum number of iterations
-   numiter: int(min=1, required=False)
+    # Convergence threshold for rdr2geo algorithm
+    threshold: num(min=0, required=False)
+    # Maximum number of iterations
+    numiter: int(min=1, required=False)
 
 rdr2geo_options:
-   # Convergence threshold for rdr2geo algorithm
-   threshold: num(min=0, required=False)
-   # Maximum number of iterations
-   numiter: int(min=1, required=False)
+    # Convergence threshold for rdr2geo algorithm
+    threshold: num(min=0, required=False)
+    # Maximum number of iterations
+    numiter: int(min=1, required=False)
 
 # Group of processing options
 processing_options:
 
-   # Check if ancillary inputs cover entirely the output product
-   check_ancillary_inputs_coverage: bool(required=False)
+    # Check if ancillary inputs cover entirely the output product
+    check_ancillary_inputs_coverage: bool(required=False)
 
-   # Polarization channels to process. 3 modes below correspond to VV, VH, VV+VH
-   polarization: enum('co-pol', 'cross-pol', 'dual-pol', required=False)
+    # Polarization channels to process. 3 modes below correspond to VV, VH, VV+VH
+    polarization: enum('co-pol', 'cross-pol', 'dual-pol', required=False)
 
-   # Options to run geo2rdr
-   geo2rdr: include('geo2rdr_options', required=False)
+    # Options to run geo2rdr
+    geo2rdr: include('geo2rdr_options', required=False)
 
-   # Options to run rdr2geo (for running topo when calculating layover shadow mask)
-   rdr2geo: include('rdr2geo_options', required=False)
+    # Options to run rdr2geo (for running topo when calculating layover shadow mask)
+    rdr2geo: include('rdr2geo_options', required=False)
 
-   # Range split-spectrum options
-   range_split_spectrum: include('range_split_spectrum_options', required=False)
+    # Range split-spectrum options
+    range_split_spectrum: include('range_split_spectrum_options', required=False)
 
-   # DEM interpolation method
-   dem_interpolation_method: enum('sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic', required=False)
+    # DEM interpolation method
+    dem_interpolation_method: enum('sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic', required=False)
 
-   # Apply absolute radiometric correction
-   apply_absolute_radiometric_correction: bool(required=False)
+    # Apply absolute radiometric correction
+    apply_absolute_radiometric_correction: bool(required=False)
 
-   # Apply thermal noise correction
-   apply_thermal_noise_correction: bool(required=False)
+    # Apply thermal noise correction
+    apply_thermal_noise_correction: bool(required=False)
 
-   # Compute geolocation correction LUTs and apply it
-   apply_correction_luts: bool(required=False)
+    # Compute geolocation correction LUTs and apply it
+    apply_correction_luts: bool(required=False)
 
-   # slant range spacing of the correction LUT in meters
-   correction_lut_range_spacing_in_meters: num(required=False)
-   # Azimuth time spacing of the correction LUT in meters
-   correction_lut_azimuth_spacing_in_meters: num(required=False)
+    # slant range spacing of the correction LUT in meters
+    correction_lut_range_spacing_in_meters: num(required=False)
+    # Azimuth time spacing of the correction LUT in meters
+    correction_lut_azimuth_spacing_in_meters: num(required=False)
 
-   # Apply RTC
-   apply_rtc: bool(required=False)
+    # Apply RTC
+    apply_rtc: bool(required=False)
 
-   # Apply bistatic delay correction
-   apply_bistatic_delay_correction: bool(required=False)
+    # Apply bistatic delay correction
+    apply_bistatic_delay_correction: bool(required=False)
 
-   # Apply dry tropospheric delay correction
-   apply_dry_tropospheric_delay_correction: bool(required=False)
+    # Apply dry tropospheric delay correction
+    apply_dry_tropospheric_delay_correction: bool(required=False)
 
-   # Radiometric Terrain Correction (RTC)
-   rtc: include('rtc_options', required=False)
+    # Radiometric Terrain Correction (RTC)
+    rtc: include('rtc_options', required=False)
 
-   # Geocoding options
-   geocoding: include('geocoding_options', required=False)
+    # Geocoding options
+    geocoding: include('geocoding_options', required=False)
 
-   # Browse image
-   browse_image_group: include('browse_image_options', required=False)
+    # Mosaicking options
+    mosaicking: include('mosaicking_options', required=False)
 
+    # Browse image
+    browse_image_group: include('browse_image_options', required=False)
 
-   # Numper of parallel processes for burst processing
-   num_workers: int(required=False)
+    # Numper of parallel processes for burst processing
+    num_workers: int(required=False)
 
 
 rtc_options:
@@ -182,7 +184,8 @@ geocoding_options:
     # OPTIONAL - Apply shadow masking
     apply_shadow_masking: bool(required=False)
 
-    # Algorithm type, area projection or interpolation: sinc, bilinear, bicubic, nearest, and biquintic
+    # Geocoding algorithm type, area projection or interpolation:
+    # sinc, bilinear, bicubic, nearest, and biquintic
     algorithm_type: enum('area_projection', 'sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic', required=False)
 
     # Memory mode
@@ -232,7 +235,25 @@ geocoding_options:
     # Double SLC sampling in the range direction
     upsample_radargrid: bool(required=False)
 
-    # Product EPSG code. Same as DEM if not provided
+    # Bursts geographic grid
+    bursts_geogrid: include('output_grid_options', required=False)
+
+
+mosaicking_options:
+
+    # Mosaic mode
+    mosaic_mode: enum('average', 'first', 'bursts_center', required=False)
+
+    # Mosaic geographic grid
+    mosaic_geogrid: include('output_grid_options', required=False)
+
+
+output_grid_options:
+    # Product EPSG code. If not provided, `output_epsg` will
+    # be determined based on the scene center:
+    # - If center_lat >= 75.0: 3413
+    # - If center_lat <= -75.0: 3031
+    # - Otherwise: EPSG code associated with the closest UTM zone
     output_epsg: int(min=1024, max=32767, required=False)
 
     # Product posting along X (same units as output_epsg)

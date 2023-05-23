@@ -132,7 +132,8 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
             logger.error(err_str)
             raise yamale.YamaleError(err_str) from yamale_err
     else:
-        raise FileNotFoundError
+        error_msg = f'ERROR file not found: {yaml_path}'
+        raise FileNotFoundError(error_msg)
 
     # validate yaml file taken from command line
     try:
@@ -214,7 +215,7 @@ def validate_group_dict(group_cfg: dict) -> None:
     helpers.check_write_dir(product_group['scratch_path'])
 
 
-def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
+def runconfig_to_bursts(cfg: SimpleNamespace):
     '''Return bursts based on parameters in given runconfig
 
     Parameters
@@ -224,8 +225,10 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
 
     Returns
     -------
-    _ : list[Sentinel1BurstSlc]
+    bursts : list[Sentinel1BurstSlc]
         List of bursts loaded according to given configuration.
+    orbit_file_path : str
+        Orbit file path
     '''
 
     # dict to store list of bursts keyed by burst_ids
@@ -234,11 +237,11 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
     # extract given SAFE zips to find bursts identified in cfg.burst_id
     for safe_file in cfg.input_file_group.safe_file_path:
         # get orbit file
-        orbit_path = get_orbit_file_from_list(
+        orbit_file_path = get_orbit_file_from_list(
             safe_file,
             cfg.input_file_group.orbit_file_path)
 
-        if not orbit_path:
+        if not orbit_file_path:
             err_str = f"No orbit file correlates to safe file: {os.path.basename(safe_file)}"
             logger.error(err_str)
             raise ValueError(err_str)
@@ -268,7 +271,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
         for pol, i_subswath in pol_subswath_index_pairs:
 
             # loop over burst objs extracted from SAFE zip
-            for burst in load_bursts(safe_file, orbit_path, i_subswath, pol,
+            for burst in load_bursts(safe_file, orbit_file_path, i_subswath, pol,
                                      flag_apply_eap=False):
                 # get burst ID
                 burst_id = str(burst.burst_id)
@@ -300,7 +303,7 @@ def runconfig_to_bursts(cfg: SimpleNamespace) -> list[Sentinel1BurstSlc]:
         logger.error(err_str)
         raise ValueError(err_str)
 
-    return bursts
+    return bursts, orbit_file_path
 
 
 def get_ref_radar_grid_info(ref_path, burst_id):
@@ -330,7 +333,7 @@ def get_ref_radar_grid_info(ref_path, burst_id):
     return ReferenceRadarInfo(ref_rdr_path, ref_rdr_grid)
 
 
-def check_geocode_dict(geocode_cfg: dict) -> None:
+def check_geogrid_dict(geocode_cfg: dict) -> None:
 
     # check output EPSG
     output_epsg = geocode_cfg['output_epsg']
@@ -385,6 +388,8 @@ class RunConfig:
     geogrid: GeoGridParameters
     # dict of geogrids associated to burst IDs
     geogrids: dict[str, GeoGridParameters]
+    # orbit file path
+    orbit_file_path: str
 
 
     @classmethod
@@ -401,30 +406,33 @@ class RunConfig:
         cfg = load_validate_yaml(yaml_path, workflow_name)
         groups_cfg = cfg['runconfig']['groups']
 
+        # Read mosaic dict
+        mosaic_dict = groups_cfg['processing']['mosaicking']
+        check_geogrid_dict(mosaic_dict['mosaic_geogrid'])
+
+        # Read geocoding dict
         geocoding_dict = groups_cfg['processing']['geocoding']
-        check_geocode_dict(geocoding_dict)
+        check_geogrid_dict(geocoding_dict['bursts_geogrid'])
 
         # Convert runconfig dict to SimpleNamespace
         sns = wrap_namespace(groups_cfg)
 
         # Load bursts
-        bursts = runconfig_to_bursts(sns)
+        bursts, orbit_file_path = runconfig_to_bursts(sns)
 
         # Load geogrids
-        dem_file = groups_cfg['dynamic_ancillary_file_group']['dem_file']
         burst_database_file = groups_cfg['static_ancillary_file_group']['burst_database_file']
         if burst_database_file is None:
-            geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict, dem_file)
+            geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict, mosaic_dict)
         else:
-            geogrid_all, geogrids = generate_geogrids_from_db(bursts, geocoding_dict,
-                                                 dem_file, burst_database_file)
-
+            geogrid_all, geogrids = generate_geogrids_from_db(
+                bursts, geocoding_dict, mosaic_dict, burst_database_file)
         
         # Empty reference dict for base runconfig class constructor
         empty_ref_dict = {}
 
         return cls(cfg['runconfig']['name'], sns, bursts, empty_ref_dict,
-                   yaml_path, geogrid_all, geogrids)
+                   yaml_path, geogrid_all, geogrids, orbit_file_path)
 
     @property
     def geocoding_params(self) -> dict:
@@ -439,8 +447,8 @@ class RunConfig:
         return self.groups.dynamic_ancillary_file_group.dem_file
 
     @property
-    def dem_description(self) -> str:
-        return self.groups.dynamic_ancillary_file_group.dem_description
+    def dem_file_description(self) -> str:
+        return self.groups.dynamic_ancillary_file_group.dem_file_description
 
     @property
     def is_reference(self) -> bool:
