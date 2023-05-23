@@ -13,7 +13,7 @@ from osgeo import gdal
 import argparse
 
 import isce3
-from scipy.ndimage import morphology
+from scipy import ndimage
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
@@ -676,9 +676,9 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
 
         # perform grey dilation
         slantrange_layover_shadow_mask = \
-            morphology.grey_dilation(slantrange_layover_shadow_mask,
-                                     size=(shadow_dilation_number_iterations,
-                                           shadow_dilation_number_iterations))
+            ndimage.grey_dilation(slantrange_layover_shadow_mask,
+                                  size=(shadow_dilation_number_iterations,
+                                  shadow_dilation_number_iterations))
 
         # restore layover pixels
         slantrange_layover_shadow_mask[ind] = 2
