@@ -321,12 +321,12 @@ def get_metadata_dict(product_id: str,
               'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
         'identification/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Acquired frequency band'],
-        # 'metadata/processingCenter':
+        # 'metadata/processingCenter': # 1.7.1
         #     ['source_data_processing_center',
         #      (f'organization: "Jet Propulsion Laboratory", '
         #       f'site: "Pasadena, CA", '
         #       f'country: "United States of America"'),
-        #      'Source data processing center'],
+        #      'Data processing center'],
  
         #'identification/CEOSDocumentIdentifier':
         #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
@@ -341,12 +341,12 @@ def get_metadata_dict(product_id: str,
         #      'Data access URL'],
         # 'metadata/sourceData/radarBand':  # 1.6.4
         #    ['radar_band', 'C', 'Acquired frequency band'],
-        # 'metadata/sourceData/processingCenter': #  1.6.6
-        #     ['source_data_processing_center',
-        #      (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
-        #       f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
-        #       f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
-        #      'Source data processing center'],
+        'metadata/sourceData/processingCenter':  # 1.6.6
+            ['source_data_processing_center',
+             (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
+              f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
+              f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
+             'Source data processing center'],
         'identification/processingDateTime':  # 1.6.6
             ['source_data_processing_date_time',
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
@@ -369,18 +369,18 @@ def get_metadata_dict(product_id: str,
             ['source_data_product_level',
              'L1',
              'Product level of the source data'],
-        f'metadata/sourceData/swaths/centerFrequency':
+        f'metadata/sourceData/centerFrequency':
             ['center_frequency', burst_in.radar_center_frequency,
              'Center frequency of the processed image in Hz'],
         # 'metadata/sourceData/geometry':  # 1.6.7
         #     ['source_data_geometry',
         #     'slant range',
         #     'Geometry of the source data'],
-        'metadata/sourceData/swaths/zeroDopplerTimeSpacing':  # 1.6.7
+        'metadata/sourceData/zeroDopplerTimeSpacing':  # 1.6.7
             ['source_data_zero_doppler_time_spacing',
              burst_in.azimuth_time_interval,
              'Azimuth spacing of the source data in seconds'], 
-        'metadata/sourceData/swaths/slantRangeSpacing':  # 1.6.7
+        'metadata/sourceData/slantRangeSpacing':  # 1.6.7
             ['source_data_slant_range_spacing',
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'], 
@@ -576,24 +576,24 @@ def get_metadata_dict(product_id: str,
          burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
          'Azimuth stop time of the product']  # 1.6.3
 
-    metadata_dict['metadata/sourceData/swaths/zeroDopplerStartTime'] = \
+    metadata_dict['metadata/sourceData/zeroDopplerStartTime'] = \
         ['source_data_zero_doppler_start_time',
          burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
          'Azimuth start time of the product'] # 1.6.3
-    metadata_dict['metadata/sourceData/swaths/zeroDopplerEndTime'] = \
+    metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
         ['source_data_zero_doppler_end_time',
          burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
          'Azimuth stop time of the product']  # 1.6.3
-    metadata_dict['metadata/sourceData/swaths/numberOfAzimuthLines'] = \
+    metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
         ['source_data_number_of_azimuth_lines',
          burst_in.length,
          'Number of azimuth lines within the source data product']
 
-    metadata_dict['metadata/sourceData/swaths/slantRangeStart'] = \
+    metadata_dict['metadata/sourceData/slantRangeStart'] = \
         ['source_data_slant_range_start',
          burst_in.starting_range,
          'Source data slant range start distance']
-    metadata_dict['metadata/sourceData/swaths/numberOfRangeSamples'] = \
+    metadata_dict['metadata/sourceData/numberOfRangeSamples'] = \
         ['source_data_number_of_range_samples',
          burst_in.width,
          'Number of slant range samples for each azimuth line within the source data']
