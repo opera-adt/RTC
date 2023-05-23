@@ -592,7 +592,7 @@ def get_metadata_dict(product_id: str,
         ['source_data_number_of_azimuth_lines',
          burst_in.length,
          'Number of azimuth lines within the source data product']
-    
+
     metadata_dict['metadata/sourceData/numberOfRangeSamples'] = \
         ['source_data_number_of_range_samples',
          burst_in.width,
