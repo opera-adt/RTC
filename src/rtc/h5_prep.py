@@ -19,6 +19,7 @@ from rtc.version import VERSION as SOFTWARE_VERSION
 from nisar.workflows.h5_prep import set_get_geo_info
 
 # Data base HDF5 group
+DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 DATA_BASE_GROUP = '/data'
 PRODUCT_SPECIFICATION_VERSION = 0.1
 
@@ -293,9 +294,9 @@ def get_metadata_dict(product_id: str,
         'identification/orbitPassDirection':
             ['orbit_pass_direction', burst_in.orbit_direction.lower(),
              'Orbit direction can be ascending or descending'],
-        'identification/isUrgentObservation':
-            ['is_urgent_observation', False,
-             'List of booleans indicating if datatakes are nominal or urgent'],
+        # 'identification/isUrgentObservation':
+        #     ['is_urgent_observation', False,
+        #      'List of booleans indicating if datatakes are nominal or urgent'],
         'identification/diagnosticModeFlag':
             ['diagnostic_mode_flag', False,
              'Indicates if the radar mode is a diagnostic mode or not: True or'
@@ -370,7 +371,7 @@ def get_metadata_dict(product_id: str,
             ['source_data_product_level',
              'L1',
              'Product level of the source data'],
-        f'metadata/sourceData/centerFrequency':
+        'metadata/sourceData/centerFrequency':
             ['center_frequency', burst_in.radar_center_frequency,
              'Center frequency of the processed image in Hz'],
         # 'metadata/sourceData/geometry':  # 1.6.7
@@ -570,34 +571,34 @@ def get_metadata_dict(product_id: str,
 
     metadata_dict['identification/zeroDopplerStartTime'] = \
         ['zero_doppler_start_time',
-         burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+         burst_in.sensing_start.strftime(DATE_TIME_FORMAT),
          'Azimuth start time of the product'] # 1.6.3
     metadata_dict['identification/zeroDopplerEndTime'] = \
         ['zero_doppler_end_time',
-         burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+         burst_in.sensing_stop.strftime(DATE_TIME_FORMAT),
          'Azimuth stop time of the product']  # 1.6.3
 
     metadata_dict['metadata/sourceData/zeroDopplerStartTime'] = \
         ['source_data_zero_doppler_start_time',
-         burst_in.sensing_start.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+         burst_in.sensing_start.strftime(DATE_TIME_FORMAT),
          'Azimuth start time of the product'] # 1.6.3
     metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
         ['source_data_zero_doppler_end_time',
-         burst_in.sensing_stop.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+         burst_in.sensing_stop.strftime(DATE_TIME_FORMAT),
          'Azimuth stop time of the product']  # 1.6.3
     metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
         ['source_data_number_of_azimuth_lines',
          burst_in.length,
          'Number of azimuth lines within the source data product']
-
-    metadata_dict['metadata/sourceData/slantRangeStart'] = \
-        ['source_data_slant_range_start',
-         burst_in.starting_range,
-         'Source data slant range start distance']
+    
     metadata_dict['metadata/sourceData/numberOfRangeSamples'] = \
         ['source_data_number_of_range_samples',
          burst_in.width,
          'Number of slant range samples for each azimuth line within the source data']
+    metadata_dict['metadata/sourceData/slantRangeStart'] = \
+        ['source_data_slant_range_start',
+         burst_in.starting_range,
+         'Source data slant range start distance']
 
     # Add RFI metadata into `metadata_dict`
     rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
@@ -819,7 +820,7 @@ def get_rfi_metadata_dict(burst_in,
              'Swath of the IW RFI burst repost list'],
         'rfiBurstReport/azimuthTime':
             ['rfi_burst_report_azimuth_time',
-             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(DATE_TIME_FORMAT),
              'Azimuth time of the burst that corresponds to the RFI report'],
         'rfiBurstReport/inBandOutBandPowerRatio':
             ['in_band_out_band_power_ratio',
