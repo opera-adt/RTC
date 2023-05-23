@@ -31,6 +31,7 @@ import matplotlib.image as mpimg
 
 logger = logging.getLogger('rtc_s1')
 
+# RTC-S1 product layer names
 layer_names_dict = {
     'VV': 'RTC-S1 VV Backscatter (Gamma0)',
     'VH': 'RTC-S1 VH Backscatter (Gamma0)',
@@ -48,6 +49,7 @@ layer_names_dict = {
     'dem': 'Digital Elevation Model (DEM)'
 }
 
+# RTC-S1 product layer description dict
 layer_description_dict = {
     'VV': ('Radiometric terrain corrected Sentinel-1 VV backscatter'
            ' coefficient normalized to gamma0'),
