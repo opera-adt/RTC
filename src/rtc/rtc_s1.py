@@ -64,7 +64,7 @@ def split_runconfig(cfg_in,
         List of the burst logfiles
     '''
 
-    with open(cfg_in.run_config_path, 'r+', encoding='utf8') as fin:
+    with open(cfg_in.run_config_path, 'r', encoding='utf8') as fin:
         runconfig_dict_in = yaml.safe_load(fin.read())
 
     runconfig_burst_list = []
@@ -560,7 +560,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
-        burst_id_file_name = burst_id[1:].upper().replace('_', '-')
+        burst_id_file_name = burst_id.upper().replace('_', '-')
         print('burst ID name:', burst_id_file_name)    
         burst_product_id = \
             product_id.replace('{burst_id}', burst_id_file_name)

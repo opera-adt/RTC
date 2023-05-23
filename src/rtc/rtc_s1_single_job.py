@@ -24,7 +24,8 @@ from rtc.mosaic_geobursts import (mosaic_single_output_file,
 from rtc.core import create_logger, save_as_cog, check_ancillary_inputs
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          get_metadata_dict,
-                         all_metadata_dict_to_geotiff_metadata_dict)
+                         all_metadata_dict_to_geotiff_metadata_dict,
+                         DATA_BASE_GROUP)
 from rtc.version import VERSION as SOFTWARE_VERSION
 import matplotlib.image as mpimg
 
@@ -942,7 +943,7 @@ def run_single_job(cfg: RunConfig):
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
-        burst_id_file_name = burst_id[1:].upper().replace('_', '-')
+        burst_id_file_name = burst_id.upper().replace('_', '-')
         burst_product_id = \
             product_id.replace('{burst_id}', burst_id_file_name)
 
@@ -1277,6 +1278,13 @@ def run_single_job(cfg: RunConfig):
                                    output_raster_format, logger)
 
             output_file_list += output_burst_imagery_list
+
+        else:
+            for pol in pol_list:
+                geo_burst_pol_filename = (f'NETCDF:{output_hdf5_file_burst}:'
+                                          f'{DATA_BASE_GROUP}/'
+                                          f'{pol}')
+            output_burst_imagery_list.append(geo_burst_pol_filename)
 
         if save_nlooks:
             del out_geo_nlooks_obj
