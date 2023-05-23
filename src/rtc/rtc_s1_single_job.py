@@ -80,8 +80,8 @@ layer_description_dict = {
 
 
 def compute_correction_lut(burst_in, dem_raster, scratch_path,
-                           rg_step=120,
-                           az_step=120):
+                           rg_step_meters=120,
+                           az_step_meters=120):
     '''
     Compute lookup table for geolocation correction.
     Applied corrections are: bistatic delay (azimuth),
@@ -95,9 +95,9 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
         DEM to run rdr2geo
     scratch_path: str
         Scratch path where the radargrid rasters will be saved
-    rg_step: float
+    rg_step_meters: float
         LUT spacing in slant range. Unit: meters
-    az_step: float
+    az_step_meters: float
         LUT spacing in azimth direction. Unit: meters
 
     Returns
@@ -106,7 +106,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
         LUT2d for geolocation correction in slant range and azimuth direction
     '''
 
-    # approximate conversion of az_step from meters to seconds
+    # approximate conversion of az_step_meters from meters to seconds
     numrow_orbit = burst_in.orbit.position.shape[0]
     vel_mid = burst_in.orbit.velocity[numrow_orbit // 2, :]
     spd_mid = np.linalg.norm(vel_mid)
@@ -115,9 +115,10 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
 
     r = 6371000.0 # geometric mean of WGS84 ellipsoid
 
-    az_step_sec = (az_step * alt_mid) / (spd_mid * r)
+    az_step_sec = (az_step_meters * alt_mid) / (spd_mid * r)
     # Bistatic - azimuth direction
-    bistatic_delay = burst_in.bistatic_delay(range_step=rg_step, az_step=az_step_sec)
+    bistatic_delay = burst_in.bistatic_delay(range_step=rg_step_meters,
+                                             az_step=az_step_sec)
 
     # Calculate rdr2geo rasters
     epsg = dem_raster.get_epsg()
@@ -125,7 +126,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     ellipsoid = proj.ellipsoid
 
     rdr_grid = burst_in.as_isce3_radargrid(az_step=az_step_sec,
-                                           rg_step=rg_step)
+                                           rg_step=rg_step_meters)
 
     grid_doppler = isce3.core.LUT2d()
 
@@ -845,8 +846,8 @@ def run_single_job(cfg: RunConfig):
     else:
         geocode_algorithm = isce3.geocode.GeocodeOutputMode.INTERP
 
-    az_step = cfg.groups.processing.correction_lut_azimuth_spacing_in_meters
-    rg_step = cfg.groups.processing.correction_lut_range_spacing_in_meters
+    az_step_meters = cfg.groups.processing.correction_lut_azimuth_spacing_in_meters
+    rg_step_meters = cfg.groups.processing.correction_lut_range_spacing_in_meters
 
     memory_mode = geocode_namespace.memory_mode
     geogrid_upsampling = geocode_namespace.geogrid_upsampling
@@ -1187,7 +1188,8 @@ def run_single_job(cfg: RunConfig):
             rg_lut, az_lut = compute_correction_lut(burst_for_lut,
                                                     dem_raster,
                                                     burst_scratch_path,
-                                                    rg_step, az_step)
+                                                    rg_step_meters,
+                                                    az_step_meters)
         
             geocode_kwargs['az_time_correction'] = az_lut
             geocode_kwargs['slant_range_correction'] = rg_lut
