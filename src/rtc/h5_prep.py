@@ -273,6 +273,8 @@ def get_metadata_dict(product_id: str,
             ['product_type', 'RTC-S1', 'Product type'],
         'identification/project':
             ['project', 'OPERA', 'Project name'],
+        'identification/institution':
+            ['institution', 'Jet Propulsion Laboratory', 'Institution name'],
         'identification/productVersion':
             ['product_version', product_version,
              'Product version which represents the structure of the product'
