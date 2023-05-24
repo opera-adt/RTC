@@ -137,9 +137,12 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
     hdf5_obj.attrs["contact"] = np.string_("operaops@jpl.nasa.gov")
     hdf5_obj.attrs["institution"] = np.string_("NASA JPL")
-    hdf5_obj.attrs["mission_name"] = np.string_("OPERA")
-    hdf5_obj.attrs["reference_document"] = np.string_("TBD")
-    hdf5_obj.attrs["title"] = np.string_("OPERA L2 RTC-S1 Product")
+    hdf5_obj.attrs["project"] = np.string_("OPERA")
+    hdf5_obj.attrs["reference_document"] = np.string_(
+        "Product Specification Document for the OPERA Radiometric"
+        " Terrain-Corrected SAR Backscatter from Sentinel-1,"
+        " JPL D-108758, Rev. Working Version 1, May 31, 2023")
+    hdf5_obj.attrs["title"] = np.string_("OPERA RTC-S1 Product")
 
     populate_metadata_group(product_id, hdf5_obj, burst, cfg, is_mosaic)
 
@@ -345,6 +348,8 @@ def get_metadata_dict(product_id: str,
         #      'Data access URL'],
         # 'metadata/sourceData/radarBand':  # 1.6.4
         #    ['radar_band', 'C', 'Acquired frequency band'],
+        'metadata/sourceData/institution':
+            ['source_data_institution', 'ESA', 'Source data institution name'],
         'metadata/sourceData/processingCenter':  # 1.6.6
             ['source_data_processing_center',
              (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
@@ -387,7 +392,7 @@ def get_metadata_dict(product_id: str,
         'metadata/sourceData/slantRangeSpacing':  # 1.6.7
             ['source_data_slant_range_spacing',
              burst_in.range_pixel_spacing,
-             'Slant range spacing of the source data in meters'], 
+             'Slant range spacing of the source data in meters'],
 
         #'metadata/sourceData/azimuthResolution':  # 1.6.7
         #    ['source_azimuth_resolution',
@@ -423,7 +428,7 @@ def get_metadata_dict(product_id: str,
         #     'URL to access the product data'],
         'metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
             ['post_processing_filtering_applied',
-            False,
+             False,
              'Flag to indicate if post-processing filtering has been applied'],
 
         'metadata/processingInformation/parameters/noiseCorrectionApplied':  # 3.3
@@ -446,10 +451,10 @@ def get_metadata_dict(product_id: str,
             ['bistatic_delay_correction_applied',
              cfg_in.groups.processing.apply_bistatic_delay_correction,
              'Flag to indicate if the bistatic delay correction has been applied'],
-        #'metadata/processingInformation/geoidReference':  # for 4.2
-        #    ['geoid_source_description', 'EGM2008', 'Geoid source description'], #TODO confirm, might need to be populated via runconfig
 
-        #'data/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3 # TODO: abs. geolocation error needs to be tested.
+        #'metadata/processingInformation/geoidReference':  # for 4.2
+
+        #'data/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3
         #    ['absolute_accuracy_northing',
         #     [0.0, 0.0],
         #     ('An estimate of the absolute localisation error in north direction'
@@ -507,7 +512,7 @@ def get_metadata_dict(product_id: str,
              'List of input config files used'],
         'metadata/processingInformation/inputs/demSource':
             ['dem_source', dem_file_description,
-            'Description of the input digital elevation model (DEM)']
+             'Description of the input digital elevation model (DEM)']
     }
 
     # Add reference to the thermal noise correction algorithm when the correction is applied
@@ -535,7 +540,14 @@ def get_metadata_dict(product_id: str,
     metadata_dict['metadata/processingInformation/algorithms/radiometricTerrainCorrectionAlgorithmReference'] =\
         ['rtc_algorithm_reference',
          url_rtc_algorithm_document,
-         'A reference to the RTC algorithm applied']
+         'Reference to the radiometric terrain correction (RTC) algorithm applied']
+
+    # Add geocoding algorithm reference depending on the algorithm applied
+    if cfg_in.groups.processing.geocoding.algorithm_type == 'area_projection':
+        url_geocoding_algorithm_document = 'https://ieeexplore.ieee.org/document/9695438'
+        metadata_dict['metadata/processingInformation/algorithms/geocodingAlgorithmReference'] =\
+            ['geocoding_algorithm_reference', url_geocoding_algorithm_document,
+             'Reference to the geocoding algorithm applied']
 
     if is_mosaic:
         return metadata_dict
