@@ -19,12 +19,13 @@ from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    get_radar_grid,
                                    save_browse,
                                    append_metadata_to_geotiff_file)
-from rtc.mosaic_geobursts import (compute_weighted_mosaic_raster,
-                                  compute_weighted_mosaic_raster_single_band)
-from rtc.core import create_logger, save_as_cog
+from rtc.mosaic_geobursts import (mosaic_single_output_file,
+                                  mosaic_multiple_output_files)
+from rtc.core import create_logger, save_as_cog, check_ancillary_inputs
 from rtc.version import VERSION as SOFTWARE_VERSION
-from rtc.h5_prep import (save_hdf5_file, create_hdf5_file, BASE_HDF5_DATASET,
-                         get_metadata_dict, all_metadata_dict_to_geotiff_metadata_dict)
+from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
+                         get_metadata_dict, all_metadata_dict_to_geotiff_metadata_dict,
+                         DATA_BASE_GROUP)
 
 from rtc.runconfig import RunConfig, load_parameters
 
@@ -63,7 +64,7 @@ def split_runconfig(cfg_in,
         List of the burst logfiles
     '''
 
-    with open(cfg_in.run_config_path, 'r+', encoding='utf8') as fin:
+    with open(cfg_in.run_config_path, 'r', encoding='utf8') as fin:
         runconfig_dict_in = yaml.safe_load(fin.read())
 
     runconfig_burst_list = []
@@ -268,6 +269,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         processing_namespace.apply_thermal_noise_correction
     flag_apply_abs_rad_correction = \
         processing_namespace.apply_absolute_radiometric_correction
+    check_ancillary_inputs_coverage = \
+        processing_namespace.check_ancillary_inputs_coverage
 
     # read product path group / output format
     runconfig_product_id = cfg.groups.product_group.product_id
@@ -337,6 +340,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     apply_shadow_masking = \
         cfg.groups.processing.geocoding.apply_shadow_masking
 
+
     clip_max = geocode_namespace.clip_max
     clip_min = geocode_namespace.clip_min
     save_incidence_angle = geocode_namespace.save_incidence_angle
@@ -346,16 +350,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
-    # TODO remove the lines below when the mosaic
-    #       does not take in nlooks anymore
-    if save_mosaics:
-        save_nlooks = True
-
-
-
     save_rtc_anf = geocode_namespace.save_rtc_anf
     save_dem = geocode_namespace.save_dem
     save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
+
+    # unpack mosaicking run parameters
+    mosaicking_namespace = cfg.groups.processing.mosaicking
+    mosaic_mode = mosaicking_namespace.mosaic_mode
 
     flag_call_radar_grid = (save_incidence_angle or
                             save_local_inc_angle or save_projection_angle or
@@ -386,6 +387,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     logger.info(f'    product version: {product_version}')
     if save_mosaics:
         logger.info(f'    mosaic product ID: {mosaic_product_id}')
+    logger.info(f'Ancillary input(s):')
+    logger.info(f'    DEM file: {cfg.dem}')
     logger.info(f'Processing parameters:')
     logger.info(f'    apply RTC: {flag_apply_rtc}')
     logger.info(f'    apply thermal noise correction:'
@@ -402,12 +405,25 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     logger.info(f'    output imagery nbits: {output_imagery_nbits}')
     logger.info(f'    save secondary layers as HDF5 files:'
                 f' {save_secondary_layers_as_hdf5}')
+    logger.info(f'    check ancillary coverage:'
+                f' {check_ancillary_inputs_coverage}')
     logger.info(f'Browse images:')
     logger.info(f'    burst height: {browse_image_burst_height}')
     logger.info(f'    burst width: {browse_image_burst_width}')
-    logger.info(f'    mosaic height: {browse_image_mosaic_height}')
-    logger.info(f'    mosaic width: {browse_image_mosaic_width}')
+    if save_mosaics:
+        logger.info(f'    mosaic height: {browse_image_mosaic_height}')
+        logger.info(f'    mosaic width: {browse_image_mosaic_width}')
+        logger.info(f'Mosaic geogrid:')
+        for line in str(cfg.geogrid).split('\n'):
+            if not line:
+                continue
+            logger.info(f'    {line}')
 
+    # check ancillary input (DEM)
+    metadata_dict = {}
+    check_ancillary_inputs(check_ancillary_inputs_coverage,
+                           cfg.dem, cfg.geogrid,
+                           metadata_dict, logger=logger)
     # Common initializations
     dem_raster = isce3.io.Raster(cfg.dem)
 
@@ -534,7 +550,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
-        burst_id_file_name = burst_id[1:].upper().replace('_', '-')
+        burst_id_file_name = burst_id.upper().replace('_', '-')
         print('burst ID name:', burst_id_file_name)    
         burst_product_id = \
             product_id.replace('{burst_id}', burst_id_file_name)
@@ -590,7 +606,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if save_nlooks:
             if save_secondary_layers_as_hdf5:
                 nlooks_file = (f'NETCDF:"{burst_hdf5_in_output}":'
-                               '/science/SENTINEL1/RTC/grids/frequencyA/'
+                               f'{DATA_BASE_GROUP}/'
                                'numberOfLooks')
             else:
                 nlooks_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
@@ -606,7 +622,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if save_rtc_anf:
             if save_secondary_layers_as_hdf5:
                 rtc_anf_file = (f'NETCDF:"{burst_hdf5_in_output}":'
-                                '/science/SENTINEL1/RTC/grids/frequencyA/'
+                                f'{DATA_BASE_GROUP}/'
                                 'RTCAreaNormalizationFactor')
             else:
                 rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
@@ -647,8 +663,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 # Take the layover shadow mask from HDF5 file if not exists
                 if save_secondary_layers_as_hdf5:
                     layover_shadow_mask_file = (f'NETCDF:{burst_hdf5_in_output}:'
-                                                '/science/SENTINEL1/RTC/grids/'
-                                                'frequencyA/layoverShadowMask')
+                                                f'{DATA_BASE_GROUP}/'
+                                                'layoverShadowMask')
 
                 if save_layover_shadow_mask:
                     output_metadata_dict['layover_shadow_mask'][1].append(
@@ -666,8 +682,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         for pol in pol_list:
             if save_imagery_as_hdf5:
                 geo_burst_pol_filename = (f'NETCDF:{burst_hdf5_in_output}:'
-                                          '/science/SENTINEL1/RTC/grids/'
-                                          f'frequencyA/{pol}')
+                                          f'{DATA_BASE_GROUP}/'
+                                          f'{pol}')
             else:
                 geo_burst_pol_filename = \
                     os.path.join(output_path_child, burst_id,
@@ -780,13 +796,18 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             logger.info(f'    {geo_pol_filename}')
             output_imagery_filename_list.append(geo_pol_filename)
 
-        nlooks_list = output_metadata_dict['nlooks'][1]
+        if save_nlooks:
+            nlooks_list = output_metadata_dict['nlooks'][1]
+        else:
+            nlooks_list = []
 
         if len(output_imagery_list) > 0:
-            compute_weighted_mosaic_raster_single_band(
+
+            mosaic_multiple_output_files(
                 output_imagery_list, nlooks_list,
-                output_imagery_filename_list, cfg.geogrid,
-                verbose=False)
+                output_imagery_filename_list, mosaic_mode,
+                scratch_dir=scratch_path, geogrid_in=cfg.geogrid,
+                temp_files_list=temp_files_list)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
@@ -795,13 +816,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             mosaic_output_file_list += output_imagery_filename_list
 
         # Mosaic other bands
-        for key in output_metadata_dict.keys():
-            output_file, input_files = output_metadata_dict[key]
+        for key, (output_file, input_files) in output_metadata_dict.items():
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
                 continue
-            compute_weighted_mosaic_raster(
-                input_files, nlooks_list, output_file, cfg.geogrid, verbose=False)
+
+            mosaic_single_output_file(
+                input_files, nlooks_list, output_file, mosaic_mode,
+                scratch_dir=scratch_path, geogrid_in=cfg.geogrid,
+                temp_files_list=temp_files_list)
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
@@ -856,8 +879,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
 
-            sensing_start_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerStartTime'
-            sensing_end_ds = f'{BASE_HDF5_DATASET}/identification/zeroDopplerEndTime'
+            sensing_start_ds = '/identification/zeroDopplerStartTime'
+            sensing_end_ds = '/identification/zeroDopplerEndTime'
             if sensing_start_ds in hdf5_mosaic_obj:
                 del hdf5_mosaic_obj[sensing_start_ds]
             if sensing_end_ds in hdf5_mosaic_obj:

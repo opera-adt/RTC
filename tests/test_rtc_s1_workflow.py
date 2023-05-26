@@ -10,6 +10,7 @@ from rtc.runconfig import RunConfig, load_parameters
 from rtc.core import create_logger
 from rtc.rtc_s1_single_job import get_rtc_s1_parser, run_single_job
 from rtc.rtc_s1 import run_parallel
+from rtc.h5_prep import DATA_BASE_GROUP
 
 
 from rtc.version import VERSION as SOFTWARE_VERSION
@@ -87,12 +88,12 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
 
         # assert that VV image is present
         geo_vv_file = (f'NETCDF:"{geo_h5_filename}":'
-                       '/science/SENTINEL1/RTC/grids/frequencyA/VV')
+                       f'{DATA_BASE_GROUP}/VV')
         assert(_is_valid_gdal_reference(geo_vv_file))
 
         # assert that HH image is not present
         geo_hh_file = (f'NETCDF:"{geo_h5_filename}":'
-                       '/science/SENTINEL1/RTC/grids/frequencyA/HH')
+                       f'{DATA_BASE_GROUP}/HH')
         assert(not(_is_valid_gdal_reference(geo_hh_file)))
 
     else:
@@ -115,7 +116,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
                    'localIncidenceAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           '/science/SENTINEL1/RTC/grids/frequencyA/'
+                           f'{DATA_BASE_GROUP}/'
                            f'{ds_name}')
             assert(_is_valid_gdal_reference(current_file))
 
@@ -123,7 +124,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
         ds_list = ['incidenceAngle', 'projectionAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           '/science/SENTINEL1/RTC/grids/frequencyA/'
+                           f'{DATA_BASE_GROUP}/'
                            f'{ds_name}')
             assert(not(_is_valid_gdal_reference(current_file)))
 
@@ -157,8 +158,10 @@ def test_workflow():
     dataset_url = ('https://zenodo.org/record/7753472/files/'
                    's1b_los_angeles.tar.gz?download=1')
 
+    tests_dir = os.path.dirname(__file__)
     dataset_dir = os.path.join(test_data_directory, dataset_name)
-    user_runconfig_file = os.path.join(dataset_dir, 'rtc_s1.yaml')
+    user_runconfig_file = os.path.join(tests_dir, 'runconfigs',
+                                       's1b_los_angeles.yaml')
 
     if (FLAG_ALWAYS_DOWNLOAD or not os.path.isdir(dataset_dir) or
             not os.path.isfile(user_runconfig_file)):
@@ -183,7 +186,8 @@ def test_workflow():
     create_logger(log_file, full_log_formatting)
 
     # Get a runconfig dict from command line argumens
-    runconfig_path = os.path.join('data', 's1b_los_angeles', 'rtc_s1.yaml')
+    runconfig_path = os.path.join(tests_dir, 'runconfigs',
+                                  's1b_los_angeles.yaml')
 
     # for output_imagery_format in ['COG', 'HDF5']:
     for output_imagery_format in ['COG']:
