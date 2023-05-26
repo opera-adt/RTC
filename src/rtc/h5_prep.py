@@ -270,7 +270,8 @@ def get_metadata_dict(product_id: str,
         # Instrument name mentioned at:
         # https://sentinel.esa.int/documents/247904/349449/s1_sp-1322_1.pdf
         'identification/instrumentName':
-            ['instrument_name', 'CSAR', 'Name of the instrument used to'
+            ['instrument_name', f'{platform_id} CSAR',
+             'Name of the instrument used to'
              ' collect the remote sensing data provided in this product'],
         'identification/productType':
             ['product_type', 'RTC-S1', 'Product type'],
