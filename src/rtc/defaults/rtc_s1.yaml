@@ -68,7 +68,7 @@ runconfig:
 
             output_imagery_format: COG
             output_imagery_compression: DEFLATE
-            output_imagery_nbits: 16
+            output_imagery_nbits: 32
 
             # Optional. Save secondary layers (e.g., inc. angle) within 
             # the HDF5 file
