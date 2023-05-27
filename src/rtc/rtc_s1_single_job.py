@@ -551,6 +551,56 @@ def _test_valid_gdal_ref(gdal_ref):
     return gdal_ds is not None
 
 
+def set_mask_fill_value_and_ctable(mask_file, reference_file):
+    '''
+    Update color table and fill values of the layover shadow mask using
+    another file as reference for invalid samples
+
+    Parameters
+    -----------
+    mask_file: str
+        Layover/shadow mask file
+    reference_file: str
+        File to be used as reference for invalid samples
+
+    '''
+    logger.info('    updating layover/shadow mask with fill value and color'
+                ' table')
+    ref_gdal_ds = gdal.Open(reference_file, gdal.GA_ReadOnly)
+    ref_gdal_band = ref_gdal_ds.GetRasterBand(1)
+    ref_array = ref_gdal_band.ReadAsArray()
+
+    mask_gdal_ds = gdal.Open(mask_file, gdal.GA_Update)
+    mask_ctable = gdal.ColorTable()
+
+    # Light gray - Not masked
+    mask_ctable.SetColorEntry(0, (175, 175, 175))
+
+    # Shadow - Dark gray
+    mask_ctable.SetColorEntry(1, (64, 64, 64))
+
+    # White - Layover
+    mask_ctable.SetColorEntry(2, (255, 255, 255))
+
+    # Cyan - Layover and shadow
+    mask_ctable.SetColorEntry(3, (0, 255, 255))
+
+    # No data
+    mask_gdal_band = mask_gdal_ds.GetRasterBand(1)
+    mask_array = mask_gdal_band.ReadAsArray()
+    mask_array[(np.isnan(ref_array)) & (mask_array == 0)] = 255
+    mask_gdal_band.WriteArray(mask_array)
+    mask_gdal_band.SetNoDataValue(255)
+
+    mask_ctable.SetColorEntry(255, (0, 0, 0, 0))
+    mask_gdal_band.SetRasterColorTable(mask_ctable)
+    mask_gdal_band.SetRasterColorInterpretation(
+        gdal.GCI_PaletteIndex)
+
+    del mask_gdal_band
+    del mask_gdal_ds
+
+
 def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 orbit: isce3.core.Orbit,
                                 geogrid_in: isce3.product.GeoGridParameters,
@@ -566,7 +616,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 lines_per_block_rdr2geo: int=1000,
                                 threshold_geo2rdr: float=1.0e-7,
                                 numiter_geo2rdr: int=25,
-                                memory_mode: isce3.core.GeocodeMemoryMode=None):
+                                memory_mode: isce3.core.GeocodeMemoryMode=None,
+                                geocode_options = None):
     '''
     Compute the layover/shadow mask and geocode it
 
@@ -606,6 +657,9 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         Number of max. iteration for geo2rdr object
     memory_mode: isce3.core.GeocodeMemoryMode
         Geocoding memory mode
+    geocode_options: dict
+        Keyword arguments to be passed to the geocode() function
+        when map projection the layover/shadow mask
 
     Returns
     -------
@@ -711,7 +765,9 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                       geogrid_in.width, geogrid_in.length, 1,
                                       gdal.GDT_Byte, output_raster_format)
 
-    geocode_options = {}
+    if geocode_options is None:
+        geocode_options = {}
+
     if memory_mode is not None:
         geocode_options['memory_mode'] = memory_mode
 
@@ -721,6 +777,9 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                 dem_raster=dem_raster,
                 output_mode=isce3.geocode.GeocodeOutputMode.INTERP,
                 **geocode_options)
+
+    # flush data to the disk
+    geocoded_layover_shadow_mask_raster.close_dataset()
 
     return slantrange_layover_shadow_mask_raster
 
@@ -1153,6 +1212,7 @@ def run_single_job(cfg: RunConfig):
 
         # geocoding optional arguments
         geocode_kwargs = {}
+        layover_shadow_mask_geocode_kwargs = {}
         # get sub_swaths metadata
         if flag_process and apply_valid_samples_sub_swath_masking:
             # Extract burst boundaries and create sub_swaths object to mask
@@ -1172,6 +1232,7 @@ def run_single_job(cfg: RunConfig):
 
             sub_swaths.set_valid_samples_array(1, valid_samples_sub_swath)
             geocode_kwargs['sub_swaths'] = sub_swaths
+            layover_shadow_mask_geocode_kwargs['sub_swaths'] = sub_swaths
 
         # Calculate geolocation correction LUT
         if flag_process and cfg.groups.processing.apply_correction_luts:
@@ -1221,7 +1282,8 @@ def run_single_job(cfg: RunConfig):
                     numiter_rdr2geo=cfg.rdr2geo_params.numiter,
                     threshold_geo2rdr=cfg.geo2rdr_params.threshold,
                     numiter_geo2rdr=cfg.geo2rdr_params.numiter,
-                    memory_mode=geocode_namespace.memory_mode)
+                    memory_mode=geocode_namespace.memory_mode,
+                    geocode_options=layover_shadow_mask_geocode_kwargs)
 
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
@@ -1341,6 +1403,11 @@ def run_single_job(cfg: RunConfig):
             gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
                           options=vrt_options_mosaic)
             output_imagery_list.append(geo_burst_filename)
+
+        if (flag_process and save_layover_shadow_mask and
+                not save_secondary_layers_as_hdf5):
+            set_mask_fill_value_and_ctable(layover_shadow_mask_file,
+                                           geo_burst_filename)
 
        # If burst imagery is not temporary, separate polarization channels
         if flag_process and not flag_bursts_files_are_temporary:
