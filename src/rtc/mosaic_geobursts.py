@@ -10,9 +10,9 @@ from osgeo import osr, gdal
 from scipy import ndimage
 
 
-def check_reprojection(geogrid_mosaic,
-                       rtc_image: str,
-                       nlooks_image: str = None) -> bool:
+def requires_reprojection(geogrid_mosaic,
+                          rtc_image: str,
+                          nlooks_image: str = None) -> bool:
     '''
     Check if the reprojection is required to mosaic input raster
 
@@ -58,6 +58,12 @@ def check_reprojection(geogrid_mosaic,
     if nlooks_image is not None:
         rasters_to_check += [raster_nlooks]
 
+    srs_mosaic = osr.SpatialReference()
+    srs_mosaic.ImportFromEPSG(geogrid_mosaic.epsg)
+
+    proj_mosaic = osr.SpatialReference(wkt=srs_mosaic.ExportToWkt())
+    epsg_mosaic = proj_mosaic.GetAttrValue('AUTHORITY', 1)
+
     for raster in rasters_to_check:
         x0, dx, _, y0, _, dy = raster.GetGeoTransform()
         projection = raster.GetProjection()
@@ -72,17 +78,11 @@ def check_reprojection(geogrid_mosaic,
             return flag_requires_reprojection
 
         # check projection
-        srs_mosaic = osr.SpatialReference()
-        srs_mosaic.ImportFromEPSG(geogrid_mosaic.epsg)
-
         if projection != srs_mosaic.ExportToWkt():
-            srs_1 = osr.SpatialReference()
-            srs_1.SetWellKnownGeogCS(projection)
+            proj_raster = osr.SpatialReference(wkt=projection)
+            epsg_raster = proj_raster.GetAttrValue('AUTHORITY', 1)
 
-            srs_2 = osr.SpatialReference()
-            srs_2.SetWellKnownGeogCS(projection)
-
-            if not srs_1.IsSame(srs_2):
+            if epsg_raster != epsg_mosaic:
                 flag_requires_reprojection = True
                 return flag_requires_reprojection
 
@@ -270,7 +270,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         if verbose:
             print(f'    mosaicking ({i+1}/{num_raster}): {os.path.basename(path_rtc)}')
 
-        if geogrid_in is not None and check_reprojection(
+        if geogrid_in is not None and requires_reprojection(
                 geogrid_in, path_rtc, path_nlooks):
             if verbose:
                 print('        the image requires reprojection/relocation')
@@ -355,16 +355,23 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
 
             band_ds = rtc_image_gdal_ds.GetRasterBand(i_band + 1)
             arr_rtc = band_ds.ReadAsArray()
+
             if i_band == 0:
-                length, width = arr_rtc.shape
+                length = min(arr_rtc.shape[0], dim_mosaic[0] - offset_imgy)
+                width = min( arr_rtc.shape[1], dim_mosaic[1] - offset_imgx)
+
+            if (length != arr_rtc.shape[0] or
+                    width != arr_rtc.shape[1]):
+                # Image needs to be cropped to fit in the mosaic
+                arr_rtc = arr_rtc[0:length, 0:width]
 
             if mosaic_mode.lower() == 'average':
                 # Replace NaN values with 0
                 arr_rtc[np.isnan(arr_rtc)] = 0.0
 
                 arr_numerator[i_band,
-                            offset_imgy: offset_imgy + length,
-                            offset_imgx: offset_imgx + width] += \
+                              offset_imgy: offset_imgy + length,
+                              offset_imgx: offset_imgx + width] += \
                     arr_rtc * arr_nlooks
 
                 if path_nlooks is not None:
@@ -399,11 +406,10 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
 
                 del arr_distance_temp
 
-
             arr_temp[ind] = arr_rtc[ind]
             arr_numerator[i_band,
-                            offset_imgy: offset_imgy + length,
-                            offset_imgx: offset_imgx + width] = arr_temp
+                          offset_imgy: offset_imgy + length,
+                          offset_imgx: offset_imgx + width] = arr_temp
 
         rtc_image_gdal_ds = None
         nlooks_gdal_ds = None

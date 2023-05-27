@@ -68,7 +68,7 @@ runconfig:
 
             output_imagery_format: COG
             output_imagery_compression: DEFLATE
-            output_imagery_nbits: 16
+            output_imagery_nbits: 32
 
             # Optional. Save secondary layers (e.g., inc. angle) within 
             # the HDF5 file
@@ -165,6 +165,9 @@ runconfig:
 
                 # Apply shadow masking
                 apply_shadow_masking: True
+  
+                # Skip geocoding already processed, which is tested by the existence of the output files
+                skip_if_output_files_exist: False
 
                 # Geocoding algorithm type. Choices "area_projection"
                 # for adaptive multilooking or an interpolation algorithm:
@@ -206,6 +209,9 @@ runconfig:
                 # Save layover shadow mask
                 save_layover_shadow_mask: True
 
+                # Number of iterations to dilate layover/shadow mask in slant range with size (3, 3)
+                shadow_dilation_number_iterations: 1
+
                 # OPTIONAL - Absolute radiometric correction
                 abs_rad_cal: 1
 
@@ -242,7 +248,7 @@ runconfig:
             mosaicking:
 
                 # OPTIONAL - Choices: "average", "first", "bursts_center" (default)
-                mosaic_mode: bursts_center
+                mosaic_mode: first
 
                 mosaic_geogrid:
 
