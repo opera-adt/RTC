@@ -818,7 +818,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 output_imagery_list, nlooks_list,
                 output_imagery_filename_list, mosaic_mode,
                 scratch_dir=scratch_path, geogrid_in=cfg.geogrid,
-                temp_files_list=temp_files_list)
+                temp_files_list=temp_files_list,
+                output_raster_format=output_raster_format)
 
         if save_imagery_as_hdf5:
             temp_files_list += output_imagery_filename_list
@@ -835,7 +836,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             mosaic_single_output_file(
                 input_files, nlooks_list, output_file, mosaic_mode,
                 scratch_dir=scratch_path, geogrid_in=cfg.geogrid,
-                temp_files_list=temp_files_list)
+                temp_files_list=temp_files_list,
+                output_raster_format=output_raster_format)
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or

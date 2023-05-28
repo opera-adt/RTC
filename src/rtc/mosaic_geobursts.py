@@ -7,8 +7,10 @@ import os
 import numpy as np
 import tempfile
 from osgeo import osr, gdal
+# from osgeo.gdalconst import GDT_Byte
 from scipy import ndimage
 
+IS_MODE_AVERAGE_ENABLED_FOR_BYTE_DTYPE = False
 
 def requires_reprojection(geogrid_mosaic,
                           rtc_image: str,
@@ -219,7 +221,6 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         # Close GDAL dataset
         raster_in = None
 
-    ctable = None
     no_data_value = None
 
     if geogrid_in is None:
@@ -275,15 +276,6 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         print(f'        projection:', wkt_projection)
         print(f'        number of bands: {num_bands}')
 
-    if mosaic_mode.lower() == 'average':
-        arr_numerator = np.zeros((num_bands, dim_mosaic[0], dim_mosaic[1]),
-                                 dtype=float)
-        arr_denominator = np.zeros(dim_mosaic, dtype=float)
-    else:
-        arr_numerator = np.full((num_bands, dim_mosaic[0], dim_mosaic[1]),
-                                np.nan, dtype=float)
-        if mosaic_mode.lower() == 'bursts_center':
-            arr_distance = np.full(dim_mosaic, np.nan, dtype=float)
 
     for i, path_rtc in enumerate(list_rtc_images):
         if i < len(list_nlooks):
@@ -292,7 +284,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
             path_nlooks = None
 
         if verbose:
-            print(f'    mosaicking ({i+1}/{num_raster}): {os.path.basename(path_rtc)}')
+            print(f'    mosaicking ({i+1}/{num_raster}): {path_rtc}')
 
         if geogrid_in is not None and requires_reprojection(
                 geogrid_in, path_rtc, path_nlooks):
@@ -312,13 +304,15 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                 gdal_band = gdal_ds.GetRasterBand(1)
                 no_data_value = gdal_band.GetNoDataValue()
 
+                gdal_dtype = gdal_band.DataType
+                gdal_band = None
+
                 warp_options = {}
                 if no_data_value is not None:
                     warp_options['dstNodata'] = no_data_value
 
-                gdal_dtype = gdal_band.DataType
                 dtype_name = gdal.GetDataTypeName(gdal_dtype).lower()
-                del gdal_ds
+                gdal_ds = None
 
                 if 'byte' in dtype_name:
                     resamp_algorithm = 'nearest'
@@ -384,12 +378,14 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
 
         if path_nlooks is not None:
             nlooks_gdal_ds = gdal.Open(path_nlooks, gdal.GA_ReadOnly)
-
-            band_ds = rtc_image_gdal_ds.GetRasterBand(1)
+            band_ds = nlooks_gdal_ds.GetRasterBand(1)
             arr_nlooks = band_ds.ReadAsArray()
             no_data_value = band_ds.GetNoDataValue()
-            invalid_ind = is_invalid(arr_nlooks, no_data_value)
-            arr_nlooks[invalid_ind] = 0.0
+            band_ds = None
+
+            arr_nlooks[is_invalid(arr_nlooks, no_data_value)] = 0.0
+
+            nlooks_gdal_ds = None
         else:
             arr_nlooks = 1
 
@@ -400,12 +396,34 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
             band_ds = rtc_image_gdal_ds.GetRasterBand(i_band + 1)
             arr_rtc = band_ds.ReadAsArray()
 
-            if i_band == 0:
+            if i == 0 and i_band == 0:
 
-                ctable = band_ds.GetRasterColorTable()
                 no_data_value = band_ds.GetNoDataValue()
+                gdal_dtype = band_ds.DataType
+                dtype_name = gdal.GetDataTypeName(gdal_dtype).lower()
+                if (IS_MODE_AVERAGE_ENABLED_FOR_BYTE_DTYPE is False and
+                        'byte' in dtype_name and mosaic_mode.lower() == 'average'):
+                    print('WARNING mosaicking of a byte array in the "average"'
+                          ' mode is disabled to prevent incorrect averaging of'
+                          ' masked values. Using mosaic mode "first" for this'
+                          ' layer')
+                    mosaic_mode = 'first'
+
+                if mosaic_mode.lower() == 'average':
+                    arr_numerator = np.zeros((num_bands, dim_mosaic[0], dim_mosaic[1]),
+                                             dtype=arr_rtc.dtype)
+                    arr_denominator = np.zeros(dim_mosaic, dtype=arr_rtc.dtype)
+                else:
+                    arr_numerator = np.full((num_bands, dim_mosaic[0], dim_mosaic[1]),
+                                            no_data_value, dtype=arr_rtc.dtype)
+                    if mosaic_mode.lower() == 'bursts_center':
+                        arr_distance = np.full(dim_mosaic, no_data_value, dtype=arr_rtc.dtype)
+
+            if i_band == 0:
                 length = min(arr_rtc.shape[0], dim_mosaic[0] - offset_imgy)
                 width = min( arr_rtc.shape[1], dim_mosaic[1] - offset_imgx)
+
+            band_ds = None
 
             if (length != arr_rtc.shape[0] or
                     width != arr_rtc.shape[1]):
@@ -413,6 +431,16 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                 arr_rtc = arr_rtc[0:length, 0:width]
 
             if mosaic_mode.lower() == 'average':
+
+                if path_nlooks is not None:
+                    arr_denominator[offset_imgy: offset_imgy + length,
+                                    offset_imgx: offset_imgx + width] += arr_nlooks
+                else:
+                    arr_denominator[offset_imgy: offset_imgy + length,
+                                    offset_imgx: offset_imgx + width] += np.asarray(
+                        np.logical_not(is_invalid(arr_rtc, no_data_value)),
+                        dtype=arr_rtc.dtype)
+
                 # Replace NaN values with 0
                 arr_rtc[is_invalid(arr_rtc, no_data_value)] = 0.0
 
@@ -421,14 +449,6 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                               offset_imgx: offset_imgx + width] += \
                     arr_rtc * arr_nlooks
 
-                if path_nlooks is not None:
-                    arr_denominator[offset_imgy: offset_imgy + length,
-                                    offset_imgx: offset_imgx + width] += arr_nlooks
-                else:
-                    arr_denominator[offset_imgy: offset_imgy + length,
-                                    offset_imgx: offset_imgx + width] += np.asarray(
-                        arr_rtc > 0, dtype=np.byte)
-
                 continue
 
             arr_temp = arr_numerator[i_band, offset_imgy: offset_imgy + length,
@@ -436,6 +456,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
 
             if i_band == 0 and mosaic_mode.lower() == 'first':
                 ind = is_invalid(arr_temp, no_data_value)
+
             elif i_band == 0 and mosaic_mode.lower() == 'bursts_center':
                 geotransform = rtc_image_gdal_ds.GetGeoTransform()
 
@@ -454,12 +475,12 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                 del arr_distance_temp
 
             arr_temp[ind] = arr_rtc[ind]
+
             arr_numerator[i_band,
                           offset_imgy: offset_imgy + length,
                           offset_imgx: offset_imgx + width] = arr_temp
 
         rtc_image_gdal_ds = None
-        nlooks_gdal_ds = None
  
     if mosaic_mode.lower() == 'average':
         # Mode: average
@@ -470,7 +491,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
             arr_numerator[i_band][valid_ind] = \
                 arr_numerator[i_band][valid_ind] / arr_denominator[valid_ind]
 
-            arr_numerator[i_band][arr_denominator == 0] = np.nan
+            arr_numerator[i_band][arr_denominator == 0] = no_data_value
 
     mosaic_dict = {
         'mosaic_array': arr_numerator,
@@ -482,16 +503,15 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         'xmin_mosaic': xmin_mosaic,
         'ymax_mosaic': ymax_mosaic,
         'posting_x': posting_x,
-        'posting_y': posting_y,
-        'ctable': ctable,
-        'no_data_value': no_data_value
+        'posting_y': posting_y
     }
     return mosaic_dict
 
 
 def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
                               mosaic_mode, scratch_dir='', geogrid_in=None,
-                              temp_files_list=None, verbose=True):
+                              temp_files_list=None, output_raster_format='GTiff',
+                              verbose=True):
     '''
     Mosaic RTC images saving the output into a single multi-band file
 
@@ -512,7 +532,9 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
             Mutable list of temporary files. If provided,
             paths to the temporary files generated will be
             appended to this list
-        verbose : bool
+        output_raster_format: str
+            Output raster format
+        verbose: bool
             Flag to enable/disable the verbose mode
     '''
     mosaic_dict = compute_mosaic_array(
@@ -530,18 +552,17 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
     ymax_mosaic = mosaic_dict['ymax_mosaic']
     posting_x = mosaic_dict['posting_x']
     posting_y = mosaic_dict['posting_y']
-    ctable = mosaic_dict['ctable']
-    no_data_value = mosaic_dict['no_data_value']
 
     # Retrieve the datatype information from the first input image
     reference_raster = gdal.Open(list_rtc_images[0], gdal.GA_ReadOnly)
-    datatype_mosaic = reference_raster.GetRasterBand(1).DataType
-    reference_raster = None
+    band_ds = reference_raster.GetRasterBand(1)
+    datatype_mosaic = band_ds.DataType
+    ctable = band_ds.GetRasterColorTable()
+    no_data_value = band_ds.GetNoDataValue()
 
     # Write out the array
-    drv_out = gdal.GetDriverByName('Gtiff')
-    raster_out = drv_out.Create(mosaic_filename,
-                                width, length, num_bands,
+    drv_out = gdal.GetDriverByName(output_raster_format)
+    raster_out = drv_out.Create(mosaic_filename, width, length, num_bands,
                                 datatype_mosaic)
 
     raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
@@ -557,10 +578,13 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
         if no_data_value is not None:
             gdal_band.SetNoDataValue(no_data_value)
 
+    band_ds = None
+    reference_raster = None
 
 def mosaic_multiple_output_files(
         list_rtc_images, list_nlooks, output_file_list, mosaic_mode,
-        scratch_dir='', geogrid_in=None, temp_files_list=None, verbose=True):
+        scratch_dir='', geogrid_in=None, temp_files_list=None,
+        output_raster_format='GTiff', verbose=True):
     '''
     Mosaic RTC images saving each mosaicked band into a separate file
 
@@ -583,7 +607,9 @@ def mosaic_multiple_output_files(
             Mutable list of temporary files. If provided,
             paths to the temporary files generated will be
             appended to this list
-        verbose : bool
+        output_raster_format: str
+            Output raster format
+        verbose: bool
             Flag to enable/disable the verbose mode
             
     '''
@@ -601,8 +627,6 @@ def mosaic_multiple_output_files(
     ymax_mosaic = mosaic_dict['ymax_mosaic']
     posting_x = mosaic_dict['posting_x']
     posting_y = mosaic_dict['posting_y']
-    ctable = mosaic_dict['ctable']
-    no_data_value = mosaic_dict['no_data_value']
 
     if num_bands != len(output_file_list):
         error_str = (f'ERROR number of output files ({len(output_file_list)})'
@@ -610,21 +634,23 @@ def mosaic_multiple_output_files(
                      f' of input bursts` bands ({num_bands})')
         raise ValueError(error_str)
 
+    # Retrieve the datatype information from the first input image
+    reference_raster = gdal.Open(list_rtc_images[0], gdal.GA_ReadOnly)
+    band_ds = reference_raster.GetRasterBand(1)
+    datatype_mosaic = band_ds.DataType
+    ctable = band_ds.GetRasterColorTable()
+    no_data_value = band_ds.GetNoDataValue()
+
     for i_band, output_file in enumerate(output_file_list):
 
-        # Retrieve the datatype information from the first input image
-        reference_raster = gdal.Open(list_rtc_images[0], gdal.GA_ReadOnly)
-        datatype_mosaic = reference_raster.GetRasterBand(1).DataType
-        reference_raster = None
-
         # Write out the array
-        drv_out = gdal.GetDriverByName('Gtiff')
+        drv_out = gdal.GetDriverByName(output_raster_format)
         nbands = 1
-        raster_out = drv_out.Create(output_file,
-                                    width, length, nbands,
+        raster_out = drv_out.Create(output_file, width, length, nbands,
                                     datatype_mosaic)
 
-        raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0, posting_y))
+        raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0,
+                                    posting_y))
 
         raster_out.SetProjection(wkt_projection)
 
@@ -636,3 +662,6 @@ def mosaic_multiple_output_files(
             band_out.SetRasterColorInterpretation(gdal.GCI_PaletteIndex)
         if no_data_value is not None:
             band_out.SetNoDataValue(no_data_value)
+
+    band_ds = None
+    reference_raster = None
