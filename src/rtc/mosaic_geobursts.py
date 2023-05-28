@@ -285,6 +285,9 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         if verbose:
             print(f'    mosaicking ({i+1}/{num_raster}): {path_rtc}')
 
+        crop_start_x = 0
+        crop_start_y = 0
+
         if geogrid_in is not None and requires_reprojection(
                 geogrid_in, path_rtc, path_nlooks):
             if verbose:
@@ -371,6 +374,14 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
             # calculate the burst RTC's offset wrt. the output mosaic in the image coordinate
             offset_imgx = int((list_geo_transform[i, 0] - xmin_mosaic) / posting_x + 0.5)
             offset_imgy = int((list_geo_transform[i, 3] - ymax_mosaic) / posting_y + 0.5)
+ 
+            # If images start before the mosaic, set up crop start coordinates
+            if offset_imgx < 0:
+                crop_start_x = abs(offset_imgx)
+                offset_imgx = 0
+            if offset_imgy < 0:
+                crop_start_y = abs(offset_imgy)
+                offset_imgy = 0
 
         if verbose:
             print(f'        image offset (x, y): ({offset_imgx}, {offset_imgy})')
@@ -394,6 +405,12 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
 
             band_ds = rtc_image_gdal_ds.GetRasterBand(i_band + 1)
             arr_rtc = band_ds.ReadAsArray()
+
+            # If images start before the mosaic, crop them
+            if crop_start_y > 0:
+                arr_rtc = arr_rtc[crop_start_y:, :]
+            if crop_start_x > 0:
+                arr_rtc = arr_rtc[:, crop_start_x:]
 
             if i == 0 and i_band == 0:
 
