@@ -609,7 +609,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 filename_out: str,
                                 output_raster_format: str,
                                 scratch_dir: str,
-                                shadow_dilation_number_iterations: int,
+                                shadow_dilation_size: int,
                                 threshold_rdr2geo: float=1.0e-7,
                                 numiter_rdr2geo: int=25,
                                 extraiter_rdr2geo: int=10,
@@ -641,8 +641,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         File format of the layover/shadow mask
     scratch_dir: str
         Temporary Directory
-    shadow_dilation_number_iterations: int
-        Number of iterations to dilate layover/shadow mask
+    shadow_dilation_size: int
+        Layover/shadow mask dilation size of shadow pixels
     threshold_rdr2geo: float
         Iteration threshold for rdr2geo
     numiter_rdr2geo: int
@@ -686,7 +686,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                           extraiter=extraiter_rdr2geo,
                           lines_per_block=lines_per_block_rdr2geo)
 
-    if shadow_dilation_number_iterations > 0:
+    if shadow_dilation_size > 0:
         path_layover_shadow_mask_file = os.path.join(
             scratch_dir, 'layover_shadow_mask_slant_range.tif')
         slantrange_layover_shadow_mask_raster = isce3.io.Raster(
@@ -702,7 +702,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     rdr2geo_obj.topo(dem_raster, None, None, None,
                      layover_shadow_raster=slantrange_layover_shadow_mask_raster)
 
-    if shadow_dilation_number_iterations > 0:
+    if shadow_dilation_size > 0:
         '''
         constants from ISCE3:
             SHADOW_VALUE = 1;
@@ -728,8 +728,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         # perform grey dilation
         slantrange_layover_shadow_mask = \
             ndimage.grey_dilation(slantrange_layover_shadow_mask,
-                                  size=(shadow_dilation_number_iterations,
-                                        shadow_dilation_number_iterations))
+                                  size=(shadow_dilation_size,
+                                        shadow_dilation_size))
 
         # restore layover pixels
         slantrange_layover_shadow_mask[ind] = 2
@@ -904,7 +904,7 @@ def run_single_job(cfg: RunConfig):
 
     memory_mode = geocode_namespace.memory_mode
     geogrid_upsampling = geocode_namespace.geogrid_upsampling
-    shadow_dilation_number_iterations = geocode_namespace.shadow_dilation_number_iterations
+    shadow_dilation_size = geocode_namespace.shadow_dilation_size
     abs_cal_factor = geocode_namespace.abs_rad_cal
     clip_max = geocode_namespace.clip_max
     clip_min = geocode_namespace.clip_min
@@ -1277,7 +1277,7 @@ def run_single_job(cfg: RunConfig):
                     layover_shadow_mask_file,
                     output_raster_format,
                     burst_scratch_path,
-                    shadow_dilation_number_iterations=shadow_dilation_number_iterations,
+                    shadow_dilation_size=shadow_dilation_size,
                     threshold_rdr2geo=cfg.rdr2geo_params.threshold,
                     numiter_rdr2geo=cfg.rdr2geo_params.numiter,
                     threshold_geo2rdr=cfg.geo2rdr_params.threshold,
