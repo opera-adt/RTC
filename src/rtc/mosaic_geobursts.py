@@ -7,7 +7,6 @@ import os
 import numpy as np
 import tempfile
 from osgeo import osr, gdal
-# from osgeo.gdalconst import GDT_Byte
 from scipy import ndimage
 
 IS_MODE_AVERAGE_ENABLED_FOR_BYTE_DTYPE = False
