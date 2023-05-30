@@ -9,7 +9,16 @@ import tempfile
 from osgeo import osr, gdal
 from scipy import ndimage
 
+
+# For layers with byte data type (e.g., layover/shadow mask)
+# in which we have classes associated with the numeric values,
+# we don't want to use the "average" mosaicking mode,
+# even if it's set in the runconfig file. As an example,
+# the average value of the layover/shadow mask value 1, representing shadow,
+# with the value 3, representing layover and shadow, is the
+# value 2 that represents layover.
 IS_MODE_AVERAGE_ENABLED_FOR_BYTE_DTYPE = False
+
 
 def requires_reprojection(geogrid_mosaic,
                           rtc_image: str,
@@ -318,7 +327,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                 dtype_name = gdal.GetDataTypeName(gdal_dtype).lower()
                 gdal_ds = None
 
-                # Decide what resampling algorithm to use.
+                # Decide which resampling algorithm to use.
                 # In case of integer type, use `nearest` e.g. layover shadow mask
                 if 'byte' in dtype_name:
                     resamp_algorithm = 'nearest'
