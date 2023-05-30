@@ -121,6 +121,8 @@ def _compute_distance_to_burst_center(image, geotransform, no_data_value):
            Input image
        geotransform: list(float)
            Data geotransform
+       no_data_value: scalar
+           No data value
 
     Returns
         distance_image: np.ndarray
