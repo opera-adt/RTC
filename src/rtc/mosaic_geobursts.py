@@ -148,10 +148,11 @@ def is_invalid(input_array, no_data_value):
         is_invalid_array: np.ndarray
            True where x is NaN, false otherwise. 
     '''
+    nan_mask = np.isnan(input_array)
     if no_data_value is None or np.isnan(no_data_value):
-        return np.isnan(input_array)
+        return nan_mask
 
-    return input_array == no_data_value
+    return np.logical_or(input_array == no_data_value, nan_mask)
 
 
 def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir='',
