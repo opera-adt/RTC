@@ -318,6 +318,8 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                 dtype_name = gdal.GetDataTypeName(gdal_dtype).lower()
                 gdal_ds = None
 
+                # Decide what resampling algorithm to use.
+                # In case of integer type, use `nearest` e.g. layover shadow mask
                 if 'byte' in dtype_name:
                     resamp_algorithm = 'nearest'
                 else:
