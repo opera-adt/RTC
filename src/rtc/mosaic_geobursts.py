@@ -303,6 +303,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                 if temp_files_list is not None:
                     temp_files_list.append(relocated_file)
 
+                # Extract raster's no data value, and the datatype
                 gdal_ds = gdal.Open(path_rtc, gdal.GA_ReadOnly)
                 gdal_band = gdal_ds.GetRasterBand(1)
                 no_data_value = gdal_band.GetNoDataValue()
