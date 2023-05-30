@@ -485,6 +485,10 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
 
                 arr_distance_temp = arr_distance[offset_imgy: offset_imgy + length,
                                                  offset_imgx: offset_imgx + width]
+                # update the distance value in `arr_distance` that corresponds to the
+                # input raster/band, only where corresponding pixel is not valid, and
+                # the distance array in the input raster is shorter than what is
+                # in `arr_distance`
                 ind = np.logical_or(is_invalid(arr_distance_temp, no_data_value),
                                     arr_new_distance <= arr_distance_temp)
 
