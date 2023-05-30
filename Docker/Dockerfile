@@ -1,8 +1,8 @@
 FROM oraclelinux:8
 
 LABEL author="OPERA ADT" \
-    description="RTC gamma release R3" \
-    version="0.3-gamma"
+    description="RTC gamma release R4" \
+    version="0.4-gamma"
 
 RUN yum -y update &&\
     yum -y install curl &&\
