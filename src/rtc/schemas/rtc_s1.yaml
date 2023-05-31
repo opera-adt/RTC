@@ -184,6 +184,9 @@ geocoding_options:
     # OPTIONAL - Apply shadow masking
     apply_shadow_masking: bool(required=False)
 
+    # Skip geocoding already processed, which is tested by the existence of the output files
+    skip_if_output_files_exist: bool(required=False)
+
     # Geocoding algorithm type, area projection or interpolation:
     # sinc, bilinear, bicubic, nearest, and biquintic
     algorithm_type: enum('area_projection', 'sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic', required=False)
@@ -220,8 +223,11 @@ geocoding_options:
     # Save the interpolated DEM used to generate the RTC product
     save_dem: bool(required=False)
 
-    # Save layover shadow mask
+    # Save layover/shadow mask
     save_layover_shadow_mask: bool(required=False)
+
+    # Layover/shadow mask dilation size of shadow pixels
+    shadow_dilation_size: int(min=0, required=False)
 
     # OPTIONAL - Absolute radiometric correction
     abs_rad_cal: num(required=False)
