@@ -1,7 +1,7 @@
 FROM oraclelinux:8
 
 LABEL author="OPERA ADT" \
-    description="RTC gamma release R3" \
+    description="RTC cal/val release R4" \
     version="0.4-calval"
 
 RUN yum -y update &&\
