@@ -30,7 +30,7 @@ runconfig:
 
         product_group:
 
-            processing_type: enum('NOMINAL', 'URGENT', 'CUSTOM', 'UNDEFINED', required=False)
+            processing_type: enum('NOMINAL', 'STATIC_LAYERS', 'URGENT', 'CUSTOM', 'UNDEFINED', required=False)
 
             product_version: num(required=False)
 
@@ -60,7 +60,7 @@ runconfig:
             output_dir: str()
             product_id: str()
 
-            # RTC-S1 imagery
+            # Save RTC-S1 products
             save_bursts: bool(required=False)
 
             # Save mosaic of RTC-S1 bursts

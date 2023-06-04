@@ -541,3 +541,25 @@ def create_logger(log_file, full_log_formatting=None):
 
     return logger
 
+
+
+def build_empty_vrt(filename, length, width, fill_value, dtype='Float32',
+              geotransform=None):
+    vrt_contents = f'<VRTDataset rasterXSize="{width}" rasterYSize="{length}"> \n'
+    if geotransform is not None:
+        assert len(geotransform) == 6
+        geotransform_str = ', '.join([str(x) for x in geotransform])
+        vrt_contents += f'  <GeoTransform> {geotransform_str} </GeoTransform> \n'
+    vrt_contents += (
+        f'  <VRTRasterBand dataType="{dtype}" band="1"> \n'
+        f'    <NoDataValue>{fill_value}</NoDataValue> \n'
+        f'    <HideNoDataValue>{fill_value}</HideNoDataValue> \n'
+        f'  </VRTRasterBand> \n'
+        f'</VRTDataset> \n')
+
+    with open(filename, 'a') as out:
+        out.write(vrt_contents)
+
+    if os.path.isfile(filename):
+        print('file saved:', filename)
+

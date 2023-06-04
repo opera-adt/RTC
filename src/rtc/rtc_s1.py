@@ -377,13 +377,17 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
     if (flag_apply_rtc and output_terrain_radiometry ==
             isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
+        rtc_anf_suffix = "sigma0_to_beta0"
         output_radiometry_str = "radar backscatter sigma0"
     elif (flag_apply_rtc and output_terrain_radiometry ==
             isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT):
+        rtc_anf_suffix = "gamma0_to_beta0"
         output_radiometry_str = 'radar backscatter gamma0'
     elif input_terrain_radiometry == isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT:
+        rtc_anf_suffix = "beta0_to_beta0"
         output_radiometry_str = 'radar backscatter beta0'
     else:
+        rtc_anf_suffix = "sigma0_to_beta0"
         output_radiometry_str = 'radar backscatter sigma0'
 
     logger.info(f'Identification:')
@@ -636,7 +640,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                                 'RTCAreaNormalizationFactor')
             else:
                 rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
-                                f'_rtc_anf_gamma0_to_beta0.{imagery_extension}')
+                                f'_rtc_anf_{rtc_anf_suffix}.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)

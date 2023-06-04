@@ -57,7 +57,7 @@ runconfig:
             output_dir:
             product_id:
 
-            # RTC-S1 imagery
+            # Save RTC-S1 bursts
             save_bursts: True
 
             # Save mosaic of RTC-S1 bursts

@@ -20,7 +20,8 @@ from rtc.geogrid import snap_coord
 from rtc.runconfig import RunConfig
 from rtc.mosaic_geobursts import (mosaic_single_output_file,
                                   mosaic_multiple_output_files)
-from rtc.core import create_logger, save_as_cog, check_ancillary_inputs
+from rtc.core import (save_as_cog, check_ancillary_inputs,
+                      build_empty_vrt)
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          get_metadata_dict,
                          all_metadata_dict_to_geotiff_metadata_dict,
@@ -37,6 +38,10 @@ layer_names_dict = {
     'layover_shadow_mask': 'Layover/Shadow Mask',
     'rtc_anf_gamma0_to_beta0': ('RTC Area Normalization Factor'
                                 ' Gamma0 to Beta0'),
+    'rtc_anf_sigma0_to_beta0': ('RTC Area Normalization Factor'
+                                ' Sigma0 to Beta0'),
+    'rtc_anf_beta0_to_beta0': ('RTC Area Normalization Factor'
+                                ' Beta0 to Beta0'),
     'incidence_angle': 'Incidence Angle',
     'local_incidence_angle': 'Local Incidence Angle',
     
@@ -59,6 +64,12 @@ layer_description_dict = {
     'rtc_anf_gamma0_to_beta0': ('Radiometric terrain correction (RTC)'
                                 ' area normalization factor (ANF)'
                                 ' gamma0 to beta0'),
+    'rtc_anf_sigma0_to_beta0': ('Radiometric terrain correction (RTC)'
+                                ' area normalization factor (ANF)'
+                                ' sigma0 to beta0'),
+    'rtc_anf_beta0_to_beta0': ('Radiometric terrain correction (RTC)'
+                                ' area normalization factor (ANF)'
+                                ' beta0 to beta0'),
     'incidence_angle': ('Incidence angle is defined as the angle between'
                         ' the line-of-sight (LOS) vector and the normal to'
                         ' the ellipsoid at the target height'),
@@ -215,6 +226,7 @@ def save_browse(imagery_list, browse_image_filename,
            Logger
     """
 
+    BROWSE_IMAGE_MIN_PERCENTILE = 3
     BROWSE_IMAGE_MAX_PERCENTILE = 97
 
     logger.info(f'creating browse image: {browse_image_filename}')
@@ -283,11 +295,15 @@ def save_browse(imagery_list, browse_image_filename,
         if alpha_channel is None:
             alpha_channel = np.asarray(np.isfinite(band_image),
                                        dtype=np.float32)
+        vmin = np.nanpercentile(band_image, BROWSE_IMAGE_MIN_PERCENTILE)
         vmax = np.nanpercentile(band_image, BROWSE_IMAGE_MAX_PERCENTILE)
-        logger.info('        min: 0')
+        logger.info(f'        min ({BROWSE_IMAGE_MIN_PERCENTILE}% percentile):'
+                    f' {vmin}')
         logger.info(f'        max ({BROWSE_IMAGE_MAX_PERCENTILE}% percentile):'
                     f' {vmax}')
-        band_image /= vmax
+
+        # gamma correction: 0.5
+        band_image = np.sqrt((band_image - vmin)/(vmax - vmin))
         band_image = np.clip(band_image, 0, 1)
         band_list_index = expected_pol_order.index(pol)
         band_list[band_list_index] = band_image
@@ -308,6 +324,7 @@ def save_browse(imagery_list, browse_image_filename,
                            band_list[2],
                            alpha_channel))
     mpimg.imsave(browse_image_filename, image, format='png')
+    logger.info(f'file saved: {browse_image_filename}')
 
 
 def append_metadata_to_geotiff_file(input_file, metadata_dict, product_id):
@@ -854,7 +871,7 @@ def run_single_job(cfg: RunConfig):
         cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
     output_dir = cfg.groups.product_group.output_dir
 
-    # RTC-S1 imagery
+    # populate processing parameters
     save_bursts = cfg.groups.product_group.save_bursts
     save_mosaics = cfg.groups.product_group.save_mosaics
     flag_save_browse = cfg.groups.product_group.save_browse
@@ -967,13 +984,17 @@ def run_single_job(cfg: RunConfig):
     rtc_upsampling = rtc_namespace.dem_upsampling
     if (flag_apply_rtc and output_terrain_radiometry ==
             isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
+        rtc_anf_suffix = "sigma0_to_beta0"
         output_radiometry_str = "radar backscatter sigma0"
     elif (flag_apply_rtc and output_terrain_radiometry ==
             isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT):
+        rtc_anf_suffix = "gamma0_to_beta0"
         output_radiometry_str = 'radar backscatter gamma0'
     elif input_terrain_radiometry == isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT:
+        rtc_anf_suffix = "beta0_to_beta0"
         output_radiometry_str = 'radar backscatter beta0'
     else:
+        rtc_anf_suffix = "sigma0_to_beta0"
         output_radiometry_str = 'radar backscatter sigma0'
 
     logger.info(f'Identification:')
@@ -1064,7 +1085,7 @@ def run_single_job(cfg: RunConfig):
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc_anf_gamma0_to_beta0', output_dir_sec_mosaic_raster,
+        save_rtc_anf, 'rtc_anf_{rtc_anf_suffix}', output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
 
     temp_files_list = []
@@ -1103,6 +1124,11 @@ def run_single_job(cfg: RunConfig):
 
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
+        if processing_type == 'STATIC_LAYERS':
+            # for STATIC_LAYERS, we just use the first polarization as
+            # reference
+            pol_list = [pol_list[0]]
+            burst_pol_dict = {pol_list[0]: burst}
 
         flag_bursts_files_are_temporary = (not save_bursts or
                                            save_imagery_as_hdf5)
@@ -1170,6 +1196,11 @@ def run_single_job(cfg: RunConfig):
             logger.info(f'    reading burst SLCs')
 
         radar_grid = burst.as_isce3_radargrid()
+        if processing_type == 'STATIC_LAYERS':
+            radar_grid = radar_grid.offset_and_resize(- int(1.5 * radar_grid.length), 
+                                                      - int(radar_grid.width),
+                                                      int(4 * radar_grid.length),
+                                                      int(3 * radar_grid.width))
 
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
@@ -1184,9 +1215,17 @@ def run_single_job(cfg: RunConfig):
                 f'{burst_scratch_path}/rslc_{pol}_corrected.{imagery_extension}')
 
             if (flag_process and (flag_apply_thermal_noise_correction or
+                    flag_apply_abs_rad_correction) and 
+                    processing_type == 'STATIC_LAYERS'):
+                fill_value = 1
+                build_empty_vrt(temp_slc_path, radar_grid.length,
+                                radar_grid.width, fill_value)
+                input_burst_filename = temp_slc_path
+                temp_files_list.append(temp_slc_path)
+ 
+            elif (flag_process and (flag_apply_thermal_noise_correction or
                     flag_apply_abs_rad_correction)):
 
-                burst_pol.slc_to_vrt_file(temp_slc_path)
                 apply_slc_corrections(
                     burst_pol,
                     temp_slc_path,
@@ -1222,7 +1261,7 @@ def run_single_job(cfg: RunConfig):
         out_geo_rtc_obj = None
         if save_rtc_anf:
             rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
-                            f'_rtc_anf_gamma0_to_beta0.{imagery_extension}')
+                            f'_rtc_anf_{rtc_anf_suffix}.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -1236,7 +1275,8 @@ def run_single_job(cfg: RunConfig):
         geocode_kwargs = {}
         layover_shadow_mask_geocode_kwargs = {}
         # get sub_swaths metadata
-        if flag_process and apply_valid_samples_sub_swath_masking:
+        if (flag_process and apply_valid_samples_sub_swath_masking and
+                not processing_type == 'STATIC_LAYERS'):
             # Extract burst boundaries and create sub_swaths object to mask
             # invalid radar samples
             n_subswaths = 1
@@ -1338,9 +1378,6 @@ def run_single_job(cfg: RunConfig):
                     rtc_anf_file,
                     geogrid.width, geogrid.length, 1,
                     gdal.GDT_Float32, output_raster_format)
-
-
-        
 
             # create multi-band VRT
             if len(input_file_list) == 1:
@@ -1452,7 +1489,7 @@ def run_single_job(cfg: RunConfig):
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
-            output_metadata_dict['rtc_anf_gamma0_to_beta0'][1].append(rtc_anf_file)
+            output_metadata_dict['rtc_anf_{rtc_anf_suffix}'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
 
@@ -1626,7 +1663,7 @@ def run_single_job(cfg: RunConfig):
                 nlooks_mosaic_file = None
             if save_rtc_anf:
                 rtc_anf_mosaic_file = output_metadata_dict[
-                    'rtc_anf_gamma0_to_beta0'][0]
+                    'rtc_anf_{rtc_anf_suffix}'][0]
             else:
                 rtc_anf_mosaic_file = None
             if save_layover_shadow_mask:
