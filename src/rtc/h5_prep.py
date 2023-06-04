@@ -278,7 +278,7 @@ def get_metadata_dict(product_id: str,
         'identification/project':
             ['project', 'OPERA', 'Project name'],
         'identification/institution':
-            ['institution', 'NASA JPL', 'Institution name'],
+            ['institution', 'NASA JPL', 'Institution that created this product'],
         'identification/productVersion':
             ['product_version', product_version,
              'Product version which represents the structure of the product'
@@ -349,8 +349,13 @@ def get_metadata_dict(product_id: str,
         #      'Data access URL'],
         # 'metadata/sourceData/radarBand':  # 1.6.4
         #    ['radar_band', 'C', 'Acquired frequency band'],
+
+        # TODO: add range bandwidth
+
+        # TODO: review, should it be  burst_in.burst_misc_metadata.processing_info_dict["organisation"]?
         'metadata/sourceData/institution':
-            ['source_data_institution', 'ESA', 'Source data institution name'],
+            ['source_data_institution', 'ESA',
+             'Institution that created the source data product'],
         'metadata/sourceData/processingCenter':  # 1.6.6
             ['source_data_processing_center',
              (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
@@ -364,7 +369,7 @@ def get_metadata_dict(product_id: str,
         'metadata/sourceData/softwareVersion':  # 1.6.6
             ['source_data_software_version',
              str(burst_in.ipf_version),
-             'IPF version of the source data'],
+             'Version of the software used to create the source data'],
         
         'metadata/sourceData/azimuthLooks':  # 1.6.6
             [None,
@@ -441,11 +446,11 @@ def get_metadata_dict(product_id: str,
              cfg_in.groups.processing.apply_rtc,
              'Flag to indicate if radiometric terrain correction (RTC) has been applied'],
         'metadata/processingInformation/parameters/dryTroposphericGeolocationCorrectionApplied':
-            ['dry_tropospheric_correction_applied',
+            ['dry_tropospheric_geolocation_correction_applied',
              cfg_in.groups.processing.apply_dry_tropospheric_delay_correction,
              'Flag to indicate if the dry tropospheric correction has been applied'],
         'metadata/processingInformation/parameters/wetTroposphericGeolocationCorrectionApplied':
-            ['wet_tropospheric_correction_applied',
+            ['wet_tropospheric_geolocation_correction_applied',
              False,
              'Flag to indicate if the wet tropospheric correction has been applied'],
         'metadata/processingInformation/parameters/bistaticDelayCorrectionApplied':
