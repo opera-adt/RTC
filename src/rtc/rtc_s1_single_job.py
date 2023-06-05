@@ -98,33 +98,32 @@ def populate_product_id(product_id, burst_in, processing_datetime,
         product_id = '{product_id}'
 
     if '{product_id}' in product_id:
-        product_id = ('OPERA_L2_RTC- _{burst_id}_{start_datetime}_'
+        product_id = ('OPERA_L2_RTC-S1_{burst_id}_{start_datetime}_'
                       '{processing_datetime}_{sensor}_{pixel_spacing}'
                       '_{product_version}')
 
-
     # Populate product_id start_datetime
     start_datetime = burst_in.sensing_start.strftime(DATE_TIME_FILENAME_FORMAT)
-    product_id = product_id.replace('_{start_datetime}', start_datetime)
+    product_id = product_id.replace('{start_datetime}', start_datetime)
 
     # Populate product_id processing_datetime
     processing_datetime_filename = processing_datetime.strftime(
         DATE_TIME_FILENAME_FORMAT)
     product_id = product_id.replace(
-        '_{processing_datetime}', processing_datetime_filename)
+        '{processing_datetime}', processing_datetime_filename)
 
     # Populate product_id sensor
-    product_id = product_id.replace('_{sensor}', burst_in.platform_id)
+    product_id = product_id.replace('{sensor}', burst_in.platform_id)
 
     # Populate product_id pixel_spacing
-    product_id = product_id.replace('_{pixel_spacing}', f'{pixel_spacing}')
+    product_id = product_id.replace('{pixel_spacing}', f'{pixel_spacing}')
 
     # Populate product_id version
-    product_id = product_id.replace('_{product_version}', f'v{product_version}')
+    product_id = product_id.replace('{product_version}', f'v{product_version}')
 
     if not is_mosaic:
         burst_id_file_name = burst_in.burst_id.upper().replace('_', '-')
-        product_id = product_id.replace('_{burst_id}', f'T{burst_id_file_name}')
+        product_id = product_id.replace('{burst_id}', f'T{burst_id_file_name}')
     else:
         product_id = product_id.replace('_{burst_id}', '')
 

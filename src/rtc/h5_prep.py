@@ -203,7 +203,7 @@ def get_metadata_dict(product_id: str,
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
-    processing_datetime: str
+    processing_datetime: datetime
         Processing datetime object
     is_mosaic: bool
         Flag to indicate whether the RTC-S1 product is a mosaic (True)
@@ -334,8 +334,8 @@ def get_metadata_dict(product_id: str,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
         'identification/processingDateTime':
             ['processing_date_time',
-              processing_datetime,
-              'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
+             processing_datetime.strftime(DATE_TIME_METADATA_FORMAT),
+             'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
         'identification/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Acquired frequency band'],
         # 'metadata/processingCenter': # 1.7.1
@@ -628,11 +628,11 @@ def get_metadata_dict(product_id: str,
          'Azimuth stop time of the product']  # 1.6.3
 
     metadata_dict['metadata/sourceData/zeroDopplerStartTime'] = \
-        ['source_data_zero_doppler_start_time',
+        [None,
          burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
          'Azimuth start time of the product'] # 1.6.3
     metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
-        ['source_data_zero_doppler_end_time',
+        [None,
          burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
          'Azimuth stop time of the product']  # 1.6.3
     metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
