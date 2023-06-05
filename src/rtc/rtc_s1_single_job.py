@@ -333,8 +333,9 @@ def save_browse(imagery_list, browse_image_filename,
 
         gdal_band = gdal_ds.GetRasterBand(1)
         band_image = np.asarray(gdal_band.ReadAsArray(), dtype=np.float32)
+        is_valid = np.isfinite(band_image)
         if alpha_channel is None:
-            alpha_channel = np.asarray(np.isfinite(band_image),
+            alpha_channel = np.asarray(is_valid,
                                        dtype=np.float32)
         vmin = np.nanpercentile(band_image, BROWSE_IMAGE_MIN_PERCENTILE)
         vmax = np.nanpercentile(band_image, BROWSE_IMAGE_MAX_PERCENTILE)
@@ -344,7 +345,9 @@ def save_browse(imagery_list, browse_image_filename,
                     f' {vmax}')
 
         # gamma correction: 0.5
-        band_image = np.sqrt((band_image - vmin)/(vmax - vmin))
+        is_positive = np.logical_and(is_valid, band_image - vmin > 0)
+        band_image[is_positive] = np.sqrt((band_image[is_positive] - vmin) /
+                                       (vmax - vmin))
         band_image = np.clip(band_image, 0, 1)
         band_list_index = expected_pol_order.index(pol)
         band_list[band_list_index] = band_image
