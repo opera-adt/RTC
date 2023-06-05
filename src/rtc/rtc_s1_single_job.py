@@ -1515,7 +1515,7 @@ def run_single_job(cfg: RunConfig):
 
         else:
             # Bundle the single-pol geo burst files into .vrt
-            geo_burst_filename.replace(f'.{imagery_extension}', '.vrt')
+            geo_burst_filename = geo_burst_filename.replace(f'.{imagery_extension}', '.vrt')
             os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
             gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
                           options=vrt_options_mosaic)

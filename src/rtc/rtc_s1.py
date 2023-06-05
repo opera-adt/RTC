@@ -36,6 +36,7 @@ logger = logging.getLogger('rtc_s1')
 
 def split_runconfig(cfg_in,
                     child_output_dir,
+                    burst_product_id_list,
                     child_scratch_path=None,
                     parent_logfile_path=None):
     '''
@@ -49,6 +50,8 @@ def split_runconfig(cfg_in,
         Path to the original runconfig
     child_output_dir: str
         Output directory of the child process
+    burst_product_id_list: list(str)
+        List of product IDs
     child_scratch_path: str
         Scratch path to of the child process.
         If `None`, the scratch path of the child processes it will be:
@@ -86,7 +89,7 @@ def split_runconfig(cfg_in,
     else:
         basename_logfile = None
 
-    for burst_id in list_burst_id:
+    for burst_id, burst_product_id in zip(list_burst_id, burst_product_id_list):
         path_temp_runconfig = os.path.join(cfg_in.scratch_path,
                                            f'burst_runconfig_{burst_id}.yaml')
         if parent_logfile_path:
@@ -98,6 +101,14 @@ def split_runconfig(cfg_in,
             path_logfile_child = None
 
         runconfig_dict_out = runconfig_dict_in.copy()
+
+        set_dict_item_recursive(runconfig_dict_out,
+                                ['runconfig',
+                                 'groups',
+                                 'product_group',
+                                 'product_id'],
+                                 burst_product_id)
+
         set_dict_item_recursive(runconfig_dict_out,
                                 ['runconfig',
                                  'groups',
@@ -507,9 +518,22 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         output_path_child = scratch_path
         child_scratch_path = f'{scratch_path}_child_scratch'
 
+    # create list of burst product IDs
+    burst_product_id_list = []
+    for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
+        pol_list = list(burst_pol_dict.keys())
+        burst = burst_pol_dict[pol_list[0]]
+        geogrid = cfg.geogrids[burst_id]
+        pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
+        burst_product_id = populate_product_id(
+            runconfig_product_id, burst, processing_datetime, product_version,
+            pixel_spacing_avg, is_mosaic=True)
+        burst_product_id_list.append(burst_product_id)
+
     # burst files are saved in scratch dir
     burst_runconfig_list, burst_log_list = split_runconfig(cfg,
                                                            output_path_child,
+                                                           burst_product_id_list,
                                                            child_scratch_path,
                                                            logfile_path)
 
@@ -578,11 +602,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         geogrid = cfg.geogrids[burst_id]
 
         # populate burst_product_id
-        pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
-        burst_product_id = populate_product_id(
-            runconfig_product_id, burst, processing_datetime, product_version,
-            pixel_spacing_avg, is_mosaic=True)
-
+        burst_product_id = burst_product_id_list[burst_index]
         logger.info(f'    product ID: {burst_product_id}')
 
         flag_bursts_files_are_temporary = (not save_bursts or
@@ -715,14 +735,14 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_burst_imagery_list.append(geo_burst_pol_filename)
 
         # Bundle the single-pol geo burst files into .vrt
-        geo_burst_filename.replace(f'.{imagery_extension}', '.vrt')
-        os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
-        gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
+        geo_burst_vrt_filename = geo_burst_filename.replace(f'.{imagery_extension}', '.vrt')
+        os.makedirs(os.path.dirname(geo_burst_vrt_filename), exist_ok=True)
+        gdal.BuildVRT(geo_burst_vrt_filename, output_burst_imagery_list,
                       options=vrt_options_mosaic)
-        output_imagery_list.append(geo_burst_filename)
+        output_imagery_list.append(geo_burst_vrt_filename)
 
         # .vrt files (for RTC product in geogrid) will be removed after the process
-        temp_files_list.append(geo_burst_filename)
+        temp_files_list.append(geo_burst_vrt_filename)
 
         if not flag_bursts_files_are_temporary:
             output_file_list += output_burst_imagery_list
