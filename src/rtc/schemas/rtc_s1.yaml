@@ -58,7 +58,7 @@ runconfig:
             # `suffix` is only used when there are multiple output files.
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir: str()
-            product_id: str()
+            product_id: str(required=False)
 
             # Save RTC-S1 products
             save_bursts: bool(required=False)

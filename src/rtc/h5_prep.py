@@ -19,7 +19,9 @@ from rtc.version import VERSION as SOFTWARE_VERSION
 from nisar.workflows.h5_prep import set_get_geo_info
 
 # Data base HDF5 group
-DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
+DATE_TIME_METADATA_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
+DATE_TIME_FILENAME_FORMAT = '%Y%m%dT%H%M%SZ'
+
 DATA_BASE_GROUP = '/data'
 PRODUCT_SPECIFICATION_VERSION = 0.1
 
@@ -113,7 +115,8 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     logger.info(f'file saved: {output_hdf5_file}')
 
 
-def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic):
+def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
+                     processing_datetime, is_mosaic):
     '''Create HDF5 file
 
     Parameters
@@ -128,6 +131,8 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
         Source burst of the RTC
     cfg: RunConfig
         A class that contains the information defined in runconfig
+    processing_datetime: datetime
+        Processing datetime object
     is_mosaic: bool
         Flag to indicate whether the RTC-S1 product is a mosaic (True)
         or burst (False) product
@@ -144,7 +149,8 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg, is_mosaic)
         " JPL D-108758, Rev. Working Version 1, May 31, 2023")
     hdf5_obj.attrs["title"] = np.string_("OPERA RTC-S1 Product")
 
-    populate_metadata_group(product_id, hdf5_obj, burst, cfg, is_mosaic)
+    populate_metadata_group(product_id, hdf5_obj, burst, cfg,
+                            processing_datetime, is_mosaic)
 
     # save orbit
     orbit_group = hdf5_obj.require_group('/metadata/orbit')
@@ -185,6 +191,7 @@ def save_orbit(orbit, orbit_group, orbit_file_path):
 def get_metadata_dict(product_id: str,
                       burst_in: Sentinel1BurstSlc,
                       cfg_in: RunConfig,
+                      processing_datetime: datetime,
                       is_mosaic: bool):
     '''Create RTC-S1 metadata dictionary
 
@@ -196,6 +203,8 @@ def get_metadata_dict(product_id: str,
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
+    processing_datetime: str
+        Processing datetime object
     is_mosaic: bool
         Flag to indicate whether the RTC-S1 product is a mosaic (True)
         or burst (False) product
@@ -325,7 +334,7 @@ def get_metadata_dict(product_id: str,
              'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
         'identification/processingDateTime':
             ['processing_date_time',
-              datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+              processing_datetime,
               'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
         'identification/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Acquired frequency band'],
@@ -362,10 +371,15 @@ def get_metadata_dict(product_id: str,
               f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
               f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
              'Source data processing center'],
-        'identification/processingDateTime':  # 1.6.6
-            ['source_data_processing_date_time',
-             burst_in.burst_misc_metadata.processing_info_dict['stop'],
-             'Processing date and time of the source data'],
+
+        # populate source data processingDateTime with from processing_info "stop"
+        # (SLC Post processing date time)
+        'metadata/sourceData/processingDateTime':  # 1.6.6
+           ['source_data_processing_date_time',
+            burst_in.burst_misc_metadata.processing_info_dict['stop'],
+            'Processing UTC date and time of the source data product (SLC Post'
+             ' processing date time) in the format YYYY-MM-DDTHH:MM:SSZ'],
+
         'metadata/sourceData/softwareVersion':  # 1.6.6
             ['source_data_software_version',
              str(burst_in.ipf_version),
@@ -606,20 +620,20 @@ def get_metadata_dict(product_id: str,
 
     metadata_dict['identification/zeroDopplerStartTime'] = \
         ['zero_doppler_start_time',
-         burst_in.sensing_start.strftime(DATE_TIME_FORMAT),
+         burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
          'Azimuth start time of the product'] # 1.6.3
     metadata_dict['identification/zeroDopplerEndTime'] = \
         ['zero_doppler_end_time',
-         burst_in.sensing_stop.strftime(DATE_TIME_FORMAT),
+         burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
          'Azimuth stop time of the product']  # 1.6.3
 
     metadata_dict['metadata/sourceData/zeroDopplerStartTime'] = \
         ['source_data_zero_doppler_start_time',
-         burst_in.sensing_start.strftime(DATE_TIME_FORMAT),
+         burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
          'Azimuth start time of the product'] # 1.6.3
     metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
         ['source_data_zero_doppler_end_time',
-         burst_in.sensing_stop.strftime(DATE_TIME_FORMAT),
+         burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
          'Azimuth stop time of the product']  # 1.6.3
     metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
         ['source_data_number_of_azimuth_lines',
@@ -678,6 +692,7 @@ def populate_metadata_group(product_id: str,
                             h5py_obj: h5py.File,
                             burst_in: Sentinel1BurstSlc,
                             cfg_in: RunConfig,
+                            processing_datetime: datetime,
                             is_mosaic: bool):
     '''Populate RTC metadata based on Sentinel1BurstSlc and RunConfig
 
@@ -691,12 +706,15 @@ def populate_metadata_group(product_id: str,
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
+    processing_datetime: datetime
+        Processing datetime object
     is_mosaic: bool
         Flag to indicate if the RTC-S1 product is a mosaic (True)
         or burst (False) product
     '''
 
-    metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in, is_mosaic)
+    metadata_dict = get_metadata_dict(product_id, burst_in, cfg_in,
+                                      processing_datetime, is_mosaic)
 
     for path_dataset_in_h5, (_, data, description) in metadata_dict.items():
         if isinstance(data, str):
@@ -855,7 +873,7 @@ def get_rfi_metadata_dict(burst_in,
              'Swath of the IW RFI burst repost list'],
         'rfiBurstReport/azimuthTime':
             ['rfi_burst_report_azimuth_time',
-             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(DATE_TIME_FORMAT),
+             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(DATE_TIME_METADATA_FORMAT),
              'Azimuth time of the burst that corresponds to the RFI report'],
         'rfiBurstReport/inBandOutBandPowerRatio':
             ['in_band_out_band_power_ratio',

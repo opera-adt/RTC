@@ -13,12 +13,13 @@ import yaml
 import isce3
 import numpy as np
 from osgeo import gdal
+from datetime import datetime
 from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    snap_coord,
-                                   run_single_job,
                                    get_radar_grid,
                                    save_browse,
-                                   append_metadata_to_geotiff_file)
+                                   append_metadata_to_geotiff_file,
+                                   populate_product_id)
 from rtc.mosaic_geobursts import (mosaic_single_output_file,
                                   mosaic_multiple_output_files)
 from rtc.core import create_logger, save_as_cog, check_ancillary_inputs
@@ -27,8 +28,7 @@ from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          get_metadata_dict, all_metadata_dict_to_geotiff_metadata_dict,
                          DATA_BASE_GROUP)
 
-from rtc.runconfig import RunConfig, load_parameters
-
+from rtc.runconfig import RunConfig
 
 logger = logging.getLogger('rtc_s1')
 
@@ -274,17 +274,26 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     # read product path group / output format
     runconfig_product_id = cfg.groups.product_group.product_id
-    if runconfig_product_id is None:
-        runconfig_product_id = 'OPERA_L2_RTC-S1_{burst_id}'
-    product_id = f'{runconfig_product_id}_v{product_version}'
-    mosaic_product_id = product_id.replace('_{burst_id}', '')
 
+    # set processing_datetime
+    processing_datetime = datetime.now()
+
+    # get mosaic_product_id
+    burst_id = next(iter(cfg.bursts))
+    burst_pol_dict = cfg.bursts[burst_id]
+    pol_list = list(burst_pol_dict.keys())
+    burst_ref = burst_pol_dict[pol_list[0]]
+    pixel_spacing_avg = int((cfg.geogrid.spacing_x + cfg.geogrid.spacing_y) / 2)
+    mosaic_product_id = populate_product_id(
+        runconfig_product_id, burst_ref, processing_datetime, product_version,
+        pixel_spacing_avg, is_mosaic=True)
+
+    # set scratch directory and output_dir
     scratch_path = os.path.join(
         cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
-
     output_dir = cfg.groups.product_group.output_dir
 
-    # RTC-S1 imagery
+    # populate processing parameters
     save_bursts = cfg.groups.product_group.save_bursts
     save_mosaics = cfg.groups.product_group.save_mosaics
     flag_save_browse = cfg.groups.product_group.save_browse
@@ -564,15 +573,17 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
-        burst_id_file_name = burst_id.upper().replace('_', '-')
-        print('burst ID name:', burst_id_file_name)    
-        burst_product_id = \
-            product_id.replace('{burst_id}', burst_id_file_name)
-
-        logger.info(f'    product ID: {burst_product_id}')
-
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
+        geogrid = cfg.geogrids[burst_id]
+
+        # populate burst_product_id
+        pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
+        burst_product_id = populate_product_id(
+            runconfig_product_id, burst, processing_datetime, product_version,
+            pixel_spacing_avg, is_mosaic=True)
+
+        logger.info(f'    product ID: {burst_product_id}')
 
         flag_bursts_files_are_temporary = (not save_bursts or
                                            save_imagery_as_hdf5)
@@ -591,8 +602,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         else:
             # burst files (individual or HDF5) are saved in burst_id dir
             output_dir_sec_bursts = output_dir_bursts
-
-        geogrid = cfg.geogrids[burst_id]
 
         # snap coordinates
         x_snap = geogrid.spacing_x
@@ -761,12 +770,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 and burst_index == 0):
             hdf5_mosaic_obj = create_hdf5_file(
                 mosaic_product_id, output_hdf5_file, orbit, burst, cfg,
-                is_mosaic=True)
+                processing_datetime, is_mosaic=True)
 
         # Save mosaic metadata for later use
         if (save_mosaics and burst_index == 0):
             mosaic_metadata_dict = get_metadata_dict(mosaic_product_id, burst, cfg,
-                is_mosaic=True)
+                processing_datetime, is_mosaic=True)
             mosaic_geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
                 mosaic_metadata_dict)
 
