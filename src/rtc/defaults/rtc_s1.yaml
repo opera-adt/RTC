@@ -151,8 +151,8 @@ runconfig:
                 # RTC DEM upsampling
                 dem_upsampling: 2
 
-                # RTC area factor mode
-                area_factor_mode: auto
+                # RTC area beta mode
+                area_beta_mode: auto
 
             # OPTIONAL - to provide the number of processes when processing the bursts in parallel
             # "0" means that the number will be automatically decided based on

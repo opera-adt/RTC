@@ -1035,7 +1035,7 @@ def run_single_job(cfg: RunConfig):
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
     rtc_min_value_db = rtc_namespace.rtc_min_value_db
     rtc_upsampling = rtc_namespace.dem_upsampling
-    rtc_area_factor_mode = rtc_namespace.area_factor_mode
+    rtc_area_beta_mode = rtc_namespace.area_beta_mode
     if (flag_apply_rtc and output_terrain_radiometry ==
             isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
         rtc_anf_suffix = "sigma0_to_beta0"
@@ -1486,26 +1486,26 @@ def run_single_job(cfg: RunConfig):
                             geogrid.spacing_x, geogrid.spacing_y,
                             geogrid.width, geogrid.length, geogrid.epsg)
 
-            if rtc_area_factor_mode != 'auto':
+            if rtc_area_beta_mode != 'auto':
 
 
 
 
 
-                # TODO! This code should be moved to runconfig after `area_factor_mode`
+                # TODO! This code should be moved to runconfig after `area_beta_mode`
                 # is added to geocode() in ISCE3
-                if rtc_area_factor_mode == 'pixel_area':
-                    rtc_area_factor_mode_enum = \
-                        isce3.geometry.RtcAreaFactorMode.PixelArea
-                elif rtc_area_factor_mode == 'projection_angle':
-                    rtc_area_factor_mode_enum = \
-                        isce3.geometry.RtcAreaFactorMode.BlocksGeogridAndRadarGrid
-                elif (rtc_area_factor_mode == 'auto' or
-                        rtc_area_factor_mode is None):
-                    rtc_area_factor_mode_enum = \
-                        isce3.geometry.RtcAreaFactorMode.Auto
+                if rtc_area_beta_mode == 'pixel_area':
+                    rtc_area_beta_mode_enum = \
+                        isce3.geometry.RtcAreaBetaMode.PIXEL_AREA
+                elif rtc_area_beta_mode == 'projection_angle':
+                    rtc_area_beta_mode_enum = \
+                        isce3.geometry.RtcAreaBetaMode.PROJECTION_ANGLE
+                elif (rtc_area_beta_mode == 'auto' or
+                        rtc_area_beta_mode is None):
+                    rtc_area_beta_mode_enum = \
+                        isce3.geometry.RtcAreaBetaMode.AUTO
                 else:
-                    err_msg = f"ERROR invalid area factor mode: {rtc_area_factor_mode}"
+                    err_msg = f"ERROR invalid area beta mode: {rtc_area_beta_mode}"
                     raise ValueError(err_msg)
 
 
@@ -1513,7 +1513,7 @@ def run_single_job(cfg: RunConfig):
 
 
 
-                geocode_kwargs['rtc_area_factor_mode'] = rtc_area_factor_mode_enum
+                geocode_kwargs['rtc_area_beta_mode'] = rtc_area_beta_mode_enum
 
             geo_obj.geocode(radar_grid=radar_grid,
                             input_raster=rdr_burst_raster,
