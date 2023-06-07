@@ -1035,6 +1035,7 @@ def run_single_job(cfg: RunConfig):
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
     rtc_min_value_db = rtc_namespace.rtc_min_value_db
     rtc_upsampling = rtc_namespace.dem_upsampling
+    rtc_area_factor_mode = rtc_namespace.area_factor_mode
     if (flag_apply_rtc and output_terrain_radiometry ==
             isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
         rtc_anf_suffix = "sigma0_to_beta0"
@@ -1498,6 +1499,7 @@ def run_single_job(cfg: RunConfig):
                             rtc_min_value_db=rtc_min_value_db,
                             rtc_upsampling=rtc_upsampling,
                             rtc_algorithm=rtc_algorithm,
+                            rtc_area_factor_mode=rtc_area_factor_mode,
                             abs_cal_factor=abs_cal_factor,
                             flag_upsample_radar_grid=flag_upsample_radar_grid,
                             clip_min=clip_min,

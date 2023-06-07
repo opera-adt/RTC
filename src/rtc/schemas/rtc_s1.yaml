@@ -175,6 +175,9 @@ rtc_options:
     # RTC DEM upsampling
     dem_upsampling: int(min=1, required=False)
 
+    # RTC area factor mode
+    area_factor_mode: enum('auto', 'pixel_area', 'projection_angle', required=False)
+
 
 geocoding_options:
 
