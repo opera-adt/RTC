@@ -152,7 +152,7 @@ runconfig:
                 dem_upsampling: 2
 
                 # RTC area factor mode
-                area_factor_mode: projection_angle
+                area_factor_mode: auto
 
             # OPTIONAL - to provide the number of processes when processing the bursts in parallel
             # "0" means that the number will be automatically decided based on

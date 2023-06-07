@@ -1486,6 +1486,35 @@ def run_single_job(cfg: RunConfig):
                             geogrid.spacing_x, geogrid.spacing_y,
                             geogrid.width, geogrid.length, geogrid.epsg)
 
+            if rtc_area_factor_mode != 'auto':
+
+
+
+
+
+                # TODO! This code should be moved to runconfig after `area_factor_mode`
+                # is added to geocode() in ISCE3
+                if rtc_area_factor_mode == 'pixel_area':
+                    rtc_area_factor_mode_enum = \
+                        isce3.geometry.RtcAreaFactorMode.PixelArea
+                elif rtc_area_factor_mode == 'projection_angle':
+                    rtc_area_factor_mode_enum = \
+                        isce3.geometry.RtcAreaFactorMode.BlocksGeogridAndRadarGrid
+                elif (rtc_area_factor_mode == 'auto' or
+                        rtc_area_factor_mode is None):
+                    rtc_area_factor_mode_enum = \
+                        isce3.geometry.RtcAreaFactorMode.Auto
+                else:
+                    err_msg = f"ERROR invalid area factor mode: {rtc_area_factor_mode}"
+                    raise ValueError(err_msg)
+
+
+
+
+
+
+                geocode_kwargs['rtc_area_factor_mode'] = rtc_area_factor_mode_enum
+
             geo_obj.geocode(radar_grid=radar_grid,
                             input_raster=rdr_burst_raster,
                             output_raster=geo_burst_raster,
@@ -1499,7 +1528,6 @@ def run_single_job(cfg: RunConfig):
                             rtc_min_value_db=rtc_min_value_db,
                             rtc_upsampling=rtc_upsampling,
                             rtc_algorithm=rtc_algorithm,
-                            rtc_area_factor_mode=rtc_area_factor_mode,
                             abs_cal_factor=abs_cal_factor,
                             flag_upsample_radar_grid=flag_upsample_radar_grid,
                             clip_min=clip_min,
