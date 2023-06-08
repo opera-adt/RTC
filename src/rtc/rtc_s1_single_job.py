@@ -90,9 +90,32 @@ layer_description_dict = {
 }
 
 
-
 def populate_product_id(product_id, burst_in, processing_datetime,
                         product_version, pixel_spacing, is_mosaic):
+    '''
+    Populate product_id string with S1/RTC-S1 parameters
+
+    Parameters
+    ----------
+    product_id: str
+        Input product ID string
+    burst_in: Sentinel1BurstSlc
+        Input burst SLC
+    processing_datetime: datetime
+        Processing start datetime
+    product_version: scalar
+        Product version
+    pixel_spacing: scalar
+        Pixel spacing
+    is_mosaic: bool
+        Flag indicating whether the product ID refers to a mosaic or a
+        burst product
+
+    Returns
+    -------
+    _: str
+        Product ID populated with S1/RTC-S1 parameters
+    '''
 
     if product_id is None:
         product_id = '{product_id}'
@@ -1175,16 +1198,11 @@ def run_single_job(cfg: RunConfig):
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
  
-
-
         # populate burst_product_id
         pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
             pixel_spacing_avg, is_mosaic=True)
-
-
-
 
         logger.info(f'    product ID: {burst_product_id}')
 
