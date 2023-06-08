@@ -98,13 +98,15 @@ def populate_product_id(product_id, burst_in, processing_datetime,
         product_id = '{product_id}'
 
     if '{product_id}' in product_id:
-        product_id = ('OPERA_L2_RTC-S1_{burst_id}_{start_datetime}_'
+        product_id = ('OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}_'
                       '{processing_datetime}_{sensor}_{pixel_spacing}'
                       '_{product_version}')
 
-    # Populate product_id start_datetime
-    start_datetime = burst_in.sensing_start.strftime(DATE_TIME_FILENAME_FORMAT)
-    product_id = product_id.replace('{start_datetime}', start_datetime)
+    # Populate product_id sensing_start_datetime
+    sensing_start_datetime = burst_in.sensing_start.strftime(
+        DATE_TIME_FILENAME_FORMAT)
+    product_id = product_id.replace('{sensing_start_datetime}',
+                                    sensing_start_datetime)
 
     # Populate product_id processing_datetime
     processing_datetime_filename = processing_datetime.strftime(
