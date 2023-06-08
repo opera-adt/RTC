@@ -383,7 +383,7 @@ def get_metadata_dict(product_id: str,
         'metadata/sourceData/softwareVersion':  # 1.6.6
             ['source_data_software_version',
              str(burst_in.ipf_version),
-             'Version of the software used to create the source data'],
+             'Version of the software used to create the source data (IPF version)'],
         
         'metadata/sourceData/azimuthLooks':  # 1.6.6
             [None,
