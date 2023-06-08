@@ -1163,7 +1163,7 @@ def run_single_job(cfg: RunConfig):
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc_anf_{rtc_anf_suffix}', output_dir_sec_mosaic_raster,
+        save_rtc_anf, f'rtc_anf_{rtc_anf_suffix}', output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
 
     temp_files_list = []
@@ -1570,7 +1570,7 @@ def run_single_job(cfg: RunConfig):
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
-            output_metadata_dict['rtc_anf_{rtc_anf_suffix}'][1].append(rtc_anf_file)
+            output_metadata_dict[f'rtc_anf_{rtc_anf_suffix}'][1].append(rtc_anf_file)
 
         radar_grid_file_dict = {}
 
@@ -1746,7 +1746,7 @@ def run_single_job(cfg: RunConfig):
                 nlooks_mosaic_file = None
             if save_rtc_anf:
                 rtc_anf_mosaic_file = output_metadata_dict[
-                    'rtc_anf_{rtc_anf_suffix}'][0]
+                    f'rtc_anf_{rtc_anf_suffix}'][0]
             else:
                 rtc_anf_mosaic_file = None
             if save_layover_shadow_mask:
