@@ -545,6 +545,30 @@ def create_logger(log_file, full_log_formatting=None):
 
 def build_empty_vrt(filename, length, width, fill_value, dtype='Float32',
               geotransform=None):
+    """Build an empty VRT file, i.e, not pointing to any rasters,
+       with given input dimensions (length and width), data type, and
+       fill value.
+
+       Parameters
+       ----------
+       filename: str
+              VRT file name
+       length: int
+              VRT data length
+       width: int
+              VRT data width
+       fill_value: scalar
+              VRT data fill value
+       dtype: str
+              VRT data type
+       geotransform: list(scalar), optional
+              VRT data geotransform
+
+       Returns
+       -------
+       logger : logging.Logger
+              Logger object
+    """
     vrt_contents = f'<VRTDataset rasterXSize="{width}" rasterYSize="{length}"> \n'
     if geotransform is not None:
         assert len(geotransform) == 6
