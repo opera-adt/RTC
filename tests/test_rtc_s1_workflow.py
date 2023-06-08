@@ -23,11 +23,6 @@ def _load_cfg_parameters(cfg):
     load_parameters(cfg)
 
     # Load parameters
-    product_version_float = cfg.groups.product_group.product_version
-    if product_version_float is None:
-        product_version = SOFTWARE_VERSION
-    else:
-        product_version = f'{product_version_float:.1f}'
     output_dir = cfg.groups.product_group.output_dir
     product_id = cfg.groups.product_group.product_id
     if product_id is None:
