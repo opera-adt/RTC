@@ -621,20 +621,20 @@ def get_metadata_dict(product_id: str,
     metadata_dict['identification/zeroDopplerStartTime'] = \
         ['zero_doppler_start_time',
          burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth start time of the product'] # 1.6.3
+         'Azimuth start time of the product in the format YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
     metadata_dict['identification/zeroDopplerEndTime'] = \
         ['zero_doppler_end_time',
          burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth stop time of the product']  # 1.6.3
+         'Azimuth stop time of the product in the format YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
 
     metadata_dict['metadata/sourceData/zeroDopplerStartTime'] = \
         [None,
          burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth start time of the product'] # 1.6.3
+         'Azimuth start time of the product in the format YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
     metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
         [None,
          burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth stop time of the product']  # 1.6.3
+         'Azimuth stop time of the product in the format YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
     metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
         ['source_data_number_of_azimuth_lines',
          burst_in.length,
@@ -873,8 +873,10 @@ def get_rfi_metadata_dict(burst_in,
              'Swath of the IW RFI burst repost list'],
         'rfiBurstReport/azimuthTime':
             ['rfi_burst_report_azimuth_time',
-             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(DATE_TIME_METADATA_FORMAT),
-             'Azimuth time of the burst that corresponds to the RFI report'],
+             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(
+                DATE_TIME_METADATA_FORMAT),
+             'Azimuth time of the burst that corresponds to the RFI report'
+              ' in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'rfiBurstReport/inBandOutBandPowerRatio':
             ['in_band_out_band_power_ratio',
              burst_in.burst_rfi_info.rfi_burst_report['inBandOutBandPowerRatio'],
