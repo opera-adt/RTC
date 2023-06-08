@@ -335,7 +335,7 @@ def get_metadata_dict(product_id: str,
         'identification/processingDateTime':
             ['processing_date_time',
              processing_datetime.strftime(DATE_TIME_METADATA_FORMAT),
-             'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
+             'Processing date and time in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'identification/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Acquired frequency band'],
         # 'metadata/processingCenter': # 1.7.1
@@ -378,7 +378,7 @@ def get_metadata_dict(product_id: str,
            ['source_data_processing_date_time',
             burst_in.burst_misc_metadata.processing_info_dict['stop'],
             'Processing UTC date and time of the source data product (SLC Post'
-             ' processing date time) in the format YYYY-MM-DDTHH:MM:SSZ'],
+             ' processing date time) in the format YYYY-MM-DDThh:mm:ss.sZ'],
 
         'metadata/sourceData/softwareVersion':  # 1.6.6
             ['source_data_software_version',
