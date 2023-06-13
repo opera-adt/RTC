@@ -10,20 +10,21 @@ import tempfile
 from osgeo import gdal, osr, ogr
 
 # Buffer for antimeridian crossing test (33 arcsec: ~ 1km)
-ANTIMERIDIAN_CROSSING_RIGHT_SIDE_TEST_BUFFER = 33 * 0.0002777 
+ANTIMERIDIAN_CROSSING_RIGHT_SIDE_TEST_BUFFER = 33 * 0.0002777
+
 
 class Logger(object):
     """
     Class to redirect stdout and stderr to the logger
     """
     def __init__(self, logger, level, prefix=''):
-       """
-       Class constructor
-       """
-       self.logger = logger
-       self.level = level
-       self.prefix = prefix
-       self.buffer = ''
+        """
+        Class constructor
+        """
+        self.logger = logger
+        self.level = level
+        self.prefix = prefix
+        self.buffer = ''
 
     def write(self, message):
 
@@ -55,7 +56,7 @@ class Logger(object):
         self.buffer = ''
 
 
-def save_as_cog(filename, scratch_dir = '.', logger = None,
+def save_as_cog(filename, scratch_dir='.', logger=None,
                 flag_compress=True, ovr_resamp_algorithm=None,
                 compression='DEFLATE', nbits=None):
     """Save (overwrite) a GeoTIFF file as a cloud-optimized GeoTIFF.
@@ -88,7 +89,7 @@ def save_as_cog(filename, scratch_dir = '.', logger = None,
 
     overviews_list = [4, 16, 64, 128]
 
-    is_integer = 'byte' in dtype_name  or 'int' in dtype_name
+    is_integer = 'byte' in dtype_name or 'int' in dtype_name
     if ovr_resamp_algorithm is None and is_integer:
         ovr_resamp_algorithm = 'NEAREST'
     elif ovr_resamp_algorithm is None:
@@ -117,7 +118,7 @@ def save_as_cog(filename, scratch_dir = '.', logger = None,
                               'TILED=YES',
                               f'BLOCKXSIZE={tile_size}',
                               f'BLOCKYSIZE={tile_size}',
-                              'COPY_SRC_OVERVIEWS=YES'] 
+                              'COPY_SRC_OVERVIEWS=YES']
 
     if compression:
         gdal_translate_options += [f'COMPRESS={compression}']
@@ -140,9 +141,11 @@ def save_as_cog(filename, scratch_dir = '.', logger = None,
 
     logger.info('        COG step 3: validate')
     try:
-        from rtc.extern.validate_cloud_optimized_geotiff import main as validate_cog
+        from rtc.extern.validate_cloud_optimized_geotiff import main as \
+            validate_cog
     except ModuleNotFoundError:
-        logger.info('WARNING could not import module validate_cloud_optimized_geotiff')
+        logger.info('WARNING could not import module'
+                    ' validate_cloud_optimized_geotiff')
         return
 
     argv = ['--full-check=yes', filename]
@@ -153,7 +156,6 @@ def save_as_cog(filename, scratch_dir = '.', logger = None,
     else:
         logger.warning(f'        file "{filename}" is NOT a valid cloud'
                        f' optimized GeoTIFF!')
-
 
 
 def _get_ogr_polygon(min_x, max_y, max_x, min_y, file_srs):
@@ -262,7 +264,6 @@ def get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
     return tile_polygon, tile_min_y, tile_max_y, tile_min_x, tile_max_x
 
 
-
 def _antimeridian_crossing_requires_special_handling(
         file_srs, file_min_x, tile_min_x, tile_max_x):
     '''
@@ -308,7 +309,6 @@ def _antimeridian_crossing_requires_special_handling(
     return flag_requires_special_handling
 
 
-
 def check_ancillary_inputs(check_ancillary_inputs_coverage,
                            dem_file, geogrid,
                            metadata_dict, logger=None):
@@ -335,7 +335,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
     """
     if logger is None:
         logger = logging.getLogger('rtc_s1')
-    logger.info(f"Check ancillary inputs' coverage:")
+    logger.info("Check ancillary inputs' coverage:")
 
     # file description (to be printed to the user if an error happens)
     dem_file_description = 'DEM file'
@@ -428,19 +428,18 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
             metadata_dict[coverage_metadata_str] = 'FULL'
             continue
 
-        flag_error = False
-
         # If needed, test for antimeridian ("dateline") crossing
         if _antimeridian_crossing_requires_special_handling(
                 ancillary_srs, ancillary_x0, geogrid_x0, geogrid_xf):
 
             logger.info(f'The input RTC-S1 product crosses the antimeridian'
                         ' (dateline). Verifying the'
-                        f' {ancillary_file_description}: {ancillary_file_name}')
+                        f' {ancillary_file_description}:'
+                        f' {ancillary_file_name}')
 
             # Left side of the antimeridian crossing: -180 -> +180
             ancillary_polygon_1 = _get_ogr_polygon(-180, 90, ancillary_xf, -90,
-                                                        ancillary_srs)
+                                                   ancillary_srs)
             intersection_1 = geogrid_polygon.Intersection(ancillary_polygon_1)
             flag_1_ok = intersection_1.Within(ancillary_polygon)
             check_1_str = 'ok' if flag_1_ok else 'fail'
@@ -451,9 +450,10 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
                 ancillary_xf + ANTIMERIDIAN_CROSSING_RIGHT_SIDE_TEST_BUFFER,
                 90, ancillary_xf + 360, -90, ancillary_srs)
             intersection_2 = geogrid_polygon.Intersection(ancillary_polygon_2)
-            ancillary_polygon_2 = _get_ogr_polygon(ancillary_x0 + 360, ancillary_y0,
-                                              ancillary_xf + 360, ancillary_yf,
-                                              ancillary_srs)
+            ancillary_polygon_2 = _get_ogr_polygon(
+                ancillary_x0 + 360, ancillary_y0,
+                ancillary_xf + 360, ancillary_yf,
+                ancillary_srs)
             flag_2_ok = intersection_2.Within(ancillary_polygon_2)
             check_2_str = 'ok' if flag_2_ok else 'fail'
             logger.info(f'    right side (+180 -> +360): {check_2_str}')
@@ -478,7 +478,6 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
         logger.error(msg)
         raise ValueError(msg)
-
 
 
 def create_logger(log_file, full_log_formatting=None):
@@ -542,14 +541,39 @@ def create_logger(log_file, full_log_formatting=None):
     return logger
 
 
-
 def build_empty_vrt(filename, length, width, fill_value, dtype='Float32',
-              geotransform=None):
-    vrt_contents = f'<VRTDataset rasterXSize="{width}" rasterYSize="{length}"> \n'
+                    geotransform=None):
+    """Build an empty VRT file, i.e, not pointing to any rasters,
+       with given input dimensions (length and width), data type, and
+       fill value.
+
+       Parameters
+       ----------
+       filename: str
+              VRT file name
+       length: int
+              VRT data length
+       width: int
+              VRT data width
+       fill_value: scalar
+              VRT data fill value
+       dtype: str
+              VRT data type
+       geotransform: list(scalar), optional
+              VRT data geotransform
+
+       Returns
+       -------
+       logger : logging.Logger
+              Logger object
+    """
+    vrt_contents = f'<VRTDataset rasterXSize="{width}"'
+    vrt_contents += f' rasterYSize="{length}"> \n'
     if geotransform is not None:
         assert len(geotransform) == 6
         geotransform_str = ', '.join([str(x) for x in geotransform])
-        vrt_contents += f'  <GeoTransform> {geotransform_str} </GeoTransform> \n'
+        vrt_contents += f'  <GeoTransform> {geotransform_str}'
+        vrt_contents += ' </GeoTransform> \n'
     vrt_contents += (
         f'  <VRTRasterBand dataType="{dtype}" band="1"> \n'
         f'    <NoDataValue>{fill_value}</NoDataValue> \n'
@@ -562,4 +586,3 @@ def build_empty_vrt(filename, length, width, fill_value, dtype='Float32',
 
     if os.path.isfile(filename):
         print('file saved:', filename)
-

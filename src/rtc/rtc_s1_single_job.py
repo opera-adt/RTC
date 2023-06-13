@@ -43,12 +43,12 @@ layer_names_dict = {
     'rtc_anf_sigma0_to_beta0': ('RTC Area Normalization Factor'
                                 ' Sigma0 to Beta0'),
     'rtc_anf_beta0_to_beta0': ('RTC Area Normalization Factor'
-                                ' Beta0 to Beta0'),
+                               ' Beta0 to Beta0'),
     'incidence_angle': 'Incidence Angle',
     'local_incidence_angle': 'Local Incidence Angle',
     
     # TODO improve description below
-    'projection_angle' : 'Projection Angle',
+    'projection_angle': 'Projection Angle',
     'rtc_anf_psi': ('RTC Area Normalization Factor'
                     ' Gamma0 to Beta0 (Projection Angle - Psi)'),
     'range_slope': 'Range Slope',
@@ -70,8 +70,8 @@ layer_description_dict = {
                                 ' area normalization factor (ANF)'
                                 ' sigma0 to beta0'),
     'rtc_anf_beta0_to_beta0': ('Radiometric terrain correction (RTC)'
-                                ' area normalization factor (ANF)'
-                                ' beta0 to beta0'),
+                               ' area normalization factor (ANF)'
+                               ' beta0 to beta0'),
     'incidence_angle': ('Incidence angle is defined as the angle between'
                         ' the line-of-sight (LOS) vector and the normal to'
                         ' the ellipsoid at the target height'),
@@ -80,7 +80,7 @@ layer_description_dict = {
                               ' normal to the ellipsoid at the target height'),
     
     # TODO improve description below
-    'projection_angle' : 'Projection angle (psi)',
+    'projection_angle': 'Projection angle (psi)',
     'rtc_anf_psi': ('Radiometric terrain correction (RTC)'
                     ' area normalization factor (ANF) '
                     ' gamma0 to beta0 computed with'
@@ -90,21 +90,46 @@ layer_description_dict = {
 }
 
 
-
 def populate_product_id(product_id, burst_in, processing_datetime,
                         product_version, pixel_spacing, is_mosaic):
+    '''
+    Populate product_id string with S1/RTC-S1 parameters
+
+    Parameters
+    ----------
+    product_id: str
+        Input product ID string
+    burst_in: Sentinel1BurstSlc
+        Input burst SLC
+    processing_datetime: datetime
+        Processing start datetime
+    product_version: scalar
+        Product version
+    pixel_spacing: scalar
+        Pixel spacing
+    is_mosaic: bool
+        Flag indicating whether the product ID refers to a mosaic or a
+        burst product
+
+    Returns
+    -------
+    _: str
+        Product ID populated with S1/RTC-S1 parameters
+    '''
 
     if product_id is None:
         product_id = '{product_id}'
 
     if '{product_id}' in product_id:
-        product_id = ('OPERA_L2_RTC-S1_{burst_id}_{start_datetime}_'
+        product_id = ('OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}_'
                       '{processing_datetime}_{sensor}_{pixel_spacing}'
                       '_{product_version}')
 
-    # Populate product_id start_datetime
-    start_datetime = burst_in.sensing_start.strftime(DATE_TIME_FILENAME_FORMAT)
-    product_id = product_id.replace('{start_datetime}', start_datetime)
+    # Populate product_id sensing_start_datetime
+    sensing_start_datetime = burst_in.sensing_start.strftime(
+        DATE_TIME_FILENAME_FORMAT)
+    product_id = product_id.replace('{sensing_start_datetime}',
+                                    sensing_start_datetime)
 
     # Populate product_id processing_datetime
     processing_datetime_filename = processing_datetime.strftime(
@@ -164,7 +189,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     pos_mid = burst_in.orbit.position[numrow_orbit // 2, :]
     alt_mid = np.linalg.norm(pos_mid)
 
-    r = 6371000.0 # geometric mean of WGS84 ellipsoid
+    r = 6371000.0  # geometric mean of WGS84 ellipsoid
 
     az_step_sec = (az_step_meters * alt_mid) / (spd_mid * r)
     # Bistatic - azimuth direction
@@ -218,7 +243,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     # Breit et al., 2010, TerraSAR-X SAR Processing and Products,
     # IEEE Transactions on Geoscience and Remote Sensing, 48(2), 727-740.
     # DOI: 10.1109/TGRS.2009.2035497
-    zenith_path_delay  = 2.3
+    zenith_path_delay = 2.3
     reference_height = 6000.0
     tropo = (zenith_path_delay
              / np.cos(np.deg2rad(incidence_angle_arr))
@@ -302,7 +327,7 @@ def save_browse(imagery_list, browse_image_filename,
             del gdal_ds
 
             if browse_image_width is None:
-                browse_image_width =  int(np.round(
+                browse_image_width = int(np.round(
                     (browse_image_height * float(image_width) / image_height)))
 
             if browse_image_height is None:
@@ -347,7 +372,7 @@ def save_browse(imagery_list, browse_image_filename,
         # gamma correction: 0.5
         is_positive = np.logical_and(is_valid, band_image - vmin > 0)
         band_image[is_positive] = np.sqrt((band_image[is_positive] - vmin) /
-                                       (vmax - vmin))
+                                          (vmax - vmin))
         band_image = np.clip(band_image, 0, 1)
         band_list_index = expected_pol_order.index(pol)
         band_list[band_list_index] = band_image
@@ -469,8 +494,8 @@ def _separate_pol_channels(multi_band_file, output_file_list,
 
 
 def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
-                       radar_grid_file_dict, output_obj_list, flag_create_raster_obj,
-                       extension):
+                       radar_grid_file_dict, output_obj_list,
+                       flag_create_raster_obj, extension):
     """Create an ISCE3 raster object (GTiff) for a radar geometry layer.
 
        Parameters
@@ -514,14 +539,15 @@ def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
     return raster_obj
 
 
-def add_output_to_output_metadata_dict(flag, key, output_dir,
-        output_metadata_dict, product_id, extension):
+def add_output_to_output_metadata_dict(flag, key, output_dir, 
+                                       output_metadata_dict, product_id,
+                                       extension):
     if not flag:
         return
     output_image_list = []
     output_metadata_dict[key] = \
         [os.path.join(output_dir, f'{product_id}_{key}.{extension}'),
-                      output_image_list]
+         output_image_list]
 
 
 def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
@@ -557,8 +583,9 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
 
     # Apply thermal noise correction
     if flag_thermal_correction:
-        logger.info(f'    applying thermal noise correction to burst SLC')
-        corrected_image = np.abs(arr_slc_from) ** 2 - burst_in.thermal_noise_lut
+        logger.info('    applying thermal noise correction to burst SLC')
+        corrected_image = (np.abs(arr_slc_from) ** 2 -
+                           burst_in.thermal_noise_lut)
         min_backscatter = 0
         max_backscatter = None
         corrected_image = np.clip(corrected_image, min_backscatter,
@@ -568,7 +595,8 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
 
     # Apply absolute radiometric correction
     if flag_apply_abs_rad_correction:
-        logger.info(f'    applying absolute radiometric correction to burst SLC')
+        logger.info('    applying absolute radiometric correction to burst'
+                    ' SLC')
         corrected_image = \
             corrected_image / burst_in.burst_calibration.beta_naught ** 2
 
@@ -671,14 +699,15 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                                 output_raster_format: str,
                                 scratch_dir: str,
                                 shadow_dilation_size: int,
-                                threshold_rdr2geo: float=1.0e-7,
-                                numiter_rdr2geo: int=25,
-                                extraiter_rdr2geo: int=10,
-                                lines_per_block_rdr2geo: int=1000,
-                                threshold_geo2rdr: float=1.0e-7,
-                                numiter_geo2rdr: int=25,
-                                memory_mode: isce3.core.GeocodeMemoryMode=None,
-                                geocode_options = None):
+                                threshold_rdr2geo: float = 1.0e-7,
+                                numiter_rdr2geo: int = 25,
+                                extraiter_rdr2geo: int = 10,
+                                lines_per_block_rdr2geo: int = 1000,
+                                threshold_geo2rdr: float = 1.0e-7,
+                                numiter_geo2rdr: int = 25,
+                                memory_mode: isce3.core.GeocodeMemoryMode =
+                                None,
+                                geocode_options=None):
     '''
     Compute the layover/shadow mask and geocode it
 
@@ -687,7 +716,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     radar_grid: isce3.product.RadarGridParameters
         Radar grid
     orbit: isce3.core.Orbit
-	    Orbit defining radar motion on input path
+        Orbit defining radar motion on input path
     geogrid_in: isce3.product.GeoGridParameters
         Geogrid to geocode the layover/shadow mask in radar grid
     burst_in: Sentinel1BurstSlc
@@ -772,18 +801,20 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     y_raster = isce3.io.Raster(y_raster_path, radar_grid.width,
                                radar_grid.length,
                                1, gdal.GDT_Byte, 'MEM')
-    incidence_angle_raster_path = (f'x_{burst_in.burst_id}_'
-                     f'{burst_in.polarization}_{str_datetime}')
+    incidence_angle_raster_path = (
+        f'x_{burst_in.burst_id}_'
+        f'{burst_in.polarization}_{str_datetime}')
     incidence_angle_raster = isce3.io.Raster(incidence_angle_raster_path,
                                              radar_grid.width,
                                              radar_grid.length,
                                              1, gdal.GDT_Byte, 'MEM')
 
-    rdr2geo_obj.topo(dem_raster,
-                     x_raster=x_raster,
-                     y_raster=y_raster,
-                     incidence_angle_raster=incidence_angle_raster,
-                     layover_shadow_raster=slantrange_layover_shadow_mask_raster)
+    rdr2geo_obj.topo(
+        dem_raster,
+        x_raster=x_raster,
+        y_raster=y_raster,
+        incidence_angle_raster=incidence_angle_raster,
+        layover_shadow_raster=slantrange_layover_shadow_mask_raster)
 
     if shadow_dilation_size > 0:
         '''
@@ -844,9 +875,9 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
                 int(geogrid_in.length),
                 int(geogrid_in.epsg))
 
-    geocoded_layover_shadow_mask_raster = isce3.io.Raster(filename_out,
-                                      geogrid_in.width, geogrid_in.length, 1,
-                                      gdal.GDT_Byte, output_raster_format)
+    geocoded_layover_shadow_mask_raster = isce3.io.Raster(
+        filename_out, geogrid_in.width, geogrid_in.length, 1,
+        gdal.GDT_Byte, output_raster_format)
 
     if geocode_options is None:
         geocode_options = {}
@@ -915,7 +946,8 @@ def run_single_job(cfg: RunConfig):
     burst_pol_dict = cfg.bursts[burst_id]
     pol_list = list(burst_pol_dict.keys())
     burst_ref = burst_pol_dict[pol_list[0]]
-    pixel_spacing_avg = int((cfg.geogrid.spacing_x + cfg.geogrid.spacing_y) / 2)
+    pixel_spacing_avg = int((cfg.geogrid.spacing_x + cfg.geogrid.spacing_y) /
+                            2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
         pixel_spacing_avg, is_mosaic=True)
@@ -930,7 +962,7 @@ def run_single_job(cfg: RunConfig):
     flag_save_browse = cfg.groups.product_group.save_browse
 
     if not save_bursts and not save_mosaics:
-        err_msg = (f"ERROR either `save_bursts` or `save_mosaics` needs to be"
+        err_msg = ("ERROR either `save_bursts` or `save_mosaics` needs to be"
                    " set")
         raise ValueError(err_msg)
 
@@ -949,7 +981,6 @@ def run_single_job(cfg: RunConfig):
         cfg.groups.processing.browse_image_group.browse_image_mosaic_height
     browse_image_mosaic_width = \
         cfg.groups.processing.browse_image_group.browse_image_mosaic_width
-
 
     save_imagery_as_hdf5 = (output_imagery_format == 'HDF5' or
                             output_imagery_format == 'NETCDF')
@@ -991,8 +1022,10 @@ def run_single_job(cfg: RunConfig):
     else:
         geocode_algorithm = isce3.geocode.GeocodeOutputMode.INTERP
 
-    az_step_meters = cfg.groups.processing.correction_lut_azimuth_spacing_in_meters
-    rg_step_meters = cfg.groups.processing.correction_lut_range_spacing_in_meters
+    az_step_meters = \
+        cfg.groups.processing.correction_lut_azimuth_spacing_in_meters
+    rg_step_meters = \
+        cfg.groups.processing.correction_lut_range_spacing_in_meters
 
     memory_mode = geocode_namespace.memory_mode
     geogrid_upsampling = geocode_namespace.geogrid_upsampling
@@ -1044,21 +1077,22 @@ def run_single_job(cfg: RunConfig):
             isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT):
         rtc_anf_suffix = "gamma0_to_beta0"
         output_radiometry_str = 'radar backscatter gamma0'
-    elif input_terrain_radiometry == isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT:
+    elif (input_terrain_radiometry ==
+          isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT):
         rtc_anf_suffix = "beta0_to_beta0"
         output_radiometry_str = 'radar backscatter beta0'
     else:
         rtc_anf_suffix = "sigma0_to_beta0"
         output_radiometry_str = 'radar backscatter sigma0'
 
-    logger.info(f'Identification:')
+    logger.info('Identification:')
     logger.info(f'    processing type: {processing_type}')
     logger.info(f'    product version: {product_version}')
     if save_mosaics:
         logger.info(f'    mosaic product ID: {mosaic_product_id}')
-    logger.info(f'Ancillary input(s):')
+    logger.info('Ancillary input(s):')
     logger.info(f'    DEM file: {cfg.dem}')
-    logger.info(f'Processing parameters:')
+    logger.info('Processing parameters:')
     logger.info(f'    apply RTC: {flag_apply_rtc}')
     logger.info(f'    apply thermal noise correction:'
                 f' {flag_apply_thermal_noise_correction}')
@@ -1083,14 +1117,14 @@ def run_single_job(cfg: RunConfig):
                 f' {save_secondary_layers_as_hdf5}')
     logger.info(f'    check ancillary coverage:'
                 f' {check_ancillary_inputs_coverage}')
-    logger.info(f'Browse images:')
+    logger.info('Browse images:')
     logger.info(f'    burst height: {browse_image_burst_height}')
     logger.info(f'    burst width: {browse_image_burst_width}')
 
     if save_mosaics:
         logger.info(f'    mosaic height: {browse_image_mosaic_height}')
         logger.info(f'    mosaic width: {browse_image_mosaic_width}')
-        logger.info(f'Mosaic geogrid:')
+        logger.info('Mosaic geogrid:')
         for line in str(cfg.geogrid).split('\n'):
             if not line:
                 continue
@@ -1139,7 +1173,8 @@ def run_single_job(cfg: RunConfig):
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc_anf_{rtc_anf_suffix}', output_dir_sec_mosaic_raster,
+        save_rtc_anf, f'rtc_anf_{rtc_anf_suffix}',
+        output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
 
     temp_files_list = []
@@ -1152,8 +1187,8 @@ def run_single_job(cfg: RunConfig):
     logger.info(f'Number of bursts to process: {n_bursts}')
 
     hdf5_mosaic_obj = None
-    output_hdf5_file = os.path.join(output_dir,
-                                    f'{mosaic_product_id}.{hdf5_file_extension}')
+    output_hdf5_file = os.path.join(
+        output_dir, f'{mosaic_product_id}.{hdf5_file_extension}')
 
     lookside = None
     wavelength = None
@@ -1161,7 +1196,8 @@ def run_single_job(cfg: RunConfig):
     mosaic_geotiff_metadata_dict = None
 
     # iterate over sub-burts
-    for burst_index, (burst_id, burst_pol_dict) in enumerate(cfg.bursts.items()):
+    for burst_index, (burst_id, burst_pol_dict) in \
+            enumerate(cfg.bursts.items()):
 
         # ===========================================================
         # start burst processing
@@ -1174,16 +1210,11 @@ def run_single_job(cfg: RunConfig):
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
  
-
-
         # populate burst_product_id
         pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
             pixel_spacing_avg, is_mosaic=True)
-
-
-
 
         logger.info(f'    product ID: {burst_product_id}')
 
@@ -1211,7 +1242,7 @@ def run_single_job(cfg: RunConfig):
             # burst files (individual or HDF5) are saved in burst_id dir
             output_dir_sec_bursts = output_dir_bursts
 
-        logger.info(f'    burst geogrid:')
+        logger.info('    burst geogrid:')
         for line in str(geogrid).split('\n'):
             if not line:
                 continue
@@ -1228,7 +1259,8 @@ def run_single_job(cfg: RunConfig):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             os.makedirs(hdf5_file_output_dir, exist_ok=True)
             output_hdf5_file_burst = os.path.join(
-                hdf5_file_output_dir, f'{burst_product_id}.{hdf5_file_extension}')
+                hdf5_file_output_dir,
+                f'{burst_product_id}.{hdf5_file_extension}')
 
         # If burst imagery is not temporary, separate polarization channels
         output_burst_imagery_list = []
@@ -1249,21 +1281,21 @@ def run_single_job(cfg: RunConfig):
 
         # skip geocoding if output files exist
         flag_process = (not skip_if_output_files_exist or
-                            not all([_test_valid_gdal_ref(f)
-                                     for f in output_burst_imagery_list]))
+                        not all([_test_valid_gdal_ref(f)
+                                for f in output_burst_imagery_list]))
         if not flag_process:
             logger.info(f'    found geocoded files for burst {burst_id}!'
                         ' Skipping burst process.')
         else:
-            logger.info(f'    reading burst SLCs')
+            logger.info('    reading burst SLCs')
 
         radar_grid = burst.as_isce3_radargrid()
         if processing_type == 'STATIC_LAYERS':
-            radar_grid = radar_grid.offset_and_resize(- int(1.5 * radar_grid.length), 
-                                                      - int(radar_grid.width),
-                                                      int(4 * radar_grid.length),
-                                                      int(3 * radar_grid.width))
-
+            radar_grid = radar_grid.offset_and_resize(
+                - int(1.5 * radar_grid.length),
+                - int(radar_grid.width),
+                int(4 * radar_grid.length),
+                int(3 * radar_grid.width))
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
         wavelength = burst.wavelength
@@ -1272,12 +1304,13 @@ def run_single_job(cfg: RunConfig):
         input_file_list = []
         for pol, burst_pol in burst_pol_dict.items():
             temp_slc_path = \
-                f'{burst_scratch_path}/rslc_{pol}.vrt'
-            temp_slc_corrected_path = (
-                f'{burst_scratch_path}/rslc_{pol}_corrected.{imagery_extension}')
+                os.path.join(burst_scratch_path, f'rslc_{pol}.vrt')
+            temp_slc_corrected_path = \
+                os.path.join(burst_scratch_path,
+                             f'rslc_{pol}_corrected.{imagery_extension}')
 
             if (flag_process and (flag_apply_thermal_noise_correction or
-                    flag_apply_abs_rad_correction) and 
+                flag_apply_abs_rad_correction) and 
                     processing_type == 'STATIC_LAYERS'):
                 fill_value = 1
                 build_empty_vrt(temp_slc_path, radar_grid.length,
@@ -1286,7 +1319,7 @@ def run_single_job(cfg: RunConfig):
                 temp_files_list.append(temp_slc_path)
  
             elif (flag_process and (flag_apply_thermal_noise_correction or
-                    flag_apply_abs_rad_correction)):
+                  flag_apply_abs_rad_correction)):
 
                 apply_slc_corrections(
                     burst_pol,
@@ -1345,7 +1378,8 @@ def run_single_job(cfg: RunConfig):
             sub_swaths = isce3.product.SubSwaths(radar_grid.length,
                                                  radar_grid.width,
                                                  n_subswaths)
-            last_range_sample = min([burst.last_valid_sample, radar_grid.width])
+            last_range_sample = min([burst.last_valid_sample,
+                                     radar_grid.width])
             valid_samples_sub_swath = np.repeat(
                 [[burst.first_valid_sample, last_range_sample + 1]],
                 radar_grid.length, axis=0)
@@ -1369,7 +1403,7 @@ def run_single_job(cfg: RunConfig):
                                                     burst_scratch_path,
                                                     rg_step_meters,
                                                     az_step_meters)
-        
+
             geocode_kwargs['az_time_correction'] = az_lut
             geocode_kwargs['slant_range_correction'] = rg_lut
 
@@ -1388,26 +1422,28 @@ def run_single_job(cfg: RunConfig):
                 # layover/shadow mask is saved in `output_dir_sec_bursts`
                 layover_shadow_mask_file = \
                     (f'{output_dir_sec_bursts}/{burst_product_id}'
-                    f'_layover_shadow_mask.{imagery_extension}')
+                     f'_layover_shadow_mask.{imagery_extension}')
             if flag_process:
 
-                logger.info(f'    computing layover shadow mask for {burst_id}')
-                slantrange_layover_shadow_mask_raster = compute_layover_shadow_mask(
-                    radar_grid,
-                    orbit,
-                    geogrid,
-                    burst,
-                    dem_raster,
-                    layover_shadow_mask_file,
-                    output_raster_format,
-                    burst_scratch_path,
-                    shadow_dilation_size=shadow_dilation_size,
-                    threshold_rdr2geo=cfg.rdr2geo_params.threshold,
-                    numiter_rdr2geo=cfg.rdr2geo_params.numiter,
-                    threshold_geo2rdr=cfg.geo2rdr_params.threshold,
-                    numiter_geo2rdr=cfg.geo2rdr_params.numiter,
-                    memory_mode=geocode_namespace.memory_mode,
-                    geocode_options=layover_shadow_mask_geocode_kwargs)
+                logger.info('    computing layover shadow mask for'
+                            f' {burst_id}')
+                slantrange_layover_shadow_mask_raster = \
+                    compute_layover_shadow_mask(
+                        radar_grid,
+                        orbit,
+                        geogrid,
+                        burst,
+                        dem_raster,
+                        layover_shadow_mask_file,
+                        output_raster_format,
+                        burst_scratch_path,
+                        shadow_dilation_size=shadow_dilation_size,
+                        threshold_rdr2geo=cfg.rdr2geo_params.threshold,
+                        numiter_rdr2geo=cfg.rdr2geo_params.numiter,
+                        threshold_geo2rdr=cfg.geo2rdr_params.threshold,
+                        numiter_geo2rdr=cfg.geo2rdr_params.numiter,
+                        memory_mode=geocode_namespace.memory_mode,
+                        geocode_options=layover_shadow_mask_geocode_kwargs)
 
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
@@ -1447,7 +1483,7 @@ def run_single_job(cfg: RunConfig):
             else:
                 temp_vrt_path = f'{burst_scratch_path}/rslc.vrt'
                 gdal.BuildVRT(temp_vrt_path, input_file_list,
-                            options=vrt_options_mosaic)
+                              options=vrt_options_mosaic)
                 rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
                 temp_files_list.append(temp_vrt_path)
 
@@ -1548,7 +1584,8 @@ def run_single_job(cfg: RunConfig):
 
         else:
             # Bundle the single-pol geo burst files into .vrt
-            geo_burst_filename = geo_burst_filename.replace(f'.{imagery_extension}', '.vrt')
+            geo_burst_filename = geo_burst_filename.replace(
+                f'.{imagery_extension}', '.vrt')
             os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
             gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
                           options=vrt_options_mosaic)
@@ -1559,14 +1596,13 @@ def run_single_job(cfg: RunConfig):
             set_mask_fill_value_and_ctable(layover_shadow_mask_file,
                                            geo_burst_filename)
 
-       # If burst imagery is not temporary, separate polarization channels
+        # If burst imagery is not temporary, separate polarization channels
         if flag_process and not flag_bursts_files_are_temporary:
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
                                    output_raster_format, logger)
 
             output_file_list += output_burst_imagery_list
-
 
         if save_nlooks:
             del out_geo_nlooks_obj
@@ -1580,7 +1616,8 @@ def run_single_job(cfg: RunConfig):
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
-            output_metadata_dict['rtc_anf_{rtc_anf_suffix}'][1].append(rtc_anf_file)
+            output_metadata_dict[f'rtc_anf_{rtc_anf_suffix}'][1].append(
+                rtc_anf_file)
 
         radar_grid_file_dict = {}
 
@@ -1604,8 +1641,9 @@ def run_single_job(cfg: RunConfig):
         if (flag_process and save_hdf5_metadata and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
             with create_hdf5_file(burst_product_id,
-                    output_hdf5_file_burst, orbit, burst, cfg,
-                    processing_datetime, is_mosaic=False) as hdf5_burst_obj:
+                                  output_hdf5_file_burst, orbit, burst, cfg,
+                                  processing_datetime,
+                                  is_mosaic=False) as hdf5_burst_obj:
                 save_hdf5_file(
                     hdf5_burst_obj, output_hdf5_file_burst, flag_apply_rtc,
                     clip_max, clip_min, output_radiometry_str,
@@ -1628,7 +1666,7 @@ def run_single_job(cfg: RunConfig):
 
         # Append metadata to burst GeoTIFFs
         if (flag_process and (not flag_bursts_files_are_temporary or
-                save_secondary_layers_as_hdf5)):
+                              save_secondary_layers_as_hdf5)):
             metadata_dict = get_metadata_dict(burst_product_id, burst, cfg,
                                               processing_datetime,
                                               is_mosaic=False)
@@ -1644,16 +1682,18 @@ def run_single_job(cfg: RunConfig):
         # Create mosaic HDF5
         if (save_hdf5_metadata and save_mosaics
                 and burst_index == 0):
-            hdf5_mosaic_obj = create_hdf5_file(mosaic_product_id,
-                output_hdf5_file, orbit, burst, cfg, processing_datetime,
-                is_mosaic=True)
+            hdf5_mosaic_obj = create_hdf5_file(
+                mosaic_product_id, output_hdf5_file, orbit, burst, cfg,
+                processing_datetime, is_mosaic=True)
 
         # Save mosaic metadata for later use
         if (save_mosaics and burst_index == 0):
-            mosaic_metadata_dict = get_metadata_dict(mosaic_product_id, burst, cfg,
-                processing_datetime, is_mosaic=True)
-            mosaic_geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
-                mosaic_metadata_dict)
+            mosaic_metadata_dict = get_metadata_dict(mosaic_product_id, burst,
+                                                     cfg, processing_datetime,
+                                                     is_mosaic=True)
+            mosaic_geotiff_metadata_dict = \
+                all_metadata_dict_to_geotiff_metadata_dict(
+                    mosaic_metadata_dict)
 
         t_burst_end = time.time()
         logger.info(
@@ -1669,14 +1709,16 @@ def run_single_job(cfg: RunConfig):
             radar_grid_output_dir = scratch_path
         else:
             radar_grid_output_dir = output_dir
-        get_radar_grid(cfg.geogrid, dem_interp_method_enum, mosaic_product_id,
-                       radar_grid_output_dir, imagery_extension, save_incidence_angle,
-                       save_local_inc_angle, save_projection_angle,
-                       save_rtc_anf_psi,
-                       save_range_slope, save_dem,
-                       dem_raster, radar_grid_file_dict,
-                       lookside, wavelength,
-                       orbit, verbose=not flag_bursts_secondary_files_are_temporary)
+        get_radar_grid(
+            cfg.geogrid, dem_interp_method_enum, mosaic_product_id,
+            radar_grid_output_dir, imagery_extension,
+            save_incidence_angle,
+            save_local_inc_angle, save_projection_angle,
+            save_rtc_anf_psi,
+            save_range_slope, save_dem,
+            dem_raster, radar_grid_file_dict,
+            lookside, wavelength, orbit,
+            verbose=not flag_bursts_secondary_files_are_temporary)
         if flag_bursts_secondary_files_are_temporary:
             # files are temporary
             temp_files_list += list(radar_grid_file_dict.values())
@@ -1687,7 +1729,7 @@ def run_single_job(cfg: RunConfig):
     if save_mosaics:
 
         # Mosaic sub-bursts imagery
-        logger.info(f'mosaicking files:')
+        logger.info('mosaicking files:')
         output_imagery_filename_list = []
         for pol in pol_list:
             geo_pol_filename = \
@@ -1728,7 +1770,6 @@ def run_single_job(cfg: RunConfig):
                 geogrid_in=cfg.geogrid, temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
                     (key == 'nlooks' and not save_nlooks)):
@@ -1756,7 +1797,7 @@ def run_single_job(cfg: RunConfig):
                 nlooks_mosaic_file = None
             if save_rtc_anf:
                 rtc_anf_mosaic_file = output_metadata_dict[
-                    'rtc_anf_{rtc_anf_suffix}'][0]
+                    f'rtc_anf_{rtc_anf_suffix}'][0]
             else:
                 rtc_anf_mosaic_file = None
             if save_layover_shadow_mask:
@@ -1779,8 +1820,8 @@ def run_single_job(cfg: RunConfig):
                 if sensing_stop is None or burst.sensing_stop > sensing_stop:
                     sensing_stop = burst.sensing_stop
 
-            sensing_start_ds = f'/identification/zeroDopplerStartTime'
-            sensing_end_ds = f'/identification/zeroDopplerEndTime'
+            sensing_start_ds = '/identification/zeroDopplerStartTime'
+            sensing_end_ds = '/identification/zeroDopplerEndTime'
             if sensing_start_ds in hdf5_mosaic_obj:
                 del hdf5_mosaic_obj[sensing_start_ds]
             if sensing_end_ds in hdf5_mosaic_obj:
@@ -1817,7 +1858,7 @@ def run_single_job(cfg: RunConfig):
 
     # Save GeoTIFFs as cloud optimized GeoTIFFs (COGs)
     if output_imagery_format == 'COG':
-        logger.info(f'Saving files as Cloud-Optimized GeoTIFFs (COGs)')
+        logger.info('Saving files as Cloud-Optimized GeoTIFFs (COGs)')
         for filename in output_file_list:
             if not filename.endswith('.tif'):
                 continue
@@ -1828,7 +1869,7 @@ def run_single_job(cfg: RunConfig):
             options_save_as_cog = {}
             gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
             description = gdal_ds.GetRasterBand(1).GetDescription()
-            if  description and 'backscatter' in description.lower():
+            if description and 'backscatter' in description.lower():
                 options_save_as_cog['ovr_resamp_algorithm'] = 'AVERAGE'
             del gdal_ds
 
@@ -1909,25 +1950,21 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
             range_slope_raster
 
     # call get_radar_grid()
-    isce3.geogrid.get_radar_grid(lookside,
-                                 wavelength,
-                                 dem_raster,
-                                 geogrid,
-                                 orbit,
-                                 native_doppler,
-                                 grid_doppler,
-                                 incidence_angle_raster =
-                                    incidence_angle_raster,
-                                 local_incidence_angle_raster =
-                                    local_incidence_angle_raster,
-                                 projection_angle_raster =
-                                    projection_angle_raster,
-                                 simulated_radar_brightness_raster =
-                                    rtc_anf_psi_raster,
-                                 interpolated_dem_raster =
-                                    interpolated_dem_raster,
-                                 dem_interp_method=dem_interp_method_enum,
-                                 **kwargs_get_radar_grid)
+    isce3.geogrid.get_radar_grid(
+        lookside,
+        wavelength,
+        dem_raster,
+        geogrid,
+        orbit,
+        native_doppler,
+        grid_doppler,
+        incidence_angle_raster=incidence_angle_raster,
+        local_incidence_angle_raster=local_incidence_angle_raster,
+        projection_angle_raster=projection_angle_raster,
+        simulated_radar_brightness_raster=rtc_anf_psi_raster,
+        interpolated_dem_raster=interpolated_dem_raster,
+        dem_interp_method=dem_interp_method_enum,
+        **kwargs_get_radar_grid)
 
     # Flush data
     for obj in output_obj_list:
@@ -1940,7 +1977,8 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
 def get_rtc_s1_parser():
     '''Initialize YamlArgparse class and parse CLI arguments for OPERA RTC.
     '''
-    parser = argparse.ArgumentParser(description='',
+    parser = argparse.ArgumentParser(
+        description='',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('run_config_path',
                         type=str,

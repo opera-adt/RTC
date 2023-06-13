@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import sys
 import numpy as np
 import h5py
 import logging
@@ -27,6 +26,7 @@ PRODUCT_SPECIFICATION_VERSION = 0.1
 
 logger = logging.getLogger('rtc_s1')
 
+
 def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
     '''
     Get WKT for butst's bounding polygon
@@ -47,7 +47,7 @@ def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
         
     '''
 
-    if len(burst_in.border) ==1:
+    if len(burst_in.border) == 1:
         geometry_polygon = burst_in.border[0]
     else:
         geometry_polygon = shapely.geometry.MultiPolygon(burst_in.border)
@@ -77,40 +77,41 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
     if save_imagery:
         # save RTC imagery
         save_hdf5_dataset(geo_burst_filename, hdf5_obj, DATA_BASE_GROUP,
-                           yds, xds, pol_list,
-                           long_name=output_radiometry_str,
-                           units='',
-                           valid_min=clip_min,
-                           valid_max=clip_max)
+                          yds, xds, pol_list,
+                          long_name=output_radiometry_str,
+                          units='',
+                          valid_min=clip_min,
+                          valid_max=clip_max)
 
     if save_secondary_layers:
         # save nlooks
         if nlooks_file:
             save_hdf5_dataset(nlooks_file, hdf5_obj, DATA_BASE_GROUP,
-                               yds, xds, 'numberOfLooks',
-                               long_name = 'number of looks',
-                               units = '',
-                               valid_min = 0)
+                              yds, xds, 'numberOfLooks',
+                              long_name='number of looks',
+                              units='',
+                              valid_min=0)
 
         # save rtc
         if rtc_anf_file:
             save_hdf5_dataset(rtc_anf_file, hdf5_obj, DATA_BASE_GROUP,
-                               yds, xds, 'RTCAreaNormalizationFactor',
-                               long_name = 'RTC area factor',
-                               units = '',
-                               valid_min = 0)
+                              yds, xds, 'RTCAreaNormalizationFactor',
+                              long_name='RTC area factor',
+                              units='',
+                              valid_min=0)
 
         # save layover shadow mask
         if layover_shadow_mask_file:
-            save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj, DATA_BASE_GROUP,
-                               yds, xds, 'layoverShadowMask',
-                               long_name = 'Layover/shadow mask',
-                               units = '',
-                               valid_min = 0)
+            save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj,
+                              DATA_BASE_GROUP,
+                              yds, xds, 'layoverShadowMask',
+                              long_name='Layover/shadow mask',
+                              units='',
+                              valid_min=0)
 
         for ds_hdf5, filename in radar_grid_file_dict.items():
-             save_hdf5_dataset(filename, hdf5_obj, DATA_BASE_GROUP, yds, xds, ds_hdf5,
-                                long_name = '', units = '')
+            save_hdf5_dataset(filename, hdf5_obj, DATA_BASE_GROUP, yds, xds,
+                              ds_hdf5, long_name='', units='')
 
     logger.info(f'file saved: {output_hdf5_file}')
 
@@ -161,13 +162,16 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
 def save_orbit(orbit, orbit_group, orbit_file_path):
     orbit.save_to_h5(orbit_group)
     # Add description attributes.
-    orbit_group["time"].attrs["description"] = np.string_("Time vector record. This"
+    orbit_group["time"].attrs["description"] = np.string_(
+        "Time vector record. This"
         " record contains the time corresponding to position, velocity,"
         " acceleration records")
-    orbit_group["position"].attrs["description"] = np.string_("Position vector"
+    orbit_group["position"].attrs["description"] = np.string_(
+        "Position vector"
         " record. This record contains the platform position data with"
         " respect to WGS84 G1762 reference frame")
-    orbit_group["velocity"].attrs["description"] = np.string_("Velocity vector"
+    orbit_group["velocity"].attrs["description"] = np.string_(
+        "Velocity vector"
         " record. This record contains the platform velocity data with"
         " respect to WGS84 G1762 reference frame")
     orbit_group.create_dataset(
@@ -259,8 +263,8 @@ def get_metadata_dict(product_id: str,
 
     # mission_id = 'Sentinel'
 
-    # Manifests the field names, corresponding values from RTC workflow, and the description.
-    # To extend this, add the lines with the format below:
+    # Manifests the field names, corresponding values from RTC workflow, and
+    # the description. To extend this, add the lines with the format below:
     # 'field_name': [corresponding_variables_in_workflow, description]
     metadata_dict = {
         'identification/absoluteOrbitNumber':
@@ -287,16 +291,17 @@ def get_metadata_dict(product_id: str,
         'identification/project':
             ['project', 'OPERA', 'Project name'],
         'identification/institution':
-            ['institution', 'NASA JPL', 'Institution that created this product'],
+            ['institution', 'NASA JPL',
+             'Institution that created this product'],
         'identification/productVersion':
             ['product_version', product_version,
              'Product version which represents the structure of the product'
-              ' and the science content governed by the algorithm, input data,'
-               ' and processing parameter'],
+             ' and the science content governed by the algorithm, input data,'
+             ' and processing parameter'],
         'identification/productSpecificationVersion':
             ['product_specification_version', PRODUCT_SPECIFICATION_VERSION,
              'Product specification version which represents the schema of'
-              ' this product'],
+             ' this product'],
         'identification/acquisitionMode':
             ['acquisition_mode', 'Interferometric Wide (IW)',
              'Acquisition mode'],
@@ -311,7 +316,8 @@ def get_metadata_dict(product_id: str,
              'Orbit direction can be ascending or descending'],
         # 'identification/isUrgentObservation':
         #     ['is_urgent_observation', False,
-        #      'List of booleans indicating if datatakes are nominal or urgent'],
+        #      'List of booleans indicating if datatakes
+        #  are nominal or urgent'],
         'identification/diagnosticModeFlag':
             ['diagnostic_mode_flag', False,
              'Indicates if the radar mode is a diagnostic mode or not: True or'
@@ -335,7 +341,7 @@ def get_metadata_dict(product_id: str,
         'identification/processingDateTime':
             ['processing_date_time',
              processing_datetime.strftime(DATE_TIME_METADATA_FORMAT),
-             'Processing date and time in the format YYYY-MM-DDTHH:MM:SSZ'],
+             'Processing date and time in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'identification/radarBand':  # 1.6.4
             ['radar_band', 'C', 'Acquired frequency band'],
         # 'metadata/processingCenter': # 1.7.1
@@ -345,10 +351,10 @@ def get_metadata_dict(product_id: str,
         #       f'country: "United States of America"'),
         #      'Data processing center'],
  
-        #'identification/CEOSDocumentIdentifier':
+        # 'identification/CEOSDocumentIdentifier':
         #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
         #     'Product version'],
-        'metadata/sourceData/numberOfAcquisitions': # 1.6.4
+        'metadata/sourceData/numberOfAcquisitions':  # 1.6.4
             ['source_data_number_of_acquisitions', 1,
              'Number of source data acquisitions'],
         # TODO Review: should we expose this parameter in the runconfig?
@@ -361,7 +367,8 @@ def get_metadata_dict(product_id: str,
 
         # TODO: add range bandwidth
 
-        # TODO: review, should it be  burst_in.burst_misc_metadata.processing_info_dict["organisation"]?
+        # TODO: review, should it be
+        # burst_in.burst_misc_metadata.processing_info_dict["organisation"]?
         'metadata/sourceData/institution':
             ['source_data_institution', 'ESA',
              'Institution that created the source data product'],
@@ -372,18 +379,20 @@ def get_metadata_dict(product_id: str,
               f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
              'Source data processing center'],
 
-        # populate source data processingDateTime with from processing_info "stop"
-        # (SLC Post processing date time)
+        # populate source data processingDateTime with from processing_info
+        # "stop" (SLC Post processing date time)
         'metadata/sourceData/processingDateTime':  # 1.6.6
-           ['source_data_processing_date_time',
-            burst_in.burst_misc_metadata.processing_info_dict['stop'],
-            'Processing UTC date and time of the source data product (SLC Post'
-             ' processing date time) in the format YYYY-MM-DDTHH:MM:SSZ'],
+            ['source_data_processing_date_time',
+             burst_in.burst_misc_metadata.processing_info_dict['stop'],
+             'Processing UTC date and time of the source data product (SLC'
+             ' post processing date time) in the format'
+             ' YYYY-MM-DDThh:mm:ss.sZ'],
 
         'metadata/sourceData/softwareVersion':  # 1.6.6
             ['source_data_software_version',
              str(burst_in.ipf_version),
-             'Version of the software used to create the source data'],
+             'Version of the software used to create the source data'
+             ' (IPF version)'],
         
         'metadata/sourceData/azimuthLooks':  # 1.6.6
             [None,
@@ -414,11 +423,11 @@ def get_metadata_dict(product_id: str,
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'],
 
-        #'metadata/sourceData/azimuthResolution':  # 1.6.7
+        # 'metadata/sourceData/azimuthResolution':  # 1.6.7
         #    ['source_azimuth_resolution',
         #     burst_in.azimuth_time_interval,
         #     'Azimuth time resolution of the source data in seconds'],
-        #'metadata/sourceData/slantRangeResolution':  # 1.6.7
+        # 'metadata/sourceData/slantRangeResolution':  # 1.6.7
         #    ['source_slant_range_resolution',
         #     burst_in.range_pixel_spacing,
         #     'Slant range resolution of the source data in meters'],
@@ -442,7 +451,7 @@ def get_metadata_dict(product_id: str,
         'metadata/processingInformation/algorithms/softwareVersion':
             ['software_version', str(SOFTWARE_VERSION), 'Software version'],
         # TODO Review: should we expose this parameter in the runconfig?
-        #'metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
+        # 'metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
         #    ['product_data_access',
         #     'TBD',
         #     'URL to access the product data'],
@@ -451,7 +460,8 @@ def get_metadata_dict(product_id: str,
              False,
              'Flag to indicate if post-processing filtering has been applied'],
 
-        'metadata/processingInformation/parameters/noiseCorrectionApplied':  # 3.3
+        # 3.3
+        'metadata/processingInformation/parameters/noiseCorrectionApplied':
             ['noise_correction_applied',
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'Flag to indicate if noise removal has been applied'],
@@ -472,18 +482,22 @@ def get_metadata_dict(product_id: str,
              cfg_in.groups.processing.apply_bistatic_delay_correction,
              'Flag to indicate if the bistatic delay correction has been applied'],
 
-        #'metadata/processingInformation/geoidReference':  # for 4.2
+        # 'metadata/processingInformation/geoidReference':  # for 4.2
 
-        #'data/processingInformation/absoluteAccuracyNorthing':  # placeholder for 4.3
+        # 'data/processingInformation/absoluteAccuracyNorthing':  
+        # placeholder for 4.3
         #    ['absolute_accuracy_northing',
         #     [0.0, 0.0],
-        #     ('An estimate of the absolute localisation error in north direction'
+        #     ('An estimate of the absolute localisation error in north
+        # direction'
         #      'provided as bias and standard deviation')],
 
-        #'data/processingInformation/absoluteAccuracyEasting':  # placeholder for 4.3
+        # 'data/processingInformation/absoluteAccuracyEasting':  
+        # placeholder for 4.3
         #    ['absolute_accuracy_easting',
         #     [0.0, 0.0],
-        #     ('An estimate of the absolute localisation error in east direction'
+        #     ('An estimate of the absolute localisation error in east
+        # direction'
         #      'provided as bias and standard deviation')],
 
         # 'identification/frameNumber':  # TBD
@@ -495,7 +509,8 @@ def get_metadata_dict(product_id: str,
         #     'Flag to indicate if Faraday Rotation correction was applied'],
         # f'{FREQ_GRID_DS}/polarizationOrientationFlag':
         #    ['polarization_orientation_flag', False,
-        #    'Flag to indicate if Polarization Orientation correction was applied'],
+        #    'Flag to indicate if Polarization Orientation correction was
+        # applied'],
 
         'metadata/processingInformation/algorithms/demInterpolation':
             ['dem_interpolation_algorithm',
@@ -508,12 +523,13 @@ def get_metadata_dict(product_id: str,
         'metadata/processingInformation/algorithms/radiometricTerrainCorrection':
             ['radiometric_terrain_correction_algorithm',
              cfg_in.groups.processing.rtc.algorithm_type,
-            'Radiometric terrain correction (RTC) algorithm'],
+             'Radiometric terrain correction (RTC) algorithm'],
         'metadata/processingInformation/algorithms/isce3Version':
             ['isce3_version', isce3.__version__,
-            'Version of the ISCE3 framework used for processing'],
+             'Version of the ISCE3 framework used for processing'],
         # 'metadata/processingInformation/algorithms/RTCVersion':
-        #     [str(SOFTWARE_VERSION), 'RTC-S1 SAS version used for processing'],
+        #     [str(SOFTWARE_VERSION),
+        # 'RTC-S1 SAS version used for processing'],
         'metadata/processingInformation/algorithms/s1ReaderVersion':
             ['s1_reader_version', release_version,
              'Version of the OPERA s1-reader used for processing'],
@@ -535,23 +551,25 @@ def get_metadata_dict(product_id: str,
              'Description of the input digital elevation model (DEM)']
     }
 
-    # Add reference to the thermal noise correction algorithm when the correction is applied
+    # Add reference to the thermal noise correction algorithm when the
+    # correction is applied
     if cfg_in.groups.processing.apply_thermal_noise_correction:  # 3.3
-        noise_removal_algorithm_reference = \
-        ('Thermal Denoising of Products Generated by the S-1 IPF. ESA document.'
-         ' Accessed: May 29, 2023. [Online]. Available:'
-         ' https://sentinels.copernicus.eu/documents/247904/2142675/'
-         'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf')
+        noise_removal_algorithm_reference = (
+            'Thermal Denoising of Products Generated by the S-1 IPF.'
+            ' ESA document. Accessed: May 29, 2023. [Online]. Available:'
+            ' https://sentinels.copernicus.eu/documents/247904/2142675/'
+            'Thermal-Denoising-of-Products-Generated-by-Sentinel-1-IPF.pdf')
     else:
         noise_removal_algorithm_reference = '(noise removal not applied)'
-    metadata_dict['metadata/processingInformation/algorithms/noiseCorrectionAlgorithmReference'] =\
+    metadata_dict['metadata/processingInformation/algorithms/'
+                  'noiseCorrectionAlgorithmReference'] =\
         ['noise_removal_algorithm_reference',
          noise_removal_algorithm_reference,
-          'A reference to the noise removal algorithm applied']
+         'A reference to the noise removal algorithm applied']
 
     # Add RTC algorithm reference depending on the algorithm applied
     url_rtc_algorithm_document = '(RTC not applied)'
-    if cfg_in.groups.processing.apply_rtc: # 3.4
+    if cfg_in.groups.processing.apply_rtc:  # 3.4
         if cfg_in.groups.processing.rtc.algorithm_type == 'area_projection':
             url_rtc_algorithm_document = \
                 ('Gustavo H. X. Shiroma, Marco Lavalle, and Sean M. Buckley,'
@@ -559,7 +577,8 @@ def get_metadata_dict(product_id: str,
                  ' Terrain Correction and Geocoding," in IEEE Transactions'
                  ' on Geoscience and Remote Sensing, vol. 60, pp. 1-23, 2022,'
                  ' Art no. 5222723, doi: 10.1109/TGRS.2022.3147472.')
-        elif cfg_in.groups.processing.rtc.algorithm_type == 'bilinear_distribution':
+        elif (cfg_in.groups.processing.rtc.algorithm_type ==
+                'bilinear_distribution'):
             url_rtc_algorithm_document = \
                 ('David Small, "Flattening Gamma: Radiometric Terrain'
                  ' Correction for SAR Imagery," in IEEE Transactions on'
@@ -567,10 +586,12 @@ def get_metadata_dict(product_id: str,
                  ' 3081-3093, Aug. 2011, doi: 10.1109/TGRS.2011.2120616.')
         else:
             raise NotImplementedError
-    metadata_dict['metadata/processingInformation/algorithms/radiometricTerrainCorrectionAlgorithmReference'] =\
+    metadata_dict['metadata/processingInformation/algorithms/'
+                  'radiometricTerrainCorrectionAlgorithmReference'] =\
         ['rtc_algorithm_reference',
          url_rtc_algorithm_document,
-         'Reference to the radiometric terrain correction (RTC) algorithm applied']
+         'Reference to the radiometric terrain correction (RTC) algorithm'
+         ' applied']
 
     # Add geocoding algorithm reference depending on the algorithm applied
     if cfg_in.groups.processing.geocoding.algorithm_type == 'area_projection':
@@ -580,7 +601,8 @@ def get_metadata_dict(product_id: str,
                  ' Terrain Correction and Geocoding," in IEEE Transactions'
                  ' on Geoscience and Remote Sensing, vol. 60, pp. 1-23, 2022,'
                  ' Art no. 5222723, doi: 10.1109/TGRS.2022.3147472.')
-        metadata_dict['metadata/processingInformation/algorithms/geocodingAlgorithmReference'] =\
+        metadata_dict['metadata/processingInformation/algorithms/'
+                      'geocodingAlgorithmReference'] =\
             ['geocoding_algorithm_reference', url_geocoding_algorithm_document,
              'Reference to the geocoding algorithm applied']
 
@@ -602,8 +624,8 @@ def get_metadata_dict(product_id: str,
         ymax_geogrid
     ]
     metadata_dict['identification/boundingBox'] = \
-        ['bounding_box', np.array(xy_bounding_box),
-         'Bounding box of the product, in order of xmin, ymin, xmax, ymax']  # 1.7.5
+        ['bounding_box', np.array(xy_bounding_box),  # 1.7.5
+         'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
 
     metadata_dict['identification/boundingPolygon'] = \
         ['bounding_polygon', get_polygon_wkt(burst_in),
@@ -621,20 +643,20 @@ def get_metadata_dict(product_id: str,
     metadata_dict['identification/zeroDopplerStartTime'] = \
         ['zero_doppler_start_time',
          burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth start time of the product'] # 1.6.3
+         'Azimuth start time of the product in the format YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
     metadata_dict['identification/zeroDopplerEndTime'] = \
         ['zero_doppler_end_time',
          burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth stop time of the product']  # 1.6.3
+         'Azimuth stop time of the product in the format YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
 
     metadata_dict['metadata/sourceData/zeroDopplerStartTime'] = \
         [None,
          burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth start time of the product'] # 1.6.3
+         'Azimuth start time of the product in the format YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
     metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
         [None,
          burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth stop time of the product']  # 1.6.3
+         'Azimuth stop time of the product in the format YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
     metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
         ['source_data_number_of_azimuth_lines',
          burst_in.length,
@@ -718,7 +740,8 @@ def populate_metadata_group(product_id: str,
 
     for path_dataset_in_h5, (_, data, description) in metadata_dict.items():
         if isinstance(data, str):
-            dset = h5py_obj.create_dataset(path_dataset_in_h5, data=np.string_(data))
+            dset = h5py_obj.create_dataset(
+                path_dataset_in_h5, data=np.string_(data))
         else:
             dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data)
 
@@ -809,7 +832,8 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
             dset.attrs.create('min_value', data=stats_obj.min)
             dset.attrs.create('mean_value', data=stats_obj.mean)
             dset.attrs.create('max_value', data=stats_obj.max)
-            dset.attrs.create('sample_standard_deviation', data=stats_obj.sample_stddev)
+            dset.attrs.create('sample_standard_deviation',
+                              data=stats_obj.sample_stddev)
 
         elif stats_real_imag_vector is not None:
 
@@ -836,7 +860,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
 
 def get_rfi_metadata_dict(burst_in,
-                          rfi_root_path = 'metadata/QA/rfiInformation'):
+                          rfi_root_path='metadata/QA/rfiInformation'):
     '''
     Populate the RFI information into HDF5 object
 
@@ -873,11 +897,14 @@ def get_rfi_metadata_dict(burst_in,
              'Swath of the IW RFI burst repost list'],
         'rfiBurstReport/azimuthTime':
             ['rfi_burst_report_azimuth_time',
-             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(DATE_TIME_METADATA_FORMAT),
-             'Azimuth time of the burst that corresponds to the RFI report'],
+             burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(
+                DATE_TIME_METADATA_FORMAT),
+             'Azimuth time of the burst that corresponds to the RFI report'
+             ' in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'rfiBurstReport/inBandOutBandPowerRatio':
             ['in_band_out_band_power_ratio',
-             burst_in.burst_rfi_info.rfi_burst_report['inBandOutBandPowerRatio'],
+             burst_in.burst_rfi_info.rfi_burst_report[
+                 'inBandOutBandPowerRatio'],
              'Ratio between the in-band and out-of-band power of the burst.']
     }
 
@@ -888,37 +915,40 @@ def get_rfi_metadata_dict(burst_in,
          burst_in.burst_rfi_info.rfi_burst_report.keys()
          else None)
     rfi_burst_report_freq =\
-        (burst_in.burst_rfi_info.rfi_burst_report['frequencyDomainRfiBurstReport']
+        (burst_in.burst_rfi_info.rfi_burst_report[
+            'frequencyDomainRfiBurstReport']
          if 'frequencyDomainRfiBurstReport' in
          burst_in.burst_rfi_info.rfi_burst_report.keys()
          else None)
 
     # Add RFI burst domain report
-    if 'timeDomainRfiReport' in burst_in.burst_rfi_info.rfi_burst_report.keys():
+    if ('timeDomainRfiReport' in
+            burst_in.burst_rfi_info.rfi_burst_report.keys()):
         # populate the time domain RFI report
-        subpath_data_dict['timeDomainRfiReport/percentageAffectedLines']=\
+        subpath_data_dict['timeDomainRfiReport/percentageAffectedLines'] = \
             ['time_domain_rfi_report_percentage_affected_lines',
              rfi_burst_report_time['percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI']
 
-        subpath_data_dict['timeDomainRfiReport/avgPercentageAffectedSamples']=\
+        subpath_data_dict['timeDomainRfiReport/avgPercentageAffectedSamples'] = \
             ['time_domain_rfi_report_avg_percentage_affected_samples',
              rfi_burst_report_time['avgPercentageAffectedSamples'],
              ('Average percentage of affected level-0 samples '
               'in the lines containing RFI.')]
 
-        subpath_data_dict['timeDomainRfiReport/maxPercentageAffectedSamples']=\
+        subpath_data_dict['timeDomainRfiReport/maxPercentageAffectedSamples'] = \
             ['time_domain_rfi_report_max_percentage_affected_samples',
              rfi_burst_report_time['maxPercentageAffectedSamples'],
              'Maximum percentage of level-0 samples affected by RFI in the same line']
 
-    if 'frequencyDomainRfiBurstReport' in burst_in.burst_rfi_info.rfi_burst_report.keys():
+    if ('frequencyDomainRfiBurstReport' in
+            burst_in.burst_rfi_info.rfi_burst_report.keys()):
         # populate the frequency domain RFI report
         subpath_data_dict['frequencyDomainRfiBurstReport/numSubBlocks']=\
             ['frequency_domain_rfi_burst_report_num_sub_blocks',
              rfi_burst_report_freq['numSubBlocks'],
              'Number of sub-blocks in the current burst']
-        
+
         subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize']=\
             ['frequency_domain_rfi_burst_report_sub_block_size',
              rfi_burst_report_freq['subBlockSize'],
@@ -927,13 +957,15 @@ def get_rfi_metadata_dict(burst_in,
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
                            'percentageAffectedLines')]=\
             ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
-             rfi_burst_report_freq['isolatedRfiReport']['percentageAffectedLines'],
+             rfi_burst_report_freq['isolatedRfiReport'][
+                 'percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI.']
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
                            'maxPercentageAffectedBW')]=\
             ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
-             rfi_burst_report_freq['isolatedRfiReport']['maxPercentageAffectedBW'],
+             rfi_burst_report_freq['isolatedRfiReport'][
+                 'maxPercentageAffectedBW'],
              'Max. percentage of bandwidth affected by isolated RFI in a single line.']
 
         subpath_data_dict['frequencyDomainRfiBurstReport/percentageBlocksPersistentRfi']=\
@@ -944,14 +976,14 @@ def get_rfi_metadata_dict(burst_in,
               'mean PSD of each processing block.')]
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/'
-                           'maxPercentageBWAffectedPersistentRfi')]=\
+                           'maxPercentageBWAffectedPersistentRfi')] = \
             ['frequency_domain_rfi_burst_report_max_percentage_bw_affected_persistent_rfi',
              rfi_burst_report_freq['maxPercentageBWAffectedPersistentRfi'],
              ('Max percentage bandwidth affected by '
               'persistent RFI in a single processing block')]
 
     for fieldname, data in subpath_data_dict.items():
-            path_in_rfi_dict = os.path.join(rfi_root_path, fieldname)
-            rfi_metadata_dict[path_in_rfi_dict] = data
+        path_in_rfi_dict = os.path.join(rfi_root_path, fieldname)
+        rfi_metadata_dict[path_in_rfi_dict] = data
 
     return rfi_metadata_dict
