@@ -181,7 +181,7 @@ rtc_options:
 
 geocoding_options:
 
-    # OPTIONAL - Apply RSLC metadata valid-samples sub-swath masking
+    # OPTIONAL - Apply valid-samples sub-swath masking
     apply_valid_samples_sub_swath_masking: bool(required=False)
 
     # OPTIONAL - Apply shadow masking

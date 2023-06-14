@@ -1304,10 +1304,10 @@ def run_single_job(cfg: RunConfig):
         input_file_list = []
         for pol, burst_pol in burst_pol_dict.items():
             temp_slc_path = \
-                os.path.join(burst_scratch_path, f'rslc_{pol}.vrt')
+                os.path.join(burst_scratch_path, f'slc_{pol}.vrt')
             temp_slc_corrected_path = \
                 os.path.join(burst_scratch_path,
-                             f'rslc_{pol}_corrected.{imagery_extension}')
+                             f'slc_{pol}_corrected.{imagery_extension}')
 
             if (flag_process and (flag_apply_thermal_noise_correction or
                 flag_apply_abs_rad_correction) and 
@@ -1481,7 +1481,7 @@ def run_single_job(cfg: RunConfig):
             if len(input_file_list) == 1:
                 rdr_burst_raster = isce3.io.Raster(input_file_list[0])
             else:
-                temp_vrt_path = f'{burst_scratch_path}/rslc.vrt'
+                temp_vrt_path = f'{burst_scratch_path}/slc.vrt'
                 gdal.BuildVRT(temp_vrt_path, input_file_list,
                               options=vrt_options_mosaic)
                 rdr_burst_raster = isce3.io.Raster(temp_vrt_path)

@@ -163,7 +163,7 @@ runconfig:
             # Geocoding options
             geocoding:
 
-                # Apply RSLC metadata valid-samples sub-swath masking
+                # Apply valid-samples sub-swath masking
                 apply_valid_samples_sub_swath_masking: True
 
                 # Apply shadow masking
