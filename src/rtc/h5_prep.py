@@ -346,7 +346,8 @@ def get_metadata_dict(product_id: str,
         'identification/lookDirection':
             ['look_direction',
              ALL_PRODUCTS,
-             'right', 'Look direction can be left or right'],
+             'right',
+             'Look direction can be left or right'],
         'identification/orbitPassDirection':
             ['orbit_pass_direction',
              ALL_PRODUCTS,
@@ -377,7 +378,10 @@ def get_metadata_dict(product_id: str,
              ' instrument data in radar coordinates system; and L2:'
              ' Processed instrument data in geocoded coordinates system'],
         'identification/productID':
-            ['product_id', product_id, 'Product identifier'],
+            ['product_id',
+             ALL_PRODUCTS,
+             product_id,
+             'Product identifier'],
 
         'identification/processingType':
             ['processing_type',
@@ -418,8 +422,6 @@ def get_metadata_dict(product_id: str,
         # 'metadata/sourceData/radarBand':  # 1.6.4
         #    ['radar_band', 'C', 'Acquired frequency band'],
 
-        # TODO: add range bandwidth
-
         # TODO: review, should it be
         # burst_in.burst_misc_metadata.processing_info_dict["organisation"]?
         'metadata/sourceData/institution':
@@ -434,6 +436,12 @@ def get_metadata_dict(product_id: str,
               f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
               f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
              'Source data processing center'],
+
+        'metadata/sourceData/rangeBandwidth':
+            ['source_data_range_bandwidth',
+             NO_STATIC_LAYERS,
+             str(burst_in.range_bandwidth),
+             'Processed range bandwidth in Hz'],
 
         # populate source data processingDateTime with from processing_info
         # "stop" (SLC Post processing date time)
