@@ -33,6 +33,8 @@ from rtc.version import VERSION as SOFTWARE_VERSION
 
 logger = logging.getLogger('rtc_s1')
 
+STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR = 3
+
 # RTC-S1 product layer names
 layer_names_dict = {
     'VV': 'RTC-S1 VV Backscatter (Gamma0)',
@@ -1427,9 +1429,14 @@ def run_single_job(cfg: RunConfig):
 
                 logger.info('    computing layover shadow mask for'
                             f' {burst_id}')
+
+                radar_grid_layover_shadow_mask = radar_grid.multilook(
+                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR,
+                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR)
+
                 slantrange_layover_shadow_mask_raster = \
                     compute_layover_shadow_mask(
-                        radar_grid,
+                        radar_grid_layover_shadow_mask,
                         orbit,
                         geogrid,
                         burst,
@@ -1457,7 +1464,13 @@ def run_single_job(cfg: RunConfig):
             if not save_layover_shadow_mask:
                 layover_shadow_mask_file = None
 
-            if apply_shadow_masking and flag_process:
+            # The radar grid for static layers is multilooked by a factor of
+            # STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR. If that
+            # number is not unitary, the layover shadow mask cannot be used
+            # with geocoding
+            if (apply_shadow_masking and flag_process and
+                    processing_type != 'STATIC_LAYERS' or
+                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR == 1):
                 geocode_kwargs['input_layover_shadow_mask_raster'] = \
                     slantrange_layover_shadow_mask_raster
         else:
