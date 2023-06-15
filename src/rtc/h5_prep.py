@@ -459,7 +459,6 @@ def get_metadata_dict(product_id: str,
              str(burst_in.ipf_version),
              'Version of the software used to create the source data'
              ' (IPF version)'],
-        
         'metadata/sourceData/azimuthLooks':  # 1.6.6
             [None,
              NO_STATIC_LAYERS,
