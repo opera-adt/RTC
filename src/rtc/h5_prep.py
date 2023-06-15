@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import re
 import numpy as np
 import h5py
 import logging
@@ -723,27 +724,35 @@ def get_metadata_dict(product_id: str,
         spacing_y = cfg_in.geogrids[str(burst_in.burst_id)].spacing_y
         width_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].width
         length_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].length
-        xy_bounding_box = [
-            xmin_geogrid,
-            ymax_geogrid + length_geogrid * spacing_y,
-            xmin_geogrid + width_geogrid * spacing_x,
-            ymax_geogrid
-        ]
+        epsg_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].epsg
 
-        # TODO: Update for static layers!!!
-        metadata_dict['identification/boundingBox'] = \
-            ['bounding_box',
-             ALL_PRODUCTS,
-             np.array(xy_bounding_box),  # 1.7.5
-             'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
-
-        # TODO: Update for static layers!!!
         metadata_dict['identification/boundingPolygon'] = \
             ['bounding_polygon',
              ALL_PRODUCTS,
              get_polygon_wkt(burst_in),
-             'OGR compatible WKT representation of the product bounding polygon'
+             'OGR compatible WKT representation of the product'
              ' bounding polygon']
+
+        # Attribute `epsg` for HDF5 dataset /identification/boundingPolygon
+        metadata_dict['identification/boundingPolygon[epsg]'] = \
+            ['bouding_polygon_epsg_code',
+             ALL_PRODUCTS,
+             '4326',
+             'Bounding polygon EPSG code']
+
+        # xy_bounding_box = [
+        #    xmin_geogrid,
+        #    ymax_geogrid + length_geogrid * spacing_y,
+        #    xmin_geogrid + width_geogrid * spacing_x,
+        #    ymax_geogrid
+        # ]
+
+        # metadata_dict['identification/boundingBox'] = \
+        #    ['bounding_box',
+        #     ALL_PRODUCTS,
+        #     np.array(xy_bounding_box),  # 1.7.5
+        #     'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
+
 
         metadata_dict['identification/burstID'] = \
             ['burst_id',
@@ -881,6 +890,23 @@ def populate_metadata_group(product_id: str,
                                       processing_datetime, is_mosaic)
 
     for path_dataset_in_h5, (_, data, description) in metadata_dict.items():
+            
+        # check if metadata element is an HDF5 dataset attribute
+        # by exctracting substrings within square brackets
+        attribute_list = re.findall(r'\[.*?\]', path_dataset_in_h5)
+        if len(attribute_list) > 2:
+            # if there are two or more substrings raise an error
+            error_message = 'ERROR invalid HDF5 path: ' + path_dataset_in_h5
+            raise NotImplementedError(error_message)
+        elif len(attribute_list) == 1:
+            # if there's only one substring, that's an attribute
+            attribute_name = attribute_list[0][1:-1]
+            path_dataset_in_h5 = path_dataset_in_h5.replace(
+                attribute_list[0], '')
+            dset = h5py_obj[path_dataset_in_h5]
+            dset.attrs[attribute_name] = data
+            continue
+ 
         if isinstance(data, str):
             dset = h5py_obj.create_dataset(
                 path_dataset_in_h5, data=np.string_(data))
