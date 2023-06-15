@@ -275,7 +275,7 @@ def get_metadata_dict(product_id: str,
 
     # Constants to represent flag (*1) above
     ALL_PRODUCTS = True
-    NO_STATIC_LAYERS = False
+    STANDARD_RTC_S1_ONLY = False
 
     metadata_dict = {
         'identification/absoluteOrbitNumber':
@@ -359,7 +359,7 @@ def get_metadata_dict(product_id: str,
         #  are nominal or urgent'],
         'identification/diagnosticModeFlag':
             ['diagnostic_mode_flag',
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              False,
              'Indicates if the radar mode is a diagnostic mode or not: True or'
              ' False'],
@@ -439,7 +439,7 @@ def get_metadata_dict(product_id: str,
 
         'metadata/sourceData/rangeBandwidth':
             ['source_data_range_bandwidth',
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              str(burst_in.range_bandwidth),
              'Processed range bandwidth in Hz'],
 
@@ -462,12 +462,12 @@ def get_metadata_dict(product_id: str,
         
         'metadata/sourceData/azimuthLooks':  # 1.6.6
             [None,
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.azimuth_looks,
              'Azimuth number of looks'],
         'metadata/sourceData/slantRangeLooks':  # 1.6.6
             [None,
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.slant_range_looks,
              'Slant range number of looks'],
 
@@ -478,7 +478,7 @@ def get_metadata_dict(product_id: str,
              'Product level of the source data'],
         'metadata/sourceData/centerFrequency':
             ['center_frequency',
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.radar_center_frequency,
              'Center frequency of the processed image in Hz'],
         # 'metadata/sourceData/geometry':  # 1.6.7
@@ -507,12 +507,12 @@ def get_metadata_dict(product_id: str,
 
         'metadata/sourceData/nearRangeIncidenceAngle':  # 1.6.7
             [None,
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.inc_angle_near_range,
              'Near range incidence angle in meters'],
         'metadata/sourceData/farRangeIncidenceAngle':  # 1.6.7
             [None,
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.inc_angle_far_range,
              'Far range incidence angle in meters'],
         # Source for the max. NESZ:
@@ -520,7 +520,7 @@ def get_metadata_dict(product_id: str,
         #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
         'metadata/sourceData/maxNoiseEquivalentSigmaZero':  # 1.6.9
             [None,
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              -22,
              'Maximum Noise equivalent sigma0 in dB'],
 
@@ -536,34 +536,34 @@ def get_metadata_dict(product_id: str,
         #     'URL to access the product data'],
         'metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
             ['post_processing_filtering_applied',
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              False,
              'Flag to indicate if post-processing filtering has been applied'],
 
         # 3.3
         'metadata/processingInformation/parameters/noiseCorrectionApplied':
             ['noise_correction_applied',
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'Flag to indicate if noise removal has been applied'],
         'metadata/processingInformation/parameters/radiometricTerrainCorrectionApplied':
             ['rtc_applied',
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_rtc,
              'Flag to indicate if radiometric terrain correction (RTC) has been applied'],
         'metadata/processingInformation/parameters/dryTroposphericGeolocationCorrectionApplied':
             ['dry_tropospheric_geolocation_correction_applied',
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_dry_tropospheric_delay_correction,
              'Flag to indicate if the dry tropospheric correction has been applied'],
         'metadata/processingInformation/parameters/wetTroposphericGeolocationCorrectionApplied':
             ['wet_tropospheric_geolocation_correction_applied',
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              False,
              'Flag to indicate if the wet tropospheric correction has been applied'],
         'metadata/processingInformation/parameters/bistaticDelayCorrectionApplied':
             ['bistatic_delay_correction_applied',
-             NO_STATIC_LAYERS,
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_bistatic_delay_correction,
              'Flag to indicate if the bistatic delay correction has been applied'],
 
@@ -667,7 +667,7 @@ def get_metadata_dict(product_id: str,
     metadata_dict['metadata/processingInformation/algorithms/'
                   'noiseCorrectionAlgorithmReference'] =\
         ['noise_removal_algorithm_reference',
-         NO_STATIC_LAYERS,
+         STANDARD_RTC_S1_ONLY,
          noise_removal_algorithm_reference,
          'A reference to the noise removal algorithm applied']
 
