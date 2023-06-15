@@ -698,6 +698,7 @@ def get_metadata_dict(product_id: str,
          ' applied']
 
     # Add geocoding algorithm reference depending on the algorithm applied
+    # TODO: add references to the other geocoding algorithms
     if cfg_in.groups.processing.geocoding.algorithm_type == 'area_projection':
         url_geocoding_algorithm_document = \
                 ('Gustavo H. X. Shiroma, Marco Lavalle, and Sean M. Buckley,'
