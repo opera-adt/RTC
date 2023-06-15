@@ -728,7 +728,7 @@ def get_metadata_dict(product_id: str,
 
         metadata_dict['identification/boundingPolygon'] = \
             ['bounding_polygon',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              get_polygon_wkt(burst_in),
              'OGR compatible WKT representation of the product'
              ' bounding polygon']
@@ -736,23 +736,29 @@ def get_metadata_dict(product_id: str,
         # Attribute `epsg` for HDF5 dataset /identification/boundingPolygon
         metadata_dict['identification/boundingPolygon[epsg]'] = \
             ['bouding_polygon_epsg_code',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              '4326',
              'Bounding polygon EPSG code']
 
-        # xy_bounding_box = [
-        #    xmin_geogrid,
-        #    ymax_geogrid + length_geogrid * spacing_y,
-        #    xmin_geogrid + width_geogrid * spacing_x,
-        #    ymax_geogrid
-        # ]
+        xy_bounding_box = [
+           xmin_geogrid,
+           ymax_geogrid + length_geogrid * spacing_y,
+           xmin_geogrid + width_geogrid * spacing_x,
+           ymax_geogrid
+        ]
 
-        # metadata_dict['identification/boundingBox'] = \
-        #    ['bounding_box',
-        #     ALL_PRODUCTS,
-        #     np.array(xy_bounding_box),  # 1.7.5
-        #     'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
+        metadata_dict['identification/boundingBox'] = \
+            [None,
+             STANDARD_RTC_S1_ONLY,
+             np.array(xy_bounding_box),  # 1.7.5
+             'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
 
+        # Attribute `epsg` for HDF5 dataset /identification/boundingBox
+        metadata_dict['identification/boundingBox[epsg]'] = \
+            [None,
+             STANDARD_RTC_S1_ONLY,
+             str(epsg_geogrid),
+             'Bounding box EPSG code']
 
         metadata_dict['identification/burstID'] = \
             ['burst_id',
