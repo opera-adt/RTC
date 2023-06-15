@@ -269,7 +269,7 @@ def get_metadata_dict(product_id: str,
     #     GeoTIFF metadata field,
     #     Flag indicating whether the field is present in RTC-S1 Static Layer
     #     products (*1),
-    #     Metadata field value, 
+    #     Metadata field value,
     #     Metadata field description
     # ]
 
@@ -459,7 +459,6 @@ def get_metadata_dict(product_id: str,
              str(burst_in.ipf_version),
              'Version of the software used to create the source data'
              ' (IPF version)'],
-        
         'metadata/sourceData/azimuthLooks':  # 1.6.6
             [None,
              STANDARD_RTC_S1_ONLY,
