@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import re
 import numpy as np
 import h5py
 import logging
@@ -215,10 +216,10 @@ def get_metadata_dict(product_id: str,
 
     Returns
     -------
-    metadata_dict : dict
+    _ : dict
         Metadata dict organized as follows:
         - Dictionary item key: HDF5 dataset key;
-        - Dictionary item value: list of 
+        - Dictionary item value: list of
             [GeoTIFF metadata key,
              metadata value,
              metadata description]
@@ -265,85 +266,140 @@ def get_metadata_dict(product_id: str,
 
     # Manifests the field names, corresponding values from RTC workflow, and
     # the description. To extend this, add the lines with the format below:
-    # 'field_name': [corresponding_variables_in_workflow, description]
+    # 'field_name': [
+    #     GeoTIFF metadata field,
+    #     Flag indicating whether the field is present in RTC-S1 Static Layer
+    #     products (*1),
+    #     Metadata field value,
+    #     Metadata field description
+    # ]
+
+    # Constants to represent flag (*1) above
+    ALL_PRODUCTS = True
+    STANDARD_RTC_S1_ONLY = False
+
     metadata_dict = {
         'identification/absoluteOrbitNumber':
-            ['absolute_orbit_number', burst_in.abs_orbit_number,
+            ['absolute_orbit_number',
+             ALL_PRODUCTS,
+             burst_in.abs_orbit_number,
              'Absolute orbit number'],
         # NOTE: The field below does not exist on opera_rtc.xml
         # 'identification/relativeOrbitNumber':
         #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
-            ['track_number', burst_in.burst_id.track_number,
+            ['track_number',
+             ALL_PRODUCTS,
+             burst_in.burst_id.track_number,
              'Track number'],
         # 'identification/missionId':
         #    [mission_id, 'Mission identifier'],
         'identification/platform':
-            ['platform', platform_id, 'Platform name'],
+            ['platform',
+             ALL_PRODUCTS,
+             platform_id,
+             'Platform name'],
         # Instrument name mentioned at:
         # https://sentinel.esa.int/documents/247904/349449/s1_sp-1322_1.pdf
         'identification/instrumentName':
-            ['instrument_name', f'{platform_id} CSAR',
+            ['instrument_name',
+             ALL_PRODUCTS,
+             f'{platform_id} CSAR',
              'Name of the instrument used to'
              ' collect the remote sensing data provided in this product'],
         'identification/productType':
-            ['product_type', 'RTC-S1', 'Product type'],
+            ['product_type',
+             ALL_PRODUCTS,
+             'RTC-S1',
+             'Product type'],
         'identification/project':
-            ['project', 'OPERA', 'Project name'],
+            ['project',
+             ALL_PRODUCTS,
+             'OPERA',
+             'Project name'],
         'identification/institution':
-            ['institution', 'NASA JPL',
+            ['institution',
+             ALL_PRODUCTS,
+             'NASA JPL',
              'Institution that created this product'],
         'identification/productVersion':
-            ['product_version', product_version,
+            ['product_version',
+             ALL_PRODUCTS,
+             product_version,
              'Product version which represents the structure of the product'
              ' and the science content governed by the algorithm, input data,'
              ' and processing parameter'],
         'identification/productSpecificationVersion':
-            ['product_specification_version', PRODUCT_SPECIFICATION_VERSION,
+            ['product_specification_version',
+             ALL_PRODUCTS,
+             PRODUCT_SPECIFICATION_VERSION,
              'Product specification version which represents the schema of'
              ' this product'],
         'identification/acquisitionMode':
-            ['acquisition_mode', 'Interferometric Wide (IW)',
+            ['acquisition_mode',
+             ALL_PRODUCTS,
+             'Interferometric Wide (IW)',
              'Acquisition mode'],
         # 'identification/CARDProductType':
         #    ['card_product_type', 'Normalised Radar Backscatter',
         #     'CARD Product type'], # 1.3
 
         'identification/lookDirection':
-            ['look_direction', 'right', 'Look direction can be left or right'],
+            ['look_direction',
+             ALL_PRODUCTS,
+             'right',
+             'Look direction can be left or right'],
         'identification/orbitPassDirection':
-            ['orbit_pass_direction', burst_in.orbit_direction.lower(),
+            ['orbit_pass_direction',
+             ALL_PRODUCTS,
+             burst_in.orbit_direction.lower(),
              'Orbit direction can be ascending or descending'],
         # 'identification/isUrgentObservation':
         #     ['is_urgent_observation', False,
         #      'List of booleans indicating if datatakes
         #  are nominal or urgent'],
         'identification/diagnosticModeFlag':
-            ['diagnostic_mode_flag', False,
+            ['diagnostic_mode_flag',
+             STANDARD_RTC_S1_ONLY,
+             False,
              'Indicates if the radar mode is a diagnostic mode or not: True or'
              ' False'],
         'identification/isGeocoded':
-            [None, True,
+            [None,
+             ALL_PRODUCTS,
+             True,
              'Flag to indicate whether the primary product data is in radar'
              ' geometry ("False") or map geometry ("True")'],
         'identification/productLevel':
-            ['product_level', 'L2',
+            ['product_level',
+             ALL_PRODUCTS,
+             'L2',
              'Product level. L0A: Unprocessed instrument data; L0B:'
              ' Reformatted, unprocessed instrument data; L1: Processed'
              ' instrument data in radar coordinates system; and L2:'
              ' Processed instrument data in geocoded coordinates system'],
         'identification/productID':
-            ['product_id', product_id, 'Product identifier'],
+            ['product_id',
+             ALL_PRODUCTS,
+             product_id,
+             'Product identifier'],
 
         'identification/processingType':
-            ['processing_type', processing_type,
-             'NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED'],
+            ['processing_type',
+             ALL_PRODUCTS,
+             processing_type,
+             'Processing type: "NOMINAL", "STATIC_LAYERS", "URGENT",'
+             ' "CUSTOM", or "UNDEFINED"'],
         'identification/processingDateTime':
             ['processing_date_time',
+             ALL_PRODUCTS,
              processing_datetime.strftime(DATE_TIME_METADATA_FORMAT),
              'Processing date and time in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'identification/radarBand':  # 1.6.4
-            ['radar_band', 'C', 'Acquired frequency band'],
+            ['radar_band',
+             ALL_PRODUCTS,
+             'C',
+             'Acquired frequency band'],
         # 'metadata/processingCenter': # 1.7.1
         #     ['source_data_processing_center',
         #      (f'organization: "Jet Propulsion Laboratory", '
@@ -355,7 +411,9 @@ def get_metadata_dict(product_id: str,
         #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
         #     'Product version'],
         'metadata/sourceData/numberOfAcquisitions':  # 1.6.4
-            ['source_data_number_of_acquisitions', 1,
+            ['source_data_number_of_acquisitions',
+             ALL_PRODUCTS,
+             1,
              'Number of source data acquisitions'],
         # TODO Review: should we expose this parameter in the runconfig?
         # 'metadata/sourceData/dataAccess':
@@ -365,24 +423,32 @@ def get_metadata_dict(product_id: str,
         # 'metadata/sourceData/radarBand':  # 1.6.4
         #    ['radar_band', 'C', 'Acquired frequency band'],
 
-        # TODO: add range bandwidth
-
         # TODO: review, should it be
         # burst_in.burst_misc_metadata.processing_info_dict["organisation"]?
         'metadata/sourceData/institution':
-            ['source_data_institution', 'ESA',
+            ['source_data_institution',
+             ALL_PRODUCTS,
+             'ESA',
              'Institution that created the source data product'],
         'metadata/sourceData/processingCenter':  # 1.6.6
             ['source_data_processing_center',
+             ALL_PRODUCTS,
              (f'organization: \"{burst_in.burst_misc_metadata.processing_info_dict["organisation"]}\", '
               f'site: \"{burst_in.burst_misc_metadata.processing_info_dict["site"]}\", '
               f'country: \"{burst_in.burst_misc_metadata.processing_info_dict["country"]}\"'),
              'Source data processing center'],
 
+        'metadata/sourceData/rangeBandwidth':
+            ['source_data_range_bandwidth',
+             STANDARD_RTC_S1_ONLY,
+             str(burst_in.range_bandwidth),
+             'Processed range bandwidth in Hz'],
+
         # populate source data processingDateTime with from processing_info
         # "stop" (SLC Post processing date time)
         'metadata/sourceData/processingDateTime':  # 1.6.6
             ['source_data_processing_date_time',
+             ALL_PRODUCTS,
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing UTC date and time of the source data product (SLC'
              ' post processing date time) in the format'
@@ -390,25 +456,30 @@ def get_metadata_dict(product_id: str,
 
         'metadata/sourceData/softwareVersion':  # 1.6.6
             ['source_data_software_version',
+             ALL_PRODUCTS,
              str(burst_in.ipf_version),
              'Version of the software used to create the source data'
              ' (IPF version)'],
-        
         'metadata/sourceData/azimuthLooks':  # 1.6.6
             [None,
+             STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.azimuth_looks,
              'Azimuth number of looks'],
         'metadata/sourceData/slantRangeLooks':  # 1.6.6
             [None,
+             STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.slant_range_looks,
              'Slant range number of looks'],
 
         'metadata/sourceData/productLevel':  # 1.6.6
             ['source_data_product_level',
+             ALL_PRODUCTS,
              'L1',
              'Product level of the source data'],
         'metadata/sourceData/centerFrequency':
-            ['center_frequency', burst_in.radar_center_frequency,
+            ['center_frequency',
+             STANDARD_RTC_S1_ONLY,
+             burst_in.radar_center_frequency,
              'Center frequency of the processed image in Hz'],
         # 'metadata/sourceData/geometry':  # 1.6.7
         #     ['source_data_geometry',
@@ -416,10 +487,12 @@ def get_metadata_dict(product_id: str,
         #     'Geometry of the source data'],
         'metadata/sourceData/zeroDopplerTimeSpacing':  # 1.6.7
             ['source_data_zero_doppler_time_spacing',
+             ALL_PRODUCTS,
              burst_in.azimuth_time_interval,
              'Azimuth spacing of the source data in seconds'], 
         'metadata/sourceData/slantRangeSpacing':  # 1.6.7
             ['source_data_slant_range_spacing',
+             ALL_PRODUCTS,
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'],
 
@@ -434,10 +507,12 @@ def get_metadata_dict(product_id: str,
 
         'metadata/sourceData/nearRangeIncidenceAngle':  # 1.6.7
             [None,
+             STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.inc_angle_near_range,
              'Near range incidence angle in meters'],
         'metadata/sourceData/farRangeIncidenceAngle':  # 1.6.7
             [None,
+             STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.inc_angle_far_range,
              'Far range incidence angle in meters'],
         # Source for the max. NESZ:
@@ -445,11 +520,15 @@ def get_metadata_dict(product_id: str,
         #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
         'metadata/sourceData/maxNoiseEquivalentSigmaZero':  # 1.6.9
             [None,
+             STANDARD_RTC_S1_ONLY,
              -22,
              'Maximum Noise equivalent sigma0 in dB'],
 
         'metadata/processingInformation/algorithms/softwareVersion':
-            ['software_version', str(SOFTWARE_VERSION), 'Software version'],
+            ['software_version',
+             ALL_PRODUCTS,
+             str(SOFTWARE_VERSION),
+             'Software version'],
         # TODO Review: should we expose this parameter in the runconfig?
         # 'metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
         #    ['product_data_access',
@@ -457,28 +536,34 @@ def get_metadata_dict(product_id: str,
         #     'URL to access the product data'],
         'metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
             ['post_processing_filtering_applied',
+             STANDARD_RTC_S1_ONLY,
              False,
              'Flag to indicate if post-processing filtering has been applied'],
 
         # 3.3
         'metadata/processingInformation/parameters/noiseCorrectionApplied':
             ['noise_correction_applied',
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'Flag to indicate if noise removal has been applied'],
         'metadata/processingInformation/parameters/radiometricTerrainCorrectionApplied':
             ['rtc_applied',
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_rtc,
              'Flag to indicate if radiometric terrain correction (RTC) has been applied'],
         'metadata/processingInformation/parameters/dryTroposphericGeolocationCorrectionApplied':
             ['dry_tropospheric_geolocation_correction_applied',
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_dry_tropospheric_delay_correction,
              'Flag to indicate if the dry tropospheric correction has been applied'],
         'metadata/processingInformation/parameters/wetTroposphericGeolocationCorrectionApplied':
             ['wet_tropospheric_geolocation_correction_applied',
+             STANDARD_RTC_S1_ONLY,
              False,
              'Flag to indicate if the wet tropospheric correction has been applied'],
         'metadata/processingInformation/parameters/bistaticDelayCorrectionApplied':
             ['bistatic_delay_correction_applied',
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_bistatic_delay_correction,
              'Flag to indicate if the bistatic delay correction has been applied'],
 
@@ -514,40 +599,58 @@ def get_metadata_dict(product_id: str,
 
         'metadata/processingInformation/algorithms/demInterpolation':
             ['dem_interpolation_algorithm',
+             ALL_PRODUCTS,
              cfg_in.groups.processing.dem_interpolation_method,
              'DEM interpolation method'],
         'metadata/processingInformation/algorithms/geocoding':
             ['geocoding_algorithm',
+             ALL_PRODUCTS,
              cfg_in.groups.processing.geocoding.algorithm_type,
              'Geocoding algorithm'],
         'metadata/processingInformation/algorithms/radiometricTerrainCorrection':
             ['radiometric_terrain_correction_algorithm',
+             ALL_PRODUCTS,
              cfg_in.groups.processing.rtc.algorithm_type,
              'Radiometric terrain correction (RTC) algorithm'],
         'metadata/processingInformation/algorithms/isce3Version':
-            ['isce3_version', isce3.__version__,
+            ['isce3_version',
+             ALL_PRODUCTS,
+             isce3.__version__,
              'Version of the ISCE3 framework used for processing'],
         # 'metadata/processingInformation/algorithms/RTCVersion':
         #     [str(SOFTWARE_VERSION),
         # 'RTC-S1 SAS version used for processing'],
         'metadata/processingInformation/algorithms/s1ReaderVersion':
-            ['s1_reader_version', release_version,
+            ['s1_reader_version',
+             ALL_PRODUCTS,
+             release_version,
              'Version of the OPERA s1-reader used for processing'],
 
         'metadata/processingInformation/inputs/l1SLCGranules':
-            ['l1_slc_granules', l1_slc_granules,
+            ['l1_slc_granules',
+             ALL_PRODUCTS,
+             l1_slc_granules,
              'List of input L1 SLC products used'],
         'metadata/processingInformation/inputs/orbitFiles':
-            ['orbit_files', orbit_files, 'List of input orbit files used'],
+            ['orbit_files',
+             ALL_PRODUCTS,
+             orbit_files,
+             'List of input orbit files used'],
         'metadata/processingInformation/inputs/annotationFiles':
-            ['annotation_files', [burst_in.burst_calibration.basename_cads,
-             burst_in.burst_noise.basename_nads],
+            ['annotation_files',
+             ALL_PRODUCTS,
+             [burst_in.burst_calibration.basename_cads,
+              burst_in.burst_noise.basename_nads],
              'List of input annotation files used'],
         'metadata/processingInformation/inputs/configFiles':
-            ['config_files', cfg_in.run_config_path,
+            ['config_files',
+             ALL_PRODUCTS,
+             cfg_in.run_config_path,
              'List of input config files used'],
         'metadata/processingInformation/inputs/demSource':
-            ['dem_source', dem_file_description,
+            ['dem_source',
+             ALL_PRODUCTS,
+             dem_file_description,
              'Description of the input digital elevation model (DEM)']
     }
 
@@ -564,6 +667,7 @@ def get_metadata_dict(product_id: str,
     metadata_dict['metadata/processingInformation/algorithms/'
                   'noiseCorrectionAlgorithmReference'] =\
         ['noise_removal_algorithm_reference',
+         STANDARD_RTC_S1_ONLY,
          noise_removal_algorithm_reference,
          'A reference to the noise removal algorithm applied']
 
@@ -589,11 +693,13 @@ def get_metadata_dict(product_id: str,
     metadata_dict['metadata/processingInformation/algorithms/'
                   'radiometricTerrainCorrectionAlgorithmReference'] =\
         ['rtc_algorithm_reference',
+         ALL_PRODUCTS,
          url_rtc_algorithm_document,
          'Reference to the radiometric terrain correction (RTC) algorithm'
          ' applied']
 
     # Add geocoding algorithm reference depending on the algorithm applied
+    # TODO: add references to the other geocoding algorithms
     if cfg_in.groups.processing.geocoding.algorithm_type == 'area_projection':
         url_geocoding_algorithm_document = \
                 ('Gustavo H. X. Shiroma, Marco Lavalle, and Sean M. Buckley,'
@@ -603,80 +709,131 @@ def get_metadata_dict(product_id: str,
                  ' Art no. 5222723, doi: 10.1109/TGRS.2022.3147472.')
         metadata_dict['metadata/processingInformation/algorithms/'
                       'geocodingAlgorithmReference'] =\
-            ['geocoding_algorithm_reference', url_geocoding_algorithm_document,
+            ['geocoding_algorithm_reference',
+             ALL_PRODUCTS,
+             url_geocoding_algorithm_document,
              'Reference to the geocoding algorithm applied']
 
-    if is_mosaic:
-        return metadata_dict
+    if not is_mosaic:
 
-    # Metadata only for for burst product
-    # Calculate bounding box
-    xmin_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_x
-    ymax_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_y
-    spacing_x = cfg_in.geogrids[str(burst_in.burst_id)].spacing_x
-    spacing_y = cfg_in.geogrids[str(burst_in.burst_id)].spacing_y
-    width_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].width
-    length_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].length
-    xy_bounding_box = [
-        xmin_geogrid,
-        ymax_geogrid + length_geogrid * spacing_y,
-        xmin_geogrid + width_geogrid * spacing_x,
-        ymax_geogrid
-    ]
-    metadata_dict['identification/boundingBox'] = \
-        ['bounding_box', np.array(xy_bounding_box),  # 1.7.5
-         'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
+        # Metadata only for for burst product
+        # Calculate bounding box
+        xmin_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_x
+        ymax_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_y
+        spacing_x = cfg_in.geogrids[str(burst_in.burst_id)].spacing_x
+        spacing_y = cfg_in.geogrids[str(burst_in.burst_id)].spacing_y
+        width_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].width
+        length_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].length
+        epsg_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].epsg
 
-    metadata_dict['identification/boundingPolygon'] = \
-        ['bounding_polygon', get_polygon_wkt(burst_in),
-         'OGR compatible WKT representation of the product bounding polygon'
-         ' bounding polygon']
+        metadata_dict['identification/boundingPolygon'] = \
+            ['bounding_polygon',
+             STANDARD_RTC_S1_ONLY,
+             get_polygon_wkt(burst_in),
+             'OGR compatible WKT representation of the product'
+             ' bounding polygon']
 
-    metadata_dict['identification/burstID'] = \
-        ['burst_id', str(burst_in.burst_id),
-         'Burst identification (burst ID)']
+        # Attribute `epsg` for HDF5 dataset /identification/boundingPolygon
+        metadata_dict['identification/boundingPolygon[epsg]'] = \
+            ['bouding_polygon_epsg_code',
+             STANDARD_RTC_S1_ONLY,
+             '4326',
+             'Bounding polygon EPSG code']
 
-    beam_id = burst_in.swath_name.upper()
-    metadata_dict['identification/beamID'] = \
-        ['beam_id', beam_id, 'Beam identification (Beam ID)']
+        xy_bounding_box = [
+           xmin_geogrid,
+           ymax_geogrid + length_geogrid * spacing_y,
+           xmin_geogrid + width_geogrid * spacing_x,
+           ymax_geogrid
+        ]
 
-    metadata_dict['identification/zeroDopplerStartTime'] = \
-        ['zero_doppler_start_time',
-         burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth start time of the product in the format YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
-    metadata_dict['identification/zeroDopplerEndTime'] = \
-        ['zero_doppler_end_time',
-         burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth stop time of the product in the format YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
+        metadata_dict['identification/boundingBox'] = \
+            [None,
+             STANDARD_RTC_S1_ONLY,
+             np.array(xy_bounding_box),  # 1.7.5
+             'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
 
-    metadata_dict['metadata/sourceData/zeroDopplerStartTime'] = \
-        [None,
-         burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth start time of the product in the format YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
-    metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
-        [None,
-         burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
-         'Azimuth stop time of the product in the format YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
-    metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
-        ['source_data_number_of_azimuth_lines',
-         burst_in.length,
-         'Number of azimuth lines within the source data product']
+        # Attribute `epsg` for HDF5 dataset /identification/boundingBox
+        metadata_dict['identification/boundingBox[epsg]'] = \
+            [None,
+             STANDARD_RTC_S1_ONLY,
+             str(epsg_geogrid),
+             'Bounding box EPSG code']
 
-    metadata_dict['metadata/sourceData/numberOfRangeSamples'] = \
-        ['source_data_number_of_range_samples',
-         burst_in.width,
-         'Number of slant range samples for each azimuth line within the source data']
-    metadata_dict['metadata/sourceData/slantRangeStart'] = \
-        ['source_data_slant_range_start',
-         burst_in.starting_range,
-         'Source data slant range start distance']
+        metadata_dict['identification/burstID'] = \
+            ['burst_id',
+             ALL_PRODUCTS,
+             str(burst_in.burst_id),
+             'Burst identification (burst ID)']
 
-    # Add RFI metadata into `metadata_dict`
-    rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
-                                              'metadata/QA/rfiInformation')
-    metadata_dict.update(rfi_metadata_dict)
+        beam_id = burst_in.swath_name.upper()
+        metadata_dict['identification/beamID'] = \
+            ['beam_id',
+             ALL_PRODUCTS,
+             beam_id,
+             'Beam identification (Beam ID)']
 
-    return metadata_dict
+        # TODO: Update for static layers!!!
+        metadata_dict['identification/zeroDopplerStartTime'] = \
+            ['zero_doppler_start_time',
+             ALL_PRODUCTS,
+             burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
+             'Azimuth start time of the product in the format YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
+
+        # TODO: Update for static layers!!!
+        metadata_dict['identification/zeroDopplerEndTime'] = \
+            ['zero_doppler_end_time',
+             ALL_PRODUCTS,
+             burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
+             'Azimuth stop time of the product in the format'
+             ' YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
+
+        metadata_dict['metadata/sourceData/zeroDopplerStartTime'] = \
+            ['source_data_zero_doppler_start_time',
+             ALL_PRODUCTS,
+             burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
+             'Azimuth start time of the input product in the format'
+             ' YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
+        metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
+            ['source_data_zero_doppler_end_time',
+             ALL_PRODUCTS,
+             burst_in.sensing_stop.strftime(DATE_TIME_METADATA_FORMAT),
+             'Azimuth stop time of the input product in the format'
+             ' YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
+        metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
+            ['source_data_number_of_azimuth_lines',
+             ALL_PRODUCTS,
+             burst_in.length,
+             'Number of azimuth lines within the source data product']
+
+        metadata_dict['metadata/sourceData/numberOfRangeSamples'] = \
+            ['source_data_number_of_range_samples',
+             ALL_PRODUCTS,
+             burst_in.width,
+             'Number of slant range samples for each azimuth line within the'
+             ' source data']
+        metadata_dict['metadata/sourceData/slantRangeStart'] = \
+            ['source_data_slant_range_start',
+             ALL_PRODUCTS,
+             burst_in.starting_range,
+             'Source data slant range start distance']
+
+    this_product_metadata_dict = {}
+    for h5_path, (geotiff_field, flag_all_products, data, description) in \
+            metadata_dict.items():
+        if processing_type == 'STATIC_LAYERS' and not flag_all_products:
+            continue
+        this_product_metadata_dict[h5_path] = [geotiff_field, data,
+                                               description]
+
+    if not is_mosaic:
+
+        # Add RFI metadata into `metadata_dict`
+        rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
+                                                  'metadata/QA/rfiInformation')
+        this_product_metadata_dict.update(rfi_metadata_dict)
+
+    return this_product_metadata_dict
 
 
 def all_metadata_dict_to_geotiff_metadata_dict(metadata_dict):
@@ -739,6 +896,23 @@ def populate_metadata_group(product_id: str,
                                       processing_datetime, is_mosaic)
 
     for path_dataset_in_h5, (_, data, description) in metadata_dict.items():
+            
+        # check if metadata element is an HDF5 dataset attribute
+        # by exctracting substrings within square brackets
+        attribute_list = re.findall(r'\[.*?\]', path_dataset_in_h5)
+        if len(attribute_list) > 2:
+            # if there are two or more substrings raise an error
+            error_message = 'ERROR invalid HDF5 path: ' + path_dataset_in_h5
+            raise NotImplementedError(error_message)
+        elif len(attribute_list) == 1:
+            # if there's only one substring, that's an attribute
+            attribute_name = attribute_list[0][1:-1]
+            path_dataset_in_h5 = path_dataset_in_h5.replace(
+                attribute_list[0], '')
+            dset = h5py_obj[path_dataset_in_h5]
+            dset.attrs[attribute_name] = data
+            continue
+ 
         if isinstance(data, str):
             dset = h5py_obj.create_dataset(
                 path_dataset_in_h5, data=np.string_(data))

@@ -611,6 +611,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         burst_product_id = burst_product_id_list[burst_index]
         logger.info(f'    product ID: {burst_product_id}')
 
+        if processing_type == 'STATIC_LAYERS':
+            # for STATIC_LAYERS, we just use the first polarization as
+            # reference
+            pol_list = [pol_list[0]]
+            burst_pol_dict = {pol_list[0]: burst}
+
         flag_bursts_files_are_temporary = (not save_bursts or
                                            save_imagery_as_hdf5)
         flag_bursts_secondary_files_are_temporary = (
