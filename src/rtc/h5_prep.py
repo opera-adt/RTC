@@ -269,7 +269,7 @@ def get_metadata_dict(product_id: str,
     #     GeoTIFF metadata field,
     #     Flag indicating whether the field is present in RTC-S1 Static Layer
     #     products (*1),
-    #     Metadata field value, 
+    #     Metadata field value,
     #     Metadata field description
     # ]
 
