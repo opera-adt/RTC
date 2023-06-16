@@ -128,7 +128,7 @@ runconfig:
           # OPTIONAL - Mechanism to specify output posting and DEM
           geocoding:
 
-              # OPTIONAL - Apply valid-samples sub-swath masking
+              # OPTIONAL - Apply RSLC metadata valid-samples sub-swath masking
               apply_valid_samples_sub_swath_masking: True
 
               # OPTIONAL - Apply shadow masking

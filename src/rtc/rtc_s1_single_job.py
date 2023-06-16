@@ -33,8 +33,6 @@ from rtc.version import VERSION as SOFTWARE_VERSION
 
 logger = logging.getLogger('rtc_s1')
 
-STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR = 3
-
 # RTC-S1 product layer names
 layer_names_dict = {
     'VV': 'RTC-S1 VV Backscatter (Gamma0)',
@@ -1070,7 +1068,6 @@ def run_single_job(cfg: RunConfig):
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
     rtc_min_value_db = rtc_namespace.rtc_min_value_db
     rtc_upsampling = rtc_namespace.dem_upsampling
-    rtc_area_beta_mode = rtc_namespace.area_beta_mode
     if (flag_apply_rtc and output_terrain_radiometry ==
             isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
         rtc_anf_suffix = "sigma0_to_beta0"
@@ -1306,10 +1303,10 @@ def run_single_job(cfg: RunConfig):
         input_file_list = []
         for pol, burst_pol in burst_pol_dict.items():
             temp_slc_path = \
-                os.path.join(burst_scratch_path, f'slc_{pol}.vrt')
+                os.path.join(burst_scratch_path, f'rslc_{pol}.vrt')
             temp_slc_corrected_path = \
                 os.path.join(burst_scratch_path,
-                             f'slc_{pol}_corrected.{imagery_extension}')
+                             f'rslc_{pol}_corrected.{imagery_extension}')
 
             if (flag_process and (flag_apply_thermal_noise_correction or
                 flag_apply_abs_rad_correction) and 
@@ -1429,14 +1426,9 @@ def run_single_job(cfg: RunConfig):
 
                 logger.info('    computing layover shadow mask for'
                             f' {burst_id}')
-
-                radar_grid_layover_shadow_mask = radar_grid.multilook(
-                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR,
-                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR)
-
                 slantrange_layover_shadow_mask_raster = \
                     compute_layover_shadow_mask(
-                        radar_grid_layover_shadow_mask,
+                        radar_grid,
                         orbit,
                         geogrid,
                         burst,
@@ -1464,13 +1456,7 @@ def run_single_job(cfg: RunConfig):
             if not save_layover_shadow_mask:
                 layover_shadow_mask_file = None
 
-            # The radar grid for static layers is multilooked by a factor of
-            # STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR. If that
-            # number is not unitary, the layover shadow mask cannot be used
-            # with geocoding
-            if (apply_shadow_masking and flag_process and
-                    processing_type != 'STATIC_LAYERS' or
-                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR == 1):
+            if apply_shadow_masking and flag_process:
                 geocode_kwargs['input_layover_shadow_mask_raster'] = \
                     slantrange_layover_shadow_mask_raster
         else:
@@ -1494,7 +1480,7 @@ def run_single_job(cfg: RunConfig):
             if len(input_file_list) == 1:
                 rdr_burst_raster = isce3.io.Raster(input_file_list[0])
             else:
-                temp_vrt_path = f'{burst_scratch_path}/slc.vrt'
+                temp_vrt_path = f'{burst_scratch_path}/rslc.vrt'
                 gdal.BuildVRT(temp_vrt_path, input_file_list,
                               options=vrt_options_mosaic)
                 rdr_burst_raster = isce3.io.Raster(temp_vrt_path)
@@ -1535,59 +1521,31 @@ def run_single_job(cfg: RunConfig):
                             geogrid.spacing_x, geogrid.spacing_y,
                             geogrid.width, geogrid.length, geogrid.epsg)
 
-            if rtc_area_beta_mode != 'auto':
-
-
-
-
-
-                # TODO! This code should be moved to runconfig after `area_beta_mode`
-                # is added to geocode() in ISCE3
-                if rtc_area_beta_mode == 'pixel_area':
-                    rtc_area_beta_mode_enum = \
-                        isce3.geometry.RtcAreaBetaMode.PIXEL_AREA
-                elif rtc_area_beta_mode == 'projection_angle':
-                    rtc_area_beta_mode_enum = \
-                        isce3.geometry.RtcAreaBetaMode.PROJECTION_ANGLE
-                elif (rtc_area_beta_mode == 'auto' or
-                        rtc_area_beta_mode is None):
-                    rtc_area_beta_mode_enum = \
-                        isce3.geometry.RtcAreaBetaMode.AUTO
-                else:
-                    err_msg = f"ERROR invalid area beta mode: {rtc_area_beta_mode}"
-                    raise ValueError(err_msg)
-
-
-
-
-
-
-                geocode_kwargs['rtc_area_beta_mode'] = rtc_area_beta_mode_enum
-
-            geo_obj.geocode(radar_grid=radar_grid,
-                            input_raster=rdr_burst_raster,
-                            output_raster=geo_burst_raster,
-                            dem_raster=dem_raster,
-                            output_mode=geocode_algorithm,
-                            geogrid_upsampling=geogrid_upsampling,
-                            flag_apply_rtc=flag_apply_rtc,
-                            input_terrain_radiometry=input_terrain_radiometry,
-                            output_terrain_radiometry=output_terrain_radiometry,
-                            exponent=exponent,
-                            rtc_min_value_db=rtc_min_value_db,
-                            rtc_upsampling=rtc_upsampling,
-                            rtc_algorithm=rtc_algorithm,
-                            abs_cal_factor=abs_cal_factor,
-                            flag_upsample_radar_grid=flag_upsample_radar_grid,
-                            clip_min=clip_min,
-                            clip_max=clip_max,
-                            out_geo_nlooks=out_geo_nlooks_obj,
-                            out_geo_rtc=out_geo_rtc_obj,
-                            input_rtc=None,
-                            output_rtc=None,
-                            dem_interp_method=dem_interp_method_enum,
-                            memory_mode=memory_mode,
-                            **geocode_kwargs)
+            geo_obj.geocode(
+                radar_grid=radar_grid,
+                input_raster=rdr_burst_raster,
+                output_raster=geo_burst_raster,
+                dem_raster=dem_raster,
+                output_mode=geocode_algorithm,
+                geogrid_upsampling=geogrid_upsampling,
+                flag_apply_rtc=flag_apply_rtc,
+                input_terrain_radiometry=input_terrain_radiometry,
+                output_terrain_radiometry=output_terrain_radiometry,
+                exponent=exponent,
+                rtc_min_value_db=rtc_min_value_db,
+                rtc_upsampling=rtc_upsampling,
+                rtc_algorithm=rtc_algorithm,
+                abs_cal_factor=abs_cal_factor,
+                flag_upsample_radar_grid=flag_upsample_radar_grid,
+                clip_min=clip_min,
+                clip_max=clip_max,
+                out_geo_nlooks=out_geo_nlooks_obj,
+                out_geo_rtc=out_geo_rtc_obj,
+                input_rtc=None,
+                output_rtc=None,
+                dem_interp_method=dem_interp_method_enum,
+                memory_mode=memory_mode,
+                **geocode_kwargs)
 
             del geo_burst_raster
 
