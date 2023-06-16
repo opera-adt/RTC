@@ -98,27 +98,19 @@ def load_parameters(cfg):
         dem_interp_method_enum
 
 
-def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
+def load_validate_yaml(yaml_path: str) -> dict:
     """Initialize RunConfig class with options from given yaml file.
 
     Parameters
     ----------
     yaml_path : str
         Path to yaml file containing the options to load
-    workflow_name: str
-        Name of the workflow for which uploading default options
     """
+    schema_filepath = f'{helpers.WORKFLOW_SCRIPTS_DIR}/schemas/rtc_s1.yaml'
     try:
-        # Load schema corresponding to 'workflow_name' and to validate against
-        if workflow_name == 's1_cslc_geo' or workflow_name == 'rtc_s1':
-            schema_name = workflow_name
-        else:
-            schema_name = 's1_cslc_radar'
-        schema = yamale.make_schema(
-            f'{helpers.WORKFLOW_SCRIPTS_DIR}/schemas/{schema_name}.yaml',
-            parser='ruamel')
+        schema = yamale.make_schema(schema_filepath, parser='ruamel')
     except:
-        err_str = f'unable to load schema for workflow {workflow_name}.'
+        err_str = f'unable to load schema from file {schema_filepath}'
         logger.error(err_str)
         raise ValueError(err_str)
 
@@ -127,7 +119,7 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
         try:
             data = yamale.make_data(yaml_path, parser='ruamel')
         except yamale.YamaleError as yamale_err:
-            err_str = (f'Yamale unable to load {workflow_name} runconfig yaml'
+            err_str = (f'Yamale unable to load runconfig yaml'
                        f'{yaml_path} for validation.')
             logger.error(err_str)
             raise yamale.YamaleError(err_str) from yamale_err
@@ -139,20 +131,28 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
     try:
         yamale.validate(schema, data)
     except yamale.YamaleError as yamale_err:
-        err_str = (f'Validation failed for {workflow_name}'
-                   ' runconfig yaml {yaml_path}.')
+        err_str = (f'Validation failed for runconfig yaml {yaml_path}.')
         logger.error(err_str)
         raise yamale.YamaleError(err_str) from yamale_err
 
     # load default runconfig
     parser = YAML(typ='safe')
-    default_cfg_path = (f'{helpers.WORKFLOW_SCRIPTS_DIR}/defaults/'
-                        f'{schema_name}.yaml')
-    with open(default_cfg_path, 'r') as f_default:
-        default_cfg = parser.load(f_default)
 
     with open(yaml_path, 'r') as f_yaml:
         user_cfg = parser.load(f_yaml)
+
+    if (user_cfg['runconfig']['groups']['product_group']['processing_type'] ==
+            'STATIC_LAYERS'):
+        default_cfg_path = (f'{helpers.WORKFLOW_SCRIPTS_DIR}/defaults/'
+                            f'rtc_s1_sl.yaml')
+        print('Loading RTC-S1 runconfig default for static layers')
+    else:
+        default_cfg_path = (f'{helpers.WORKFLOW_SCRIPTS_DIR}/defaults/'
+                            f'rtc_s1.yaml')
+        print('Loading RTC-S1 runconfig default')
+
+    with open(default_cfg_path, 'r') as f_default:
+        default_cfg = parser.load(f_default)
 
     # Copy user-supplied configuration options into default runconfig
     helpers.deep_update(default_cfg, user_cfg)
@@ -400,7 +400,7 @@ class RunConfig:
     orbit_file_path: str
 
     @classmethod
-    def load_from_yaml(cls, yaml_path: str, workflow_name: str) -> RunConfig:
+    def load_from_yaml(cls, yaml_path: str) -> RunConfig:
         """Initialize RunConfig class with options from given yaml file.
 
         Parameters
@@ -410,7 +410,7 @@ class RunConfig:
         workflow_name: str
             Name of the workflow for which uploading default options
         """
-        cfg = load_validate_yaml(yaml_path, workflow_name)
+        cfg = load_validate_yaml(yaml_path)
         groups_cfg = cfg['runconfig']['groups']
 
         # Read mosaic dict
