@@ -25,7 +25,7 @@ def main():
     create_logger(args.log_file, args.full_log_formatting)
 
     # Get a runconfig dict from command line argumens
-    cfg = RunConfig.load_from_yaml(args.run_config_path, 'rtc_s1')
+    cfg = RunConfig.load_from_yaml(args.run_config_path)
 
     load_parameters(cfg)
 
