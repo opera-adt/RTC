@@ -1,0 +1,301 @@
+runconfig:
+    name: rtc_s1_workflow_default
+
+    groups:
+        pge_name_group:
+            pge_name: RTC_S1_PGE
+
+        input_file_group:
+            # Required. List of SAFE files (min=1)
+            safe_file_path:
+            # Required. List of orbit (EOF) files (min=1)
+            orbit_file_path:
+            # Optional. Burst ID to process (empty for all bursts)
+            burst_id:
+
+        dynamic_ancillary_file_group:
+            # Digital elevation model
+            dem_file:
+
+            # Digital elevation model source description
+            dem_file_description:
+
+        static_ancillary_file_group:
+
+            # burst database sqlite file
+            burst_database_file:
+
+        product_group:
+
+            processing_type: STATIC_LAYERS
+
+            product_version:
+
+            # Directory where PGE will place results
+            product_path:
+            # Directory where SAS writes temporary data
+            scratch_path:
+
+            # If option `save_bursts` is set, output bursts are saved to:
+            #     {output_dir}/{burst_id}/{product_id}_v{product_version}{suffix}.{ext}
+            # If option `save_mosaics` is set, output mosaics are saved to:
+            #     {output_dir}/{product_id}_v{product_version}{suffix}.{ext}
+            #
+            # If the `product_id` contains the substring "_{burst_id}", the
+            # substring will be substituted by either:
+            #     - "_" followed by the burst ID, if the product is a burst; or
+            #     - An empty string, if the product is a mosaic.
+            #
+            # For example, the `product_id` = `RTC-S1_{burst_id}_S1B` will become
+            # `RTC-S1_069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
+            # will become `RTC-S1_S1B` for the mosaic product.
+            #
+            # If the field `product_id`` is left empty, the prefix
+            # "OPERA_L2_RTC-S1_{burst_id}"  will be used instead.
+            # `suffix` is only used when there are multiple output files.
+            # `ext` is determined by geocoding_options.output_imagery_format.
+            output_dir:
+            product_id:
+
+            # Save RTC-S1 bursts
+            save_bursts: True
+
+            # Save mosaic of RTC-S1 bursts
+            save_mosaics: False
+
+            # Save browse image(s)
+            save_browse: True
+
+            output_imagery_format: COG
+            output_imagery_compression: DEFLATE
+            output_imagery_nbits: 32
+
+            # Optional. Save secondary layers (e.g., inc. angle) within 
+            # the HDF5 file
+            save_secondary_layers_as_hdf5: False
+
+            # Save RTC-S1 metadata in the HDF5 format
+            # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
+            # 'COG', and enabled by default for `output_imagery_format` equal
+            # to 'HDF5' or 'NETCDF' or `save_secondary_layers_as_hdf5` is True
+            save_metadata: True
+
+        primary_executable:
+            product_type: RTC_S1
+
+        processing:
+
+            # Check if ancillary inputs cover entirely the output product
+            check_ancillary_inputs_coverage: True
+
+            # Polarization channels to process. 
+            polarization:
+
+            # Options to run geo2rdr
+            geo2rdr:
+                threshold: 1.0e-7
+                numiter: 50
+
+            # Options to run rdr2geo
+            rdr2geo:
+                threshold: 1.0e-7
+                numiter: 25
+
+            # DEM interpolation method
+            dem_interpolation_method: biquintic
+
+            # Apply absolute radiometric correction
+            apply_absolute_radiometric_correction: True
+ 
+            # Apply thermal noise correction
+            apply_thermal_noise_correction: True
+
+            # Compute geolocation correction LUTs and apply it
+            apply_correction_luts: True
+
+            # slant range spacing of the correction LUT in meters
+            correction_lut_range_spacing_in_meters: 120
+            # Azimuth time spacing of the correction LUT in meters
+            correction_lut_azimuth_spacing_in_meters: 120
+
+            # OPTIONAL - Apply RTC
+            apply_rtc: True
+
+            # Apply bistatic delay correction
+            apply_bistatic_delay_correction: True
+
+            # Apply dry tropospheric delay correction
+            apply_dry_tropospheric_delay_correction: True
+ 
+            # OPTIONAL - to control behavior of RTC module
+            # (only applicable if geocode.apply_rtc is True)
+            rtc:
+                # OPTIONAL - Choices:
+                # "gamma0" (default)
+                # "sigma0"
+                output_type: gamma0
+
+                # OPTIONAL - Choices:
+                # "bilinear_distribution" (default)
+                # "area_projection"
+                algorithm_type: area_projection
+
+                # OPTIONAL - Choices:
+                # "beta0" (default)
+                # "sigma0"
+                input_terrain_radiometry: beta0
+
+                # OPTIONAL - Minimum RTC area factor in dB
+                rtc_min_value_db: -30
+
+                # RTC DEM upsampling
+                dem_upsampling: 2
+
+                # RTC area beta mode
+                area_beta_mode: auto
+
+            # OPTIONAL - to provide the number of processes when processing the bursts in parallel
+            # "0" means that the number will be automatically decided based on
+            # the number of cores, `OMP_NUM_THREADS` in environment setting,
+            # and the number of burst to process in runconfig
+            num_workers: 0
+
+            # Geocoding options
+            geocoding:
+
+                # Apply valid-samples sub-swath masking
+                apply_valid_samples_sub_swath_masking: True
+
+                # Apply shadow masking
+                apply_shadow_masking: True
+  
+                # Skip geocoding already processed, which is tested by the existence of the output files
+                skip_if_output_files_exist: False
+
+                # Geocoding algorithm type. Choices "area_projection"
+                # for adaptive multilooking or an interpolation algorithm:
+                # "sinc", "bilinear", "bicubic", "nearest", and "biquintic"
+                algorithm_type: area_projection
+    
+                # OPTIONAL - Choices: "single_block", "geogrid", "geogrid_and_radargrid", and "auto" (default)
+                memory_mode:
+
+                # OPTIONAL - Processing upsampling factor applied to input geogrid
+                geogrid_upsampling: 1
+
+                # Save the incidence angle
+                save_incidence_angle: True
+
+                # Save the local-incidence angle
+                save_local_inc_angle: True
+
+                # Save the projection angle
+                save_projection_angle: False
+
+                # Save the RTC area normalization factor (ANF) computed with
+                # the projection angle method
+                save_rtc_anf_psi: False
+
+                # Save the range slope angle
+                save_range_slope: False
+
+                # Save the number of looks used to generate the RTC product
+                save_nlooks: True
+              
+                # Save the RTC area normalization factor (ANF) used to generate
+                # the RTC product
+                save_rtc_anf: True
+
+                # Save the interpolated DEM used to generate the RTC product
+                save_dem: False
+
+                # Save layover shadow mask
+                save_layover_shadow_mask: True
+
+                # Layover/shadow mask dilation size of shadow pixels
+                # (values 1 and 3)
+                shadow_dilation_size: 3
+
+                # OPTIONAL - Absolute radiometric correction
+                abs_rad_cal: 1
+
+                # OPTIONAL - Clip values above threshold
+                clip_max:
+
+                # OPTIONAL - Clip values below threshold
+                clip_min:
+
+                # Double SLC sampling in the range direction
+                upsample_radargrid: False
+
+
+                bursts_geogrid:
+
+                    # Bursts' EPSG code. If not provided, `output_epsg` will
+                    # be determined based on the scene center:
+                    # - If center_lat >= 75.0: 3413
+                    # - If center_lat <= -75.0: 3031
+                    # - Otherwise: EPSG code associated with the closest UTM zone
+                    output_epsg:
+                    x_posting: 30
+                    y_posting: 30
+                    x_snap: 30
+                    y_snap: 30
+                    top_left:
+                        x:
+                        y:
+                    bottom_right:
+                        x:
+                        y:
+
+            # Mosaicking options
+            mosaicking:
+
+                # OPTIONAL - Choices: "average", "first", "bursts_center" (default)
+                mosaic_mode: first
+
+                mosaic_geogrid:
+
+                    # Mosaic EPSG code. If not provided, `output_epsg` will
+                    # be determined based on the scene center:
+                    # - If center_lat >= 75.0: 3413
+                    # - If center_lat <= -75.0: 3031
+                    # - Otherwise: EPSG code associated with the closest UTM zone
+                    output_epsg:
+                    x_posting: 30
+                    y_posting: 30
+                    x_snap: 30
+                    y_snap: 30
+                    top_left:
+                        x:
+                        y:
+                    bottom_right:
+                        x:
+                        y:
+
+
+            browse_image_group:
+
+                # If neither height or width parameters are provided, the browse
+                # image is generated with the same pixel spacing of the RTC-S1 
+                # imagery (burst or mosaic).
+
+                # If the height parameter is provided but the width is not provided,
+                # a new width is assigned in order to keep the aspect ratio
+                # of the RTC-S1 geographic grid.
+
+                # Conversely, if the width parameter is provided but the height is not,
+                # a new height is assigned in order to keep the aspect ratio
+                # of the RTC-S1 geographic grid.
+
+                # Height in pixels for the PNG browse image of RTC-S1 bursts.
+                browse_image_burst_height: 1024
+
+                # Width in pixels for the PNG browse image of RTC-S1 bursts
+                browse_image_burst_width:
+
+                # Height in pixels for the PNG browse image of RTC-S1 mosaics.
+                browse_image_mosaic_height: 1024
+
+                # Width in pixels for the PNG browse image of RTC-S1 mosaics
+                browse_image_mosaic_width:
