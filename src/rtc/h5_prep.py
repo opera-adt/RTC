@@ -13,7 +13,7 @@ import shapely
 
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from s1reader.version import release_version
-from rtc.runconfig import RunConfig
+from rtc.runconfig import RunConfig, STATIC_LAYERS_PRODUCT_TYPE
 from rtc.version import VERSION as SOFTWARE_VERSION
 
 from nisar.workflows.h5_prep import set_get_geo_info
@@ -310,7 +310,7 @@ def get_metadata_dict(product_id: str,
         'identification/productType':
             ['product_type',
              ALL_PRODUCTS,
-             'RTC-S1',
+             cfg_in.groups.primary_executable.product_type,
              'Product type'],
         'identification/project':
             ['project',
@@ -388,8 +388,7 @@ def get_metadata_dict(product_id: str,
             ['processing_type',
              ALL_PRODUCTS,
              processing_type,
-             'Processing type: "NOMINAL", "STATIC_LAYERS", "URGENT",'
-             ' "CUSTOM", or "UNDEFINED"'],
+             'Processing type: "NOMINAL", "URGENT", "CUSTOM", or "UNDEFINED"'],
         'identification/processingDateTime':
             ['processing_date_time',
              ALL_PRODUCTS,
@@ -821,7 +820,7 @@ def get_metadata_dict(product_id: str,
     this_product_metadata_dict = {}
     for h5_path, (geotiff_field, flag_all_products, data, description) in \
             metadata_dict.items():
-        if processing_type == 'STATIC_LAYERS' and not flag_all_products:
+        if product_type == STATIC_LAYERS_PRODUCT_TYPE and not flag_all_products:
             continue
         this_product_metadata_dict[h5_path] = [geotiff_field, data,
                                                description]

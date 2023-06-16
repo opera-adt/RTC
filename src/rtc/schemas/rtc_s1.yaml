@@ -2,6 +2,10 @@ runconfig:
     name: str()
 
     groups:
+
+        primary_executable:
+            product_type: enum('RTC_S1', 'RTC_S1_SL')
+
         pge_name_group:
             pge_name: enum('RTC_S1_PGE')
 
@@ -25,12 +29,9 @@ runconfig:
             # burst database sqlite file
             burst_database_file: str(required=False)
 
-        primary_executable:
-            product_type: enum('RTC_S1')
-
         product_group:
 
-            processing_type: enum('NOMINAL', 'STATIC_LAYERS', 'URGENT', 'CUSTOM', 'UNDEFINED', required=False)
+            processing_type: enum('NOMINAL', 'URGENT', 'CUSTOM', 'UNDEFINED', required=False)
 
             product_version: num(required=False)
 

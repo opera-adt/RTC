@@ -2,6 +2,9 @@ runconfig:
   name: rtc_s1_workflow_default
 
   groups:
+      primary_executable:
+          product_type: RTC_S1
+
       pge_name_group:
           pge_name: RTC_S1_PGE
 
@@ -65,9 +68,6 @@ runconfig:
           # 'COG', and enabled by default for `output_imagery_format` equal
           # to 'HDF5' or 'NETCDF' or `save_secondary_layers_as_hdf5` is True
           save_metadata: True
-
-      primary_executable:
-          product_type: RTC_S1
 
       processing:
 

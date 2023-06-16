@@ -19,7 +19,7 @@ import matplotlib.image as mpimg
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
 from rtc.geogrid import snap_coord
-from rtc.runconfig import RunConfig
+from rtc.runconfig import RunConfig, STATIC_LAYERS_PRODUCT_TYPE
 from rtc.mosaic_geobursts import (mosaic_single_output_file,
                                   mosaic_multiple_output_files)
 from rtc.core import (save_as_cog, check_ancillary_inputs,
@@ -918,7 +918,7 @@ def run_single_job(cfg: RunConfig):
                 f' v{SOFTWARE_VERSION}')
 
     # primary executable
-    processing_type = cfg.groups.product_group.processing_type
+    product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
@@ -1088,7 +1088,7 @@ def run_single_job(cfg: RunConfig):
         output_radiometry_str = 'radar backscatter sigma0'
 
     logger.info('Identification:')
-    logger.info(f'    processing type: {processing_type}')
+    logger.info(f'    product type: {product_type}')
     logger.info(f'    product version: {product_version}')
     if save_mosaics:
         logger.info(f'    mosaic product ID: {mosaic_product_id}')
@@ -1220,8 +1220,8 @@ def run_single_job(cfg: RunConfig):
 
         logger.info(f'    product ID: {burst_product_id}')
 
-        if processing_type == 'STATIC_LAYERS':
-            # for STATIC_LAYERS, we just use the first polarization as
+        if product_type == STATIC_LAYERS_PRODUCT_TYPE:
+            # for static layers, we just use the first polarization as
             # reference
             pol_list = [pol_list[0]]
             burst_pol_dict = {pol_list[0]: burst}
@@ -1292,7 +1292,7 @@ def run_single_job(cfg: RunConfig):
             logger.info('    reading burst SLCs')
 
         radar_grid = burst.as_isce3_radargrid()
-        if processing_type == 'STATIC_LAYERS':
+        if product_type == STATIC_LAYERS_PRODUCT_TYPE:
             radar_grid = radar_grid.offset_and_resize(
                 - int(1.5 * radar_grid.length),
                 - int(radar_grid.width),
@@ -1313,7 +1313,7 @@ def run_single_job(cfg: RunConfig):
 
             if (flag_process and (flag_apply_thermal_noise_correction or
                 flag_apply_abs_rad_correction) and 
-                    processing_type == 'STATIC_LAYERS'):
+                    product_type == STATIC_LAYERS_PRODUCT_TYPE):
                 fill_value = 1
                 build_empty_vrt(temp_slc_path, radar_grid.length,
                                 radar_grid.width, fill_value)
@@ -1373,7 +1373,7 @@ def run_single_job(cfg: RunConfig):
         layover_shadow_mask_geocode_kwargs = {}
         # get sub_swaths metadata
         if (flag_process and apply_valid_samples_sub_swath_masking and
-                not processing_type == 'STATIC_LAYERS'):
+                not product_type == STATIC_LAYERS_PRODUCT_TYPE):
             # Extract burst boundaries and create sub_swaths object to mask
             # invalid radar samples
             n_subswaths = 1
@@ -1430,9 +1430,12 @@ def run_single_job(cfg: RunConfig):
                 logger.info('    computing layover shadow mask for'
                             f' {burst_id}')
 
-                radar_grid_layover_shadow_mask = radar_grid.multilook(
-                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR,
-                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR)
+                if product_type == STATIC_LAYERS_PRODUCT_TYPE:
+                    radar_grid_layover_shadow_mask = radar_grid.multilook(
+                        STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR,
+                        STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR)
+                else:
+                    radar_grid_layover_shadow_mask = radar_grid
 
                 slantrange_layover_shadow_mask_raster = \
                     compute_layover_shadow_mask(
@@ -1469,7 +1472,7 @@ def run_single_job(cfg: RunConfig):
             # number is not unitary, the layover shadow mask cannot be used
             # with geocoding
             if (apply_shadow_masking and flag_process and
-                    processing_type != 'STATIC_LAYERS' or
+                    product_type != STATIC_LAYERS_PRODUCT_TYPE or
                     STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR == 1):
                 geocode_kwargs['input_layover_shadow_mask_raster'] = \
                     slantrange_layover_shadow_mask_raster

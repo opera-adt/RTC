@@ -28,8 +28,7 @@ from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          get_metadata_dict,
                          all_metadata_dict_to_geotiff_metadata_dict,
                          DATA_BASE_GROUP)
-
-from rtc.runconfig import RunConfig
+from rtc.runconfig import RunConfig, STATIC_LAYERS_PRODUCT_TYPE
 
 logger = logging.getLogger('rtc_s1')
 
@@ -265,7 +264,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 f' v{SOFTWARE_VERSION}')
 
     # primary executable
-    processing_type = cfg.groups.product_group.processing_type
+    product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
@@ -414,7 +413,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         output_radiometry_str = 'radar backscatter sigma0'
 
     logger.info('Identification:')
-    logger.info(f'    processing type: {processing_type}')
+    logger.info(f'    product type: {product_type}')
     logger.info(f'    product version: {product_version}')
     if save_mosaics:
         logger.info(f'    mosaic product ID: {mosaic_product_id}')
@@ -611,8 +610,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         burst_product_id = burst_product_id_list[burst_index]
         logger.info(f'    product ID: {burst_product_id}')
 
-        if processing_type == 'STATIC_LAYERS':
-            # for STATIC_LAYERS, we just use the first polarization as
+        if product_type == STATIC_LAYERS_PRODUCT_TYPE:
+            # for static layers, we just use the first polarization as
             # reference
             pol_list = [pol_list[0]]
             burst_pol_dict = {pol_list[0]: burst}
