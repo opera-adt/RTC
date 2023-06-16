@@ -2,18 +2,14 @@
 
 import os
 import requests
-import glob
 import tarfile
 from osgeo import gdal
 
 from rtc.runconfig import RunConfig, load_parameters
 from rtc.core import create_logger
-from rtc.rtc_s1_single_job import get_rtc_s1_parser, run_single_job
+from rtc.rtc_s1_single_job import run_single_job
 from rtc.rtc_s1 import run_parallel
 from rtc.h5_prep import DATA_BASE_GROUP
-
-
-from rtc.version import VERSION as SOFTWARE_VERSION
 
 FLAG_ALWAYS_DOWNLOAD = False
 
@@ -57,7 +53,7 @@ def _load_cfg_parameters(cfg):
 
     return output_dir, product_prefix, save_imagery_as_hdf5, \
         save_secondary_layers_as_hdf5, save_metadata, \
-        hdf5_file_extension,imagery_extension
+        hdf5_file_extension, imagery_extension
 
 
 def _is_valid_gdal_reference(gdal_reference):
@@ -70,11 +66,11 @@ def _is_valid_gdal_reference(gdal_reference):
 
 
 def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
-        save_secondary_layers_as_hdf5, save_metadata, hdf5_file_extension,
-        imagery_extension):
+                   save_secondary_layers_as_hdf5, save_metadata,
+                   hdf5_file_extension, imagery_extension):
 
     # Check RTC-S1 HDF5 metadata
-    assert(save_metadata)
+    assert save_metadata
     geo_h5_filename = os.path.join(
         output_dir, f'{product_prefix}.{hdf5_file_extension}')
 
@@ -84,24 +80,24 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
         # assert that VV image is present
         geo_vv_file = (f'NETCDF:"{geo_h5_filename}":'
                        f'{DATA_BASE_GROUP}/VV')
-        assert(_is_valid_gdal_reference(geo_vv_file))
+        assert _is_valid_gdal_reference(geo_vv_file)
 
         # assert that HH image is not present
         geo_hh_file = (f'NETCDF:"{geo_h5_filename}":'
                        f'{DATA_BASE_GROUP}/HH')
-        assert(not(_is_valid_gdal_reference(geo_hh_file)))
+        assert not(_is_valid_gdal_reference(geo_hh_file))
 
     else:
     
         # assert that VV image is present
         geo_vv_filename = os.path.join(
             output_dir, f'{product_prefix}_VV.{imagery_extension}')
-        assert(os.path.isfile(geo_vv_filename))
+        assert os.path.isfile(geo_vv_filename)
 
         # assert that HH image is not present
         geo_hh_filename = os.path.join(
             output_dir, f'{product_prefix}_HH.{imagery_extension}')
-        assert(not(os.path.isfile(geo_hh_filename)))
+        assert not(os.path.isfile(geo_hh_filename))
     
     # Check RTC-S1 secondary layers
     if save_secondary_layers_as_hdf5:
@@ -111,17 +107,17 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
                    'localIncidenceAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           f'{DATA_BASE_GROUP}/'
-                           f'{ds_name}')
-            assert(_is_valid_gdal_reference(current_file))
+                            f'{DATA_BASE_GROUP}/'
+                            f'{ds_name}')
+            assert _is_valid_gdal_reference(current_file)
 
         # assert that the following secondary layers are not present:
         ds_list = ['incidenceAngle', 'projectionAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
-                           f'{DATA_BASE_GROUP}/'
-                           f'{ds_name}')
-            assert(not(_is_valid_gdal_reference(current_file)))
+                            f'{DATA_BASE_GROUP}/'
+                            f'{ds_name}')
+            assert not(_is_valid_gdal_reference(current_file))
 
     else:
         # assert that the following secondary layers are present:
@@ -131,7 +127,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
             current_file = os.path.join(
                 output_dir, f'{product_prefix}_'
                 f'{ds_name}.{imagery_extension}')
-            assert(os.path.isfile(current_file))
+            assert os.path.isfile(current_file)
 
         # assert that the following secondary layers are not present:
         ds_list = ['incidence_angle', 'projectionAngle']
@@ -139,7 +135,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
             current_file = os.path.join(
                 output_dir, f'{product_prefix}_'
                 f'{ds_name}.{imagery_extension}')
-            assert(not(os.path.isfile(current_file)))
+            assert not(os.path.isfile(current_file))
 
 
 def test_workflow():
@@ -187,7 +183,7 @@ def test_workflow():
     # for output_imagery_format in ['COG', 'HDF5']:
     for output_imagery_format in ['COG']:
 
-        cfg = RunConfig.load_from_yaml(runconfig_path, 'rtc_s1')
+        cfg = RunConfig.load_from_yaml(runconfig_path)
         cfg.groups.product_group.output_imagery_format = output_imagery_format
 
         output_dir_single_job, product_prefix, save_imagery_as_hdf5, \
@@ -199,8 +195,8 @@ def test_workflow():
         # The YAML file above (`runconfig_path`) is only set to create the
         # `numberOfLooks` and `RTCAreaNormalizationFactor`. Here,
         # we also force the creation of `layoverShadowMask` and
-        # `localIncidenceAngle` and will test if they are present in the output files.
-        # We also assert that layers not set to be created,
+        # `localIncidenceAngle` and will test if they are present in the
+        # output files. We also assert that layers not set to be created,
         # such as `incidenceAngle`, are indeed not created
 
         cfg.groups.processing.geocoding.save_layover_shadow_mask = True
@@ -209,13 +205,14 @@ def test_workflow():
         # Run geocode burst workflow (single job)
         run_single_job(cfg)
 
-        _check_results(output_dir_single_job, product_prefix, save_imagery_as_hdf5,
-            save_secondary_layers_as_hdf5, save_metadata, hdf5_file_extension,
-            imagery_extension)
+        _check_results(output_dir_single_job, product_prefix,
+                       save_imagery_as_hdf5, save_secondary_layers_as_hdf5,
+                       save_metadata, hdf5_file_extension,
+                       imagery_extension)
 
         # Run geocode burst workflow (parallel)
         output_dir_parallel = os.path.join('data', 's1b_los_angeles',
-                                        'output_dir_parallel')
+                                           'output_dir_parallel')
 
         cfg.groups.product_group.output_dir = output_dir_parallel
 
@@ -223,7 +220,7 @@ def test_workflow():
         flag_logger_full_format = False
         run_parallel(cfg, log_file_path, flag_logger_full_format)
 
-        _check_results(output_dir_parallel, product_prefix, save_imagery_as_hdf5,
-            save_secondary_layers_as_hdf5, save_metadata, hdf5_file_extension,
-            imagery_extension)
+        _check_results(output_dir_parallel, product_prefix,
+                       save_imagery_as_hdf5, save_secondary_layers_as_hdf5,
+                       save_metadata, hdf5_file_extension, imagery_extension)
 
