@@ -2,6 +2,7 @@ import os
 import re
 from setuptools import setup
 
+
 def _get_version():
     """Returns the RTC-S1 science application software version from the
     file `src/rtc/version.py`
@@ -49,20 +50,21 @@ package_data_dict['rtc'] = [
     os.path.join('schemas', 'rtc_s1.yaml')]
 
 setup(
-    name = 'rtc',
-    version = version,
-    description = ('OPERA Radiometric Terrain-Corrected (RTC) SAR backscatter'
-                   ' from Sentinel-1 Science Application Software (SAS)'),
-    package_dir = {'rtc': 'src/rtc'},
-    include_package_data = True,
-    package_data = package_data_dict,
-    classifiers = ['Programming Language :: Python',],
-    scripts = ['app/rtc_s1.py', 'app/rtc_s1_single_job.py', 'app/rtc_compare.py'],
-    install_requires = ['argparse', 'numpy', 'yamale',
-                       'scipy', 'pytest', 'requests',
-                       'pyproj', 'shapely', 'matplotlib'],
-    url = 'https://github.com/opera-adt/RTC',
-    license = 'Copyright by the California Institute of Technology.'
+    name='rtc',
+    version=version,
+    description=('OPERA Radiometric Terrain-Corrected (RTC) SAR backscatter'
+                 ' from Sentinel-1 Science Application Software (SAS)'),
+    package_dir={'rtc': 'src/rtc'},
+    include_package_data=True,
+    package_data=package_data_dict,
+    classifiers=['Programming Language :: Python'],
+    scripts=['app/rtc_s1.py', 'app/rtc_s1_single_job.py',
+             'app/rtc_compare.py'],
+    install_requires=['argparse', 'numpy', 'yamale',
+                      'scipy', 'pytest', 'requests',
+                      'pyproj', 'shapely', 'matplotlib'],
+    url='https://github.com/opera-adt/RTC',
+    license='Copyright by the California Institute of Technology.'
     ' ALL RIGHTS RESERVED.',
     long_description=long_description,
 )
