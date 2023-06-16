@@ -45,6 +45,7 @@ package_data_dict = {}
 
 package_data_dict['rtc'] = [
     os.path.join('defaults', 'rtc_s1.yaml'),
+    os.path.join('defaults', 'rtc_s1_sl.yaml'),
     os.path.join('schemas', 'rtc_s1.yaml')]
 
 setup(
