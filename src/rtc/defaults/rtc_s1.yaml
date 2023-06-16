@@ -47,11 +47,15 @@ runconfig:
             #     - An empty string, if the product is a mosaic.
             #
             # For example, the `product_id` = `RTC-S1_{burst_id}_S1B` will become
-            # `RTC-S1_069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
+            # `RTC-S1_T069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
             # will become `RTC-S1_S1B` for the mosaic product.
             #
-            # If the field `product_id`` is left empty, the prefix
-            # "OPERA_L2_RTC-S1_{burst_id}"  will be used instead.
+            # If the field `product_id`` is left empty, the product ID will
+            # follow the RTC-S1 file naming conventions:
+            # `OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}_
+            # {processing_datetime}_{sensor}_{pixel_spacing}
+            #  _{product_version}`.
+            #
             # `suffix` is only used when there are multiple output files.
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir:
@@ -184,10 +188,10 @@ runconfig:
                 geogrid_upsampling: 1
 
                 # Save the incidence angle
-                save_incidence_angle: True
+                save_incidence_angle: False
 
                 # Save the local-incidence angle
-                save_local_inc_angle: True
+                save_local_inc_angle: False
 
                 # Save the projection angle
                 save_projection_angle: False
@@ -200,11 +204,11 @@ runconfig:
                 save_range_slope: False
 
                 # Save the number of looks used to generate the RTC product
-                save_nlooks: True
+                save_nlooks: False
               
                 # Save the RTC area normalization factor (ANF) used to generate
                 # the RTC product
-                save_rtc_anf: True
+                save_rtc_anf: False
 
                 # Save the interpolated DEM used to generate the RTC product
                 save_dem: False

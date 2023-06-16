@@ -53,8 +53,12 @@ runconfig:
             # `RTC-S1_069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
             # will become `RTC-S1_S1B` for the mosaic product.
             #
-            # If the field `product_id`` is left empty, the prefix
-            # "OPERA_L2_RTC-S1_{burst_id}"  will be used instead.
+            # If the field `product_id`` is left empty, the product ID will
+            # follow the RTC-S1 file naming conventions:
+            # `OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}_
+            # {processing_datetime}_{sensor}_{pixel_spacing}
+            #  _{product_version}`.
+            #
             # `suffix` is only used when there are multiple output files.
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir: str()
