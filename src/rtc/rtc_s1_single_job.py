@@ -1430,9 +1430,12 @@ def run_single_job(cfg: RunConfig):
                 logger.info('    computing layover shadow mask for'
                             f' {burst_id}')
 
-                radar_grid_layover_shadow_mask = radar_grid.multilook(
-                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR,
-                    STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR)
+                if processing_type == 'STATIC_LAYERS':
+                    radar_grid_layover_shadow_mask = radar_grid.multilook(
+                        STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR,
+                        STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR)
+                else:
+                    radar_grid_layover_shadow_mask = radar_grid
 
                 slantrange_layover_shadow_mask_raster = \
                     compute_layover_shadow_mask(
