@@ -18,7 +18,7 @@ if __name__ == "__main__":
     '''
 
     # load arguments from command line
-    parser  = get_rtc_s1_parser()
+    parser = get_rtc_s1_parser()
 
     # parse arguments
     args = parser.parse_args()

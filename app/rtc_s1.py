@@ -13,6 +13,7 @@ from rtc.rtc_s1 import run_parallel
 
 logger = logging.getLogger('rtc_s1')
 
+
 def main():
     '''
     Main entrypoint of the script
