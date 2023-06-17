@@ -61,17 +61,17 @@ def load_parameters(cfg):
 
     rtc_output_type = rtc_namespace.output_type
     if rtc_output_type == 'sigma0':
-        rtc_namespace.output_type = \
+        rtc_namespace.output_type_enum = \
             isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT
     else:
-        rtc_namespace.output_type = \
+        rtc_namespace.output_type_enum = \
             isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT
 
     if rtc_namespace.input_terrain_radiometry == "sigma0":
-        rtc_namespace.input_terrain_radiometry = \
+        rtc_namespace.input_terrain_radiometry_enum = \
             isce3.geometry.RtcInputTerrainRadiometry.SIGMA_NAUGHT_ELLIPSOID
     else:
-        rtc_namespace.input_terrain_radiometry = \
+        rtc_namespace.input_terrain_radiometry_enum = \
             isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT
 
     if rtc_namespace.rtc_min_value_db is None:

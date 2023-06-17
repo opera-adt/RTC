@@ -575,7 +575,7 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
     flag_thermal_correction: bool
         flag whether or not to apple the thermal correction.
     flag_apply_abs_rad_correction: bool
-        Flag to apply radiometirc calibration
+        Flag to apply radiometric calibration
     '''
 
     # Load the SLC of the burst
@@ -900,6 +900,64 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     return slantrange_layover_shadow_mask_raster
 
 
+def read_and_validate_rtc_anf_flags(geocode_namespace, flag_apply_rtc,
+                                    output_terrain_radiometry, logger):
+    '''
+    Read and validate radiometric terrain correction (RTC) area
+    normalization factor (ANF) flags
+
+    Parameters
+    ----------
+    geocode_namespace: types.SimpleNamespace
+        Runconfig geocode namespace
+    flag_apply_rtc: Bool
+        Flag apply RTC (radiometric terrain correction)
+    output_terrain_radiometry: isce3.geometry.RtcOutputTerrainRadiometry
+        Output terrain radiometry (backscatter coefficient convention)
+    logger : loggin.Logger
+        Logger
+
+    Returns
+    -------
+    save_rtc_anf: bool
+        Flag indicating wheter the radiometric terrain correction (RTC)
+        area normalization factor (ANF) layer should be created
+    save_rtc_anf_gamma0_to_sigma0: bool
+        Flag indicating wheter the radiometric terrain correction (RTC)
+        area normalization factor (ANF) gamma0 to sigma0 layer should be
+        created
+    '''
+    save_rtc_anf = geocode_namespace.save_rtc_anf
+    save_rtc_anf_gamma0_to_sigma0 = \
+        geocode_namespace.save_rtc_anf_gamma0_to_sigma0
+
+    if not flag_apply_rtc and save_rtc_anf:
+        logger.warning("WARNING the option `save_rtc_anf` is not available"
+                       " with radiometric terrain correction"
+                       " disabled (`apply_rtc = False`). Setting"
+                       " flag `save_rtc_anf` to `False`.")
+        save_rtc_anf = False
+
+    if not flag_apply_rtc and save_rtc_anf_gamma0_to_sigma0:
+        logger.warning = ("WARNING the option `save_rtc_anf_gamma0_to_sigma0`"
+                          " is not available with radiometric terrain"
+                          " correction disabled (`apply_rtc = False`)."
+                          " Setting flag `save_rtc_anf_gamma0_to_sigma0` to"
+                          " `False`.")
+        save_rtc_anf_gamma0_to_sigma0 = False
+    elif (save_rtc_anf_gamma0_to_sigma0 and
+          output_terrain_radiometry ==
+            isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
+        logger.warning = ("WARNING the option `save_rtc_anf_gamma0_to_sigma0`"
+                          " is not available with output radiometric terrain"
+                          " radiometry (`output_type`) set to `sigma0`."
+                          " Setting flag `save_rtc_anf_gamma0_to_sigma0` to"
+                          " `False`.")
+        save_rtc_anf_gamma0_to_sigma0 = False
+
+    return save_rtc_anf, save_rtc_anf_gamma0_to_sigma0
+
+
 def run_single_job(cfg: RunConfig):
     '''
     Run geocode burst workflow with user-defined
@@ -1043,7 +1101,6 @@ def run_single_job(cfg: RunConfig):
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
-    save_rtc_anf = geocode_namespace.save_rtc_anf
     save_dem = geocode_namespace.save_dem
     save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
 
@@ -1066,26 +1123,24 @@ def run_single_job(cfg: RunConfig):
     else:
         rtc_algorithm = isce3.geometry.RtcAlgorithm.RTC_AREA_PROJECTION
 
-    output_terrain_radiometry = rtc_namespace.output_type
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
+    input_terrain_radiometry_enum = rtc_namespace.input_terrain_radiometry_enum
+    output_terrain_radiometry = rtc_namespace.output_type
+    output_terrain_radiometry_enum = rtc_namespace.output_type_enum
+    output_radiometry_str = f"radar backscatter {output_terrain_radiometry}"
+    if flag_apply_rtc:
+        rtc_anf_suffix = (f"_{output_terrain_radiometry}_to_"
+                          f"{input_terrain_radiometry}")
+    else:
+        rtc_anf_suffix = ''
+
+    save_rtc_anf, save_rtc_anf_gamma0_to_sigma0 = \
+        read_and_validate_rtc_anf_flags(geocode_namespace, flag_apply_rtc,
+                                        output_terrain_radiometry_enum, logger)
+
     rtc_min_value_db = rtc_namespace.rtc_min_value_db
     rtc_upsampling = rtc_namespace.dem_upsampling
     rtc_area_beta_mode = rtc_namespace.area_beta_mode
-    if (flag_apply_rtc and output_terrain_radiometry ==
-            isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
-        rtc_anf_suffix = "sigma0_to_beta0"
-        output_radiometry_str = "radar backscatter sigma0"
-    elif (flag_apply_rtc and output_terrain_radiometry ==
-            isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT):
-        rtc_anf_suffix = "gamma0_to_beta0"
-        output_radiometry_str = 'radar backscatter gamma0'
-    elif (input_terrain_radiometry ==
-          isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT):
-        rtc_anf_suffix = "beta0_to_beta0"
-        output_radiometry_str = 'radar backscatter beta0'
-    else:
-        rtc_anf_suffix = "sigma0_to_beta0"
-        output_radiometry_str = 'radar backscatter sigma0'
 
     logger.info('Identification:')
     logger.info(f'    product type: {product_type}')
@@ -1166,7 +1221,6 @@ def run_single_job(cfg: RunConfig):
     else:
         output_dir_sec_mosaic_raster = output_dir
 
-    # configure mosaic secondary layers
     add_output_to_output_metadata_dict(
         save_layover_shadow_mask, 'layover_shadow_mask',
         output_dir_sec_mosaic_raster,
@@ -1175,7 +1229,11 @@ def run_single_job(cfg: RunConfig):
         save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, f'rtc_anf_{rtc_anf_suffix}',
+        save_rtc_anf, f'rtc_anf{rtc_anf_suffix}',
+        output_dir_sec_mosaic_raster,
+        output_metadata_dict, mosaic_product_id, imagery_extension)
+    add_output_to_output_metadata_dict(
+        save_rtc_anf_gamma0_to_sigma0, 'rtc_anf_gamma0_to_sigma0',
         output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
 
@@ -1358,7 +1416,7 @@ def run_single_job(cfg: RunConfig):
         out_geo_rtc_obj = None
         if save_rtc_anf:
             rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
-                            f'_rtc_anf_{rtc_anf_suffix}.{imagery_extension}')
+                            f'_rtc_anf{rtc_anf_suffix}.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -1368,9 +1426,24 @@ def run_single_job(cfg: RunConfig):
         else:
             rtc_anf_file = None
 
+        out_geo_rtc_gamma0_to_sigma0_obj = None
+        if save_rtc_anf_gamma0_to_sigma0:
+            rtc_anf_gamma0_to_sigma0_file = \
+                (f'{output_dir_sec_bursts}/{burst_product_id}'
+                 f'_rtc_anf_gamma0_to_sigma0.{imagery_extension}')
+
+            if flag_bursts_secondary_files_are_temporary:
+                temp_files_list.append(rtc_anf_gamma0_to_sigma0_file)
+            else:
+                output_file_list.append(rtc_anf_gamma0_to_sigma0_file)
+
+        else:
+            rtc_anf_gamma0_to_sigma0_file = None
+
         # geocoding optional arguments
         geocode_kwargs = {}
         layover_shadow_mask_geocode_kwargs = {}
+
         # get sub_swaths metadata
         if (flag_process and apply_valid_samples_sub_swath_masking and
                 not product_type == STATIC_LAYERS_PRODUCT_TYPE):
@@ -1487,11 +1560,18 @@ def run_single_job(cfg: RunConfig):
                     gdal.GDT_Float32, output_raster_format)
 
             if save_rtc_anf:
-
                 out_geo_rtc_obj = isce3.io.Raster(
                     rtc_anf_file,
                     geogrid.width, geogrid.length, 1,
                     gdal.GDT_Float32, output_raster_format)
+
+            if save_rtc_anf_gamma0_to_sigma0:
+                out_geo_rtc_gamma0_to_sigma0_obj = isce3.io.Raster(
+                    rtc_anf_gamma0_to_sigma0_file,
+                    geogrid.width, geogrid.length, 1,
+                    gdal.GDT_Float32, output_raster_format)
+                geocode_kwargs['out_geo_rtc_gamma0_to_sigma0'] = \
+                    out_geo_rtc_gamma0_to_sigma0_obj
 
             # create multi-band VRT
             if len(input_file_list) == 1:
@@ -1564,7 +1644,6 @@ def run_single_job(cfg: RunConfig):
 
 
 
-
                 geocode_kwargs['rtc_area_beta_mode'] = rtc_area_beta_mode_enum
 
             geo_obj.geocode(radar_grid=radar_grid,
@@ -1574,8 +1653,8 @@ def run_single_job(cfg: RunConfig):
                             output_mode=geocode_algorithm,
                             geogrid_upsampling=geogrid_upsampling,
                             flag_apply_rtc=flag_apply_rtc,
-                            input_terrain_radiometry=input_terrain_radiometry,
-                            output_terrain_radiometry=output_terrain_radiometry,
+                            input_terrain_radiometry=input_terrain_radiometry_enum,
+                            output_terrain_radiometry=output_terrain_radiometry_enum,
                             exponent=exponent,
                             rtc_min_value_db=rtc_min_value_db,
                             rtc_upsampling=rtc_upsampling,
@@ -1586,6 +1665,7 @@ def run_single_job(cfg: RunConfig):
                             clip_max=clip_max,
                             out_geo_nlooks=out_geo_nlooks_obj,
                             out_geo_rtc=out_geo_rtc_obj,
+                            # out_geo_rtc_gamma0_to_sigma0=out_geo_rtc_gamma0_to_sigma0_obj,
                             input_rtc=None,
                             output_rtc=None,
                             dem_interp_method=dem_interp_method_enum,
@@ -1621,6 +1701,7 @@ def run_single_job(cfg: RunConfig):
             output_file_list += output_burst_imagery_list
 
         if save_nlooks:
+            out_geo_nlooks_obj.close_dataset()
             del out_geo_nlooks_obj
 
             if not flag_bursts_secondary_files_are_temporary:
@@ -1628,12 +1709,22 @@ def run_single_job(cfg: RunConfig):
             output_metadata_dict['nlooks'][1].append(nlooks_file)
 
         if save_rtc_anf:
+            out_geo_rtc_obj.close_dataset()
             del out_geo_rtc_obj
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
-            output_metadata_dict[f'rtc_anf_{rtc_anf_suffix}'][1].append(
+            output_metadata_dict[f'rtc_anf{rtc_anf_suffix}'][1].append(
                 rtc_anf_file)
+
+        if save_rtc_anf_gamma0_to_sigma0:
+            out_geo_rtc_gamma0_to_sigma0_obj.close_dataset()
+            del out_geo_rtc_gamma0_to_sigma0_obj
+
+            if not flag_bursts_secondary_files_are_temporary:
+                logger.info(f'file saved: {rtc_anf_gamma0_to_sigma0_file}')
+            output_metadata_dict['rtc_anf_gamma0_to_sigma0'][1].append(
+                rtc_anf_gamma0_to_sigma0_file)
 
         radar_grid_file_dict = {}
 
@@ -1813,9 +1904,14 @@ def run_single_job(cfg: RunConfig):
                 nlooks_mosaic_file = None
             if save_rtc_anf:
                 rtc_anf_mosaic_file = output_metadata_dict[
-                    f'rtc_anf_{rtc_anf_suffix}'][0]
+                    f'rtc_anf{rtc_anf_suffix}'][0]
             else:
                 rtc_anf_mosaic_file = None
+            if save_rtc_anf_gamma0_to_sigma0:
+                rtc_anf_gamma0_to_sigma0_mosaic_file = output_metadata_dict[
+                    'rtc_anf_gamma0_to_sigma0'][0]
+            else:
+                rtc_anf_gamma0_to_sigma0_mosaic_file = None
             if save_layover_shadow_mask:
                 layover_shadow_mask_file = output_metadata_dict[
                     'layover_shadow_mask'][0]
@@ -1857,7 +1953,8 @@ def run_single_job(cfg: RunConfig):
                 hdf5_mosaic_obj, output_hdf5_file, flag_apply_rtc,
                 clip_max, clip_min, output_radiometry_str,
                 cfg.geogrid, pol_list, geo_filename_vrt, nlooks_mosaic_file,
-                rtc_anf_mosaic_file, layover_shadow_mask_file,
+                rtc_anf_mosaic_file, rtc_anf_gamma0_to_sigma0_mosaic_file,
+                layover_shadow_mask_file,
                 radar_grid_file_dict, save_imagery=save_imagery_as_hdf5,
                 save_secondary_layers=save_secondary_layers_as_hdf5)
             hdf5_mosaic_obj.close()
