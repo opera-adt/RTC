@@ -236,6 +236,9 @@ def get_metadata_dict(product_id: str,
     # processing type
     processing_type = cfg_in.groups.product_group.processing_type
 
+    # product type
+    product_type = cfg_in.groups.primary_executable.product_type
+
     # product version
     product_version_float = cfg_in.groups.product_group.product_version
     if product_version_float is None:
@@ -820,7 +823,8 @@ def get_metadata_dict(product_id: str,
     this_product_metadata_dict = {}
     for h5_path, (geotiff_field, flag_all_products, data, description) in \
             metadata_dict.items():
-        if product_type == STATIC_LAYERS_PRODUCT_TYPE and not flag_all_products:
+        if (product_type == STATIC_LAYERS_PRODUCT_TYPE and
+                not flag_all_products):
             continue
         this_product_metadata_dict[h5_path] = [geotiff_field, data,
                                                description]
@@ -895,7 +899,7 @@ def populate_metadata_group(product_id: str,
                                       processing_datetime, is_mosaic)
 
     for path_dataset_in_h5, (_, data, description) in metadata_dict.items():
-            
+
         # check if metadata element is an HDF5 dataset attribute
         # by exctracting substrings within square brackets
         attribute_list = re.findall(r'\[.*?\]', path_dataset_in_h5)
@@ -911,7 +915,6 @@ def populate_metadata_group(product_id: str,
             dset = h5py_obj[path_dataset_in_h5]
             dset.attrs[attribute_name] = data
             continue
- 
         if isinstance(data, str):
             dset = h5py_obj.create_dataset(
                 path_dataset_in_h5, data=np.string_(data))
