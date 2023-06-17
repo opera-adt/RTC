@@ -211,6 +211,9 @@ runconfig:
                 # the RTC product
                 save_rtc_anf: False
 
+                # Save the RTC area normalization factor (ANF) gamma0 to sigma0
+                save_rtc_anf_gamma0_to_sigma0: False
+
                 # Save the interpolated DEM used to generate the RTC product
                 save_dem: False
 

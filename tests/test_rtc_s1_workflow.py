@@ -104,6 +104,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
 
         # assert that the following secondary layers are present:
         ds_list = ['numberOfLooks', 'RTCAreaNormalizationFactor',
+                   'RTCAreaNormalizationFactorGamma0ToSigma0',
                    'localIncidenceAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
@@ -122,6 +123,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
     else:
         # assert that the following secondary layers are present:
         ds_list = ['number_of_looks', 'rtc_area_normalization_factor',
+                   'rtc_area_normalization_factor_gamma0_to_sigma0',
                    'local_incidence_angle']
         for ds_name in ds_list:
             current_file = os.path.join(

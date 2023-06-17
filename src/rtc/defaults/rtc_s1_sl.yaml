@@ -207,6 +207,9 @@ runconfig:
                 # the RTC product
                 save_rtc_anf: True
 
+                # Save the RTC area normalization factor (ANF) gamma0 to sigma0
+                save_rtc_anf_gamma0_to_sigma0: True
+
                 # Save the interpolated DEM used to generate the RTC product
                 save_dem: True
 
@@ -228,7 +231,6 @@ runconfig:
 
                 # Double SLC sampling in the range direction
                 upsample_radargrid: False
-
 
                 bursts_geogrid:
 

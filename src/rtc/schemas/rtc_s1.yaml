@@ -228,6 +228,9 @@ geocoding_options:
     # the RTC product
     save_rtc_anf: bool(required=False)
 
+    # Save the RTC area normalization factor (ANF) gamma0 to sigma0
+    save_rtc_anf_gamma0_to_sigma0: bool(required=False)
+
     # Save the interpolated DEM used to generate the RTC product
     save_dem: bool(required=False)
 
