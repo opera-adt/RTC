@@ -91,14 +91,12 @@ def deep_update(original, update):
     original: dict
         Default dictionary updated with user-defined options
 
-    References
-    ----------
-    https://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
     """
     for key, val in update.items():
+
         if isinstance(val, dict):
             original[key] = deep_update(original.get(key, {}), val)
-        else:
+        elif val is not None:
             original[key] = val
 
     # return updated original
