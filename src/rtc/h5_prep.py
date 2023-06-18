@@ -59,7 +59,8 @@ def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
 def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                    clip_min, output_radiometry_str,
                    geogrid, pol_list, geo_burst_filename, nlooks_file,
-                   rtc_anf_file, layover_shadow_mask_file,
+                   rtc_anf_file, rtc_anf_gamma0_to_sigma0_file,
+                   layover_shadow_mask_file,
                    radar_grid_file_dict,
                    save_imagery=True, save_secondary_layers=True):
 
@@ -93,11 +94,21 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
                               units='',
                               valid_min=0)
 
-        # save rtc
+        # save RTC ANF
         if rtc_anf_file:
             save_hdf5_dataset(rtc_anf_file, hdf5_obj, DATA_BASE_GROUP,
                               yds, xds, 'RTCAreaNormalizationFactor',
                               long_name='RTC area factor',
+                              units='',
+                              valid_min=0)
+
+        # save RTC ANF gamma0 to sigma0
+        if rtc_anf_file:
+            save_hdf5_dataset(rtc_anf_gamma0_to_sigma0_file, hdf5_obj,
+                              DATA_BASE_GROUP,
+                              yds, xds,
+                              'RTCAreaNormalizationFactorGamma0ToSigma0',
+                              long_name='RTC area factor gamma0 to sigma0',
                               units='',
                               valid_min=0)
 

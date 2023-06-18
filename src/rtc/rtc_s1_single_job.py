@@ -1755,8 +1755,8 @@ def run_single_job(cfg: RunConfig):
                     hdf5_burst_obj, output_hdf5_file_burst, flag_apply_rtc,
                     clip_max, clip_min, output_radiometry_str,
                     geogrid, pol_list, geo_burst_filename, nlooks_file,
-                    rtc_anf_file, layover_shadow_mask_file,
-                    radar_grid_file_dict,
+                    rtc_anf_file, rtc_anf_gamma0_to_sigma0_file,
+                    layover_shadow_mask_file, radar_grid_file_dict,
                     save_imagery=save_imagery_as_hdf5,
                     save_secondary_layers=save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
