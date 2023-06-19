@@ -200,7 +200,7 @@ runconfig:
                 # Save the range slope angle
                 save_range_slope: False
 
-                # Save the number of looks used to generate the RTC product
+                # Save the number of looks used to generate the RTC-S1 product
                 save_nlooks: True
               
                 # Save the RTC area normalization factor (ANF) used to generate
@@ -210,7 +210,7 @@ runconfig:
                 # Save the RTC area normalization factor (ANF) gamma0 to sigma0
                 save_rtc_anf_gamma0_to_sigma0: True
 
-                # Save the interpolated DEM used to generate the RTC product
+                # Save the interpolated DEM used to generate the RTC-S1 product
                 save_dem: True
 
                 # Save layover shadow mask

@@ -221,7 +221,7 @@ geocoding_options:
     # Save the range slope angle
     save_range_slope: bool(required=False)
 
-    # Save the number of looks used to generate the RTC product
+    # Save the number of looks used to generate the RTC-S1 product
     save_nlooks: bool(required=False)
 
     # Save the RTC area normalization factor (ANF) used to generate
@@ -231,7 +231,7 @@ geocoding_options:
     # Save the RTC area normalization factor (ANF) gamma0 to sigma0
     save_rtc_anf_gamma0_to_sigma0: bool(required=False)
 
-    # Save the interpolated DEM used to generate the RTC product
+    # Save the interpolated DEM used to generate the RTC-S1 product
     save_dem: bool(required=False)
 
     # Save layover/shadow mask
