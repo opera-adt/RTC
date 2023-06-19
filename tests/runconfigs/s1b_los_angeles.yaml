@@ -93,7 +93,7 @@ runconfig:
           apply_thermal_noise_correction: True
 
           # OPTIONAL - Apply RTC
-          apply_rtc: False
+          apply_rtc: True
 
           # Apply bistatic delay correction
           apply_bistatic_delay_correction: True
@@ -123,7 +123,7 @@ runconfig:
               rtc_min_value_db:
 
               # RTC DEM upsampling
-              dem_upsampling: 2
+              dem_upsampling: 1
 
           # OPTIONAL - Mechanism to specify output posting and DEM
           geocoding:
@@ -158,13 +158,17 @@ runconfig:
               # Save the range slope angle
               save_range_slope: False
 
-              # Save the number of looks used to compute GCOV
+              # Save the number of looks used to compute RTC-S1
               save_nlooks: True
                
-              # Save the RTC area factor used to compute GCOV
+              # Save the RTC area normalization factor (ANF) used to generate
+              # the RTC product
               save_rtc_anf: True
 
-              # Save interpolated DEM used to compute GCOV
+              # Save the RTC area normalization factor (ANF) gamma0 to sigma0
+              save_rtc_anf_gamma0_to_sigma0: True
+
+              # Save interpolated DEM used to compute RTC-S1
               save_dem: False
 
               # Save layover shadow mask
