@@ -13,7 +13,7 @@ def _get_version():
             RTC-S1 science application software version
     """
 
-    version_file = os.path.join('src','rtc','version.py')
+    version_file = os.path.join('src', 'rtc', 'version.py')
 
     with open(version_file, 'r') as f:
         text = f.read()
