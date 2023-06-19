@@ -27,6 +27,106 @@ PRODUCT_SPECIFICATION_VERSION = 0.1
 
 logger = logging.getLogger('rtc_s1')
 
+LAYER_NAME_VV = 'VV'
+LAYER_NAME_VH = 'VH'
+LAYER_NAME_LAYOVER_SHADOW_MASK = 'layover_shadow_mask'
+LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0 = 'rtc_anf_gamma0_to_beta0'
+LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0 = 'rtc_anf_gamma0_to_sigma0'
+LAYER_NAME_RTC_ANF_SIGMA0_TO_BETA0 = 'rtc_anf_sigma0_to_beta0'
+LAYER_NAME_RTC_ANF_BETA0_TO_BETA0 = 'rtc_anf_beta0_to_beta0'
+LAYER_NAME_NUMBER_OF_LOOKS = 'number_of_looks'
+LAYER_NAME_INCIDENCE_ANGLE = 'incidence_angle'
+LAYER_NAME_LOCAL_INCIDENCE_ANGLE = 'local_incidence_angle'
+LAYER_NAME_PROJECTION_ANGLE = 'projection_angle'
+LAYER_NAME_RTC_ANF_PSI = 'rtc_anf_psi'
+LAYER_NAME_RANGE_SLOPE = 'range_slope'
+LAYER_NAME_DEM = 'dem'
+
+# RTC-S1 product layer names
+layer_hdf5_dict = {
+    LAYER_NAME_VV: 'VV',
+    LAYER_NAME_VH: 'VH',
+    LAYER_NAME_LAYOVER_SHADOW_MASK: 'layoverShadowMask',
+    LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0: 'rtcAnfGamma0ToBeta0',
+    LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0: 'rtcAnfGamma0ToSigma0',
+    LAYER_NAME_RTC_ANF_SIGMA0_TO_BETA0: 'rtcAnfSigma0ToBeta0',
+    LAYER_NAME_RTC_ANF_BETA0_TO_BETA0: 'rtcAnfBeta0ToBeta0',
+    LAYER_NAME_NUMBER_OF_LOOKS: 'numberOfLooks',
+    LAYER_NAME_INCIDENCE_ANGLE: 'incidenceAngle',
+    LAYER_NAME_LOCAL_INCIDENCE_ANGLE: 'localIncidenceAngle',
+    LAYER_NAME_PROJECTION_ANGLE: 'projectionAngle',
+    LAYER_NAME_RTC_ANF_PSI: 'rtcAnfPsi',
+    LAYER_NAME_RANGE_SLOPE: 'rangeSlope',
+    LAYER_NAME_DEM: 'interpolatedDem'
+}
+
+
+# RTC-S1 product layer names
+layer_names_dict = {
+    LAYER_NAME_VV: 'RTC-S1 VV Backscatter',
+    LAYER_NAME_VH: 'RTC-S1 VH Backscatter',
+    LAYER_NAME_LAYOVER_SHADOW_MASK: 'Layover/Shadow Mask',
+    LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0: ('RTC Area Normalization Factor'
+                                         ' Gamma0 to Beta0'),
+    LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0: ('RTC Area Normalization Factor'
+                                          ' Gamma0 to Sigma0'),
+    LAYER_NAME_RTC_ANF_SIGMA0_TO_BETA0: ('RTC Area Normalization Factor'
+                                         ' Sigma0 to Beta0'),
+    LAYER_NAME_RTC_ANF_BETA0_TO_BETA0: ('RTC Area Normalization Factor'
+                                        ' Beta0 to Beta0'),
+    LAYER_NAME_NUMBER_OF_LOOKS: 'Number of Looks',
+    LAYER_NAME_INCIDENCE_ANGLE: 'Incidence Angle',
+    LAYER_NAME_LOCAL_INCIDENCE_ANGLE: 'Local Incidence Angle',
+
+    # TODO improve description below
+    LAYER_NAME_PROJECTION_ANGLE: 'Projection Angle',
+    LAYER_NAME_RTC_ANF_PSI: ('RTC Area Normalization Factor'
+                             ' Gamma0 to Beta0 (Projection Angle - Psi)'),
+    LAYER_NAME_RANGE_SLOPE: 'Range Slope',
+    LAYER_NAME_DEM: 'Digital Elevation Model (DEM)'
+}
+
+# RTC-S1 product layer description dict
+layer_description_dict = {
+    LAYER_NAME_VV: ('Radiometric terrain corrected Sentinel-1 VV backscatter'
+                    ' coefficient normalized to gamma0'),
+    LAYER_NAME_VH: ('Radiometric terrain corrected Sentinel-1 VH backscatter'
+                    ' coefficient normalized to gamma0'),
+    LAYER_NAME_LAYOVER_SHADOW_MASK: ('Layover/shadow mask. Values: 0: not'
+                                     ' masked; 1: shadow; 2: layover;'
+                                     ' 3: layover and shadow'),
+    LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0: ('Radiometric terrain correction (RTC)'
+                                         ' area normalization factor (ANF)'
+                                         ' gamma0 to beta0'),
+    LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0: ('Radiometric terrain correction'
+                                          ' (RTC) area normalization factor'
+                                          ' (ANF) gamma0 to sigma0'),
+    LAYER_NAME_RTC_ANF_SIGMA0_TO_BETA0: ('Radiometric terrain correction (RTC)'
+                                         ' area normalization factor (ANF)'
+                                         ' sigma0 to beta0'),
+    LAYER_NAME_RTC_ANF_BETA0_TO_BETA0: ('Radiometric terrain correction (RTC)'
+                                        ' area normalization factor (ANF)'
+                                        ' beta0 to beta0'),
+    LAYER_NAME_NUMBER_OF_LOOKS: 'Number of looks',
+    LAYER_NAME_INCIDENCE_ANGLE: ('Incidence angle is defined as the angle'
+                                 ' between the line-of-sight (LOS) vector and'
+                                 ' the normal to the ellipsoid at the target'
+                                 ' height'),
+    LAYER_NAME_LOCAL_INCIDENCE_ANGLE: ('Local incidence angle is defined as'
+                                       ' the angle between the line-of-sight'
+                                       ' (LOS) vector and the normal to the'
+                                       ' ellipsoid at the target height'),
+
+    # TODO improve description below
+    LAYER_NAME_PROJECTION_ANGLE: 'Projection angle (psi)',
+    LAYER_NAME_RTC_ANF_PSI: ('Radiometric terrain correction (RTC)'
+                             ' area normalization factor (ANF) '
+                             ' gamma0 to beta0 computed with'
+                             ' the projection angle method'),
+    LAYER_NAME_RANGE_SLOPE: 'Range slope',
+    LAYER_NAME_DEM: 'Digital elevation model (DEM)'
+}
+
 
 def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
     '''
@@ -52,14 +152,15 @@ def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
         geometry_polygon = burst_in.border[0]
     else:
         geometry_polygon = shapely.geometry.MultiPolygon(burst_in.border)
-    
+
     return geometry_polygon.wkt
 
 
-def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
+def save_hdf5_file(hdf5_obj, output_hdf5_file, clip_max,
                    clip_min, output_radiometry_str,
                    geogrid, pol_list, geo_burst_filename, nlooks_file,
-                   rtc_anf_file, rtc_anf_gamma0_to_sigma0_file,
+                   rtc_anf_file, rtc_anf_file_str,
+                   rtc_anf_gamma0_to_sigma0_file,
                    layover_shadow_mask_file,
                    radar_grid_file_dict,
                    save_imagery=True, save_secondary_layers=True):
@@ -89,26 +190,25 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
         # save nlooks
         if nlooks_file:
             save_hdf5_dataset(nlooks_file, hdf5_obj, DATA_BASE_GROUP,
-                              yds, xds, 'numberOfLooks',
-                              long_name='number of looks',
+                              yds, xds,
+                              LAYER_NAME_NUMBER_OF_LOOKS,
                               units='',
                               valid_min=0)
 
         # save RTC ANF
         if rtc_anf_file:
             save_hdf5_dataset(rtc_anf_file, hdf5_obj, DATA_BASE_GROUP,
-                              yds, xds, 'RTCAreaNormalizationFactor',
-                              long_name='RTC area factor',
+                              yds, xds,
+                              rtc_anf_file_str,
                               units='',
                               valid_min=0)
 
         # save RTC ANF gamma0 to sigma0
-        if rtc_anf_file:
+        if rtc_anf_gamma0_to_sigma0_file:
             save_hdf5_dataset(rtc_anf_gamma0_to_sigma0_file, hdf5_obj,
                               DATA_BASE_GROUP,
                               yds, xds,
-                              'RTCAreaNormalizationFactorGamma0ToSigma0',
-                              long_name='RTC area factor gamma0 to sigma0',
+                              LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0,
                               units='',
                               valid_min=0)
 
@@ -116,8 +216,8 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, flag_apply_rtc, clip_max,
         if layover_shadow_mask_file:
             save_hdf5_dataset(layover_shadow_mask_file, hdf5_obj,
                               DATA_BASE_GROUP,
-                              yds, xds, 'layoverShadowMask',
-                              long_name='Layover/shadow mask',
+                              yds, xds,
+                              LAYER_NAME_LAYOVER_SHADOW_MASK,
                               units='',
                               valid_min=0)
 
@@ -936,7 +1036,7 @@ def populate_metadata_group(product_id: str,
 
 
 def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
-                      yds, xds, ds_name, standard_name=None,
+                      yds, xds, layer_name, standard_name=None,
                       long_name=None, units=None, fill_value=None,
                       valid_min=None, valid_max=None, compute_stats=True):
     '''
@@ -954,17 +1054,29 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         y-axis dataset
     xds: h5py dataset object
         x-axis dataset
-    ds_name: string
+    layer_name: string
         name of dataset to be added to root_path
     standard_name: string, optional
+        Standard name
     long_name: string, optional
+        Long name
     units: string, optional
+        Units
     fill_value: float, optional
+        Fill value
     valid_min: float, optional
+        Minimum value
     valid_max: float, optional
+        Maximum value
     '''
     if not os.path.isfile(ds_filename):
         return
+
+    ds_name = layer_hdf5_dict[layer_name]
+    if long_name is not None:
+        description = long_name
+    else:
+        description = layer_description_dict[layer_name]
 
     stats_real_imag_vector = None
     stats_vector = None
@@ -1003,6 +1115,8 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
         if long_name is not None:
             dset.attrs['long_name'] = np.string_(long_name)
+
+        dset.attrs['description'] = np.string_(description)
 
         if units is not None:
             dset.attrs['units'] = np.string_(units)
