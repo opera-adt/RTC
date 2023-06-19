@@ -103,8 +103,9 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
     if save_secondary_layers_as_hdf5:
 
         # assert that the following secondary layers are present:
-        ds_list = ['numberOfLooks', 'RTCAreaNormalizationFactor',
-                   'RTCAreaNormalizationFactorGamma0ToSigma0',
+        ds_list = ['numberOfLooks',
+                   'rtcAnfGamma0ToBeta0',
+                   'rtcAnfGamma0ToSigma0',
                    'localIncidenceAngle']
         for ds_name in ds_list:
             current_file = (f'NETCDF:"{geo_h5_filename}":'
@@ -195,7 +196,8 @@ def test_workflow():
         # Testing creation of secondary layers:
         #
         # The YAML file above (`runconfig_path`) is only set to create the
-        # `numberOfLooks` and `RTCAreaNormalizationFactor`. Here,
+        # `numberOfLooks`, `rtcAnfGamma0ToBeta0`,
+        # and `rtcAnfGamma0ToSigma0`. Here,
         # we also force the creation of `layoverShadowMask` and
         # `localIncidenceAngle` and will test if they are present in the
         # output files. We also assert that layers not set to be created,
