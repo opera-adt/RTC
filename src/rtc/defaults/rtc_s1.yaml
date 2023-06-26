@@ -199,16 +199,17 @@ runconfig:
 
                 # Save the RTC area normalization factor (ANF) computed with
                 # the projection angle method
-                save_rtc_anf_psi: False
+                save_rtc_anf_projection_angle: False
 
                 # Save the range slope angle
                 save_range_slope: False
 
                 # Save the number of looks used to generate the RTC-S1 product
                 save_nlooks: False
-              
-                # Save the RTC area normalization factor (ANF) used to generate
-                # the RTC product
+
+                # Save the area normalization factor (ANF) to normalize RTC-S1
+                # imagery to the original SLC backscatter convention:
+                # beta0 or sigma0 (ellipsoid)
                 save_rtc_anf: False
 
                 # Save the RTC area normalization factor (ANF) gamma0 to sigma0

@@ -38,7 +38,7 @@ from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          LAYER_NAME_INCIDENCE_ANGLE,
                          LAYER_NAME_LOCAL_INCIDENCE_ANGLE,
                          LAYER_NAME_PROJECTION_ANGLE,
-                         LAYER_NAME_RTC_ANF_PSI,
+                         LAYER_NAME_RTC_ANF_PROJECTION_ANGLE,
                          LAYER_NAME_RANGE_SLOPE,
                          LAYER_NAME_DEM)
 from rtc.version import VERSION as SOFTWARE_VERSION
@@ -891,8 +891,6 @@ def read_and_validate_rtc_anf_flags(geocode_namespace, flag_apply_rtc,
     save_rtc_anf = geocode_namespace.save_rtc_anf
     save_rtc_anf_gamma0_to_sigma0 = \
         geocode_namespace.save_rtc_anf_gamma0_to_sigma0
-    print('*** save_rtc_anf:', save_rtc_anf)
-    print('*** save_rtc_anf_gamma0_to_sigma0:', save_rtc_anf_gamma0_to_sigma0)
 
     if not flag_apply_rtc and save_rtc_anf:
         logger.warning("WARNING the option `save_rtc_anf` is not available"
@@ -1060,7 +1058,7 @@ def run_single_job(cfg: RunConfig):
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
-    save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
+    save_rtc_anf_projection_angle = geocode_namespace.save_rtc_anf_projection_angle
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
@@ -1073,7 +1071,7 @@ def run_single_job(cfg: RunConfig):
 
     flag_call_radar_grid = (save_incidence_angle or
                             save_local_inc_angle or save_projection_angle or
-                            save_rtc_anf_psi or save_dem or
+                            save_rtc_anf_projection_angle or save_dem or
                             save_range_slope)
 
     # unpack RTC run parameters
@@ -1152,8 +1150,8 @@ def run_single_job(cfg: RunConfig):
                 f' {save_local_inc_angle}')
     logger.info(f'    {layer_names_dict[LAYER_NAME_PROJECTION_ANGLE]}:'
                 f' {save_projection_angle}')
-    logger.info(f'    {layer_names_dict[LAYER_NAME_RTC_ANF_PSI]}:'
-                f' {save_rtc_anf_psi}')
+    logger.info(f'    {layer_names_dict[LAYER_NAME_RTC_ANF_PROJECTION_ANGLE]}:'
+                f' {save_rtc_anf_projection_angle}')
     logger.info(f'    {layer_names_dict[LAYER_NAME_RANGE_SLOPE]}:'
                 f' {save_range_slope}')
     logger.info(f'    {layer_names_dict[LAYER_NAME_DEM]}:'
@@ -1721,7 +1719,7 @@ def run_single_job(cfg: RunConfig):
                 geogrid, dem_interp_method_enum, burst_product_id,
                 output_dir_sec_bursts, imagery_extension, save_incidence_angle,
                 save_local_inc_angle, save_projection_angle,
-                save_rtc_anf_psi,
+                save_rtc_anf_projection_angle,
                 save_range_slope, save_dem,
                 dem_raster, radar_grid_file_dict,
                 lookside, wavelength, orbit,
@@ -1810,7 +1808,7 @@ def run_single_job(cfg: RunConfig):
             radar_grid_output_dir, imagery_extension,
             save_incidence_angle,
             save_local_inc_angle, save_projection_angle,
-            save_rtc_anf_psi,
+            save_rtc_anf_projection_angle,
             save_range_slope, save_dem,
             dem_raster, radar_grid_file_dict,
             lookside, wavelength, orbit,
@@ -2004,7 +2002,7 @@ def run_single_job(cfg: RunConfig):
 def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
                    output_dir, extension, save_incidence_angle,
                    save_local_inc_angle, save_projection_angle,
-                   save_rtc_anf_psi,
+                   save_rtc_anf_projection_angle,
                    save_range_slope, save_dem, dem_raster,
                    radar_grid_file_dict, lookside, wavelength, orbit,
                    verbose=True):
@@ -2025,11 +2023,11 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
         output_dir, product_id, LAYER_NAME_PROJECTION_ANGLE,
         gdal.GDT_Float32, shape, radar_grid_file_dict,
         output_obj_list, save_projection_angle, extension)
-    rtc_anf_psi_raster = _create_raster_obj(
-        output_dir, product_id, LAYER_NAME_RTC_ANF_PSI,
+    rtc_anf_projection_angle_raster = _create_raster_obj(
+        output_dir, product_id, LAYER_NAME_RTC_ANF_PROJECTION_ANGLE,
         gdal.GDT_Float32, shape,
         radar_grid_file_dict, output_obj_list,
-        save_rtc_anf_psi, extension)
+        save_rtc_anf_projection_angle, extension)
     range_slope_raster = _create_raster_obj(
         output_dir, product_id, LAYER_NAME_RANGE_SLOPE,
         gdal.GDT_Float32, shape, radar_grid_file_dict,
@@ -2065,7 +2063,7 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
         incidence_angle_raster=incidence_angle_raster,
         local_incidence_angle_raster=local_incidence_angle_raster,
         projection_angle_raster=projection_angle_raster,
-        simulated_radar_brightness_raster=rtc_anf_psi_raster,
+        simulated_radar_brightness_raster=rtc_anf_projection_angle_raster,
         interpolated_dem_raster=interpolated_dem_raster,
         dem_interp_method=dem_interp_method_enum,
         **kwargs_get_radar_grid)

@@ -376,7 +376,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
-    save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
+    save_rtc_anf_projection_angle = geocode_namespace.save_rtc_anf_projection_angle
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
@@ -389,7 +389,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     flag_call_radar_grid = (save_incidence_angle or
                             save_local_inc_angle or save_projection_angle or
-                            save_rtc_anf_psi or save_dem or
+                            save_rtc_anf_projection_angle or save_dem or
                             save_range_slope)
 
     # unpack RTC run parameters
@@ -810,7 +810,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 'incidence_angle': save_incidence_angle,
                 'local_incidence_angle': save_local_inc_angle,
                 'projection_angle': save_projection_angle,
-                'rtc_anf_psi': save_rtc_anf_psi,
+                'rtc_anf_projection_angle': save_rtc_anf_projection_angle,
                 'range_slope': save_range_slope,
                 'interpolated_dem': save_dem}
 
@@ -868,7 +868,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                        radar_grid_output_dir, imagery_extension,
                        save_incidence_angle,
                        save_local_inc_angle, save_projection_angle,
-                       save_rtc_anf_psi,
+                       save_rtc_anf_projection_angle,
                        save_range_slope, save_dem,
                        dem_raster, radar_grid_file_dict,
                        lookside, wavelength,

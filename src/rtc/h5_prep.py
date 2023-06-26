@@ -38,7 +38,7 @@ LAYER_NAME_NUMBER_OF_LOOKS = 'number_of_looks'
 LAYER_NAME_INCIDENCE_ANGLE = 'incidence_angle'
 LAYER_NAME_LOCAL_INCIDENCE_ANGLE = 'local_incidence_angle'
 LAYER_NAME_PROJECTION_ANGLE = 'projection_angle'
-LAYER_NAME_RTC_ANF_PSI = 'rtc_anf_psi'
+LAYER_NAME_RTC_ANF_PROJECTION_ANGLE = 'rtc_anf_projection_angle'
 LAYER_NAME_RANGE_SLOPE = 'range_slope'
 LAYER_NAME_DEM = 'dem'
 
@@ -47,15 +47,19 @@ layer_hdf5_dict = {
     LAYER_NAME_VV: 'VV',
     LAYER_NAME_VH: 'VH',
     LAYER_NAME_LAYOVER_SHADOW_MASK: 'layoverShadowMask',
-    LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0: 'rtcAnfGamma0ToBeta0',
-    LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0: 'rtcAnfGamma0ToSigma0',
-    LAYER_NAME_RTC_ANF_SIGMA0_TO_BETA0: 'rtcAnfSigma0ToBeta0',
-    LAYER_NAME_RTC_ANF_BETA0_TO_BETA0: 'rtcAnfBeta0ToBeta0',
+    LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0:
+        'rtcAreaNormalizationFactorGamma0ToBeta0',
+    LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0:
+        'rtcAreaNormalizationFactorGamma0ToSigma0',
+    LAYER_NAME_RTC_ANF_SIGMA0_TO_BETA0:
+        'rtcAreaNormalizationFactorSigma0ToBeta0',
+    LAYER_NAME_RTC_ANF_BETA0_TO_BETA0: 'rtcAreaNormalizationFactorBeta0ToBeta0',
     LAYER_NAME_NUMBER_OF_LOOKS: 'numberOfLooks',
     LAYER_NAME_INCIDENCE_ANGLE: 'incidenceAngle',
     LAYER_NAME_LOCAL_INCIDENCE_ANGLE: 'localIncidenceAngle',
     LAYER_NAME_PROJECTION_ANGLE: 'projectionAngle',
-    LAYER_NAME_RTC_ANF_PSI: 'rtcAnfPsi',
+    LAYER_NAME_RTC_ANF_PROJECTION_ANGLE:
+        'rtcAreaNormalizationFactorProjectionAngle',
     LAYER_NAME_RANGE_SLOPE: 'rangeSlope',
     LAYER_NAME_DEM: 'interpolatedDem'
 }
@@ -80,8 +84,9 @@ layer_names_dict = {
 
     # TODO improve description below
     LAYER_NAME_PROJECTION_ANGLE: 'Projection Angle',
-    LAYER_NAME_RTC_ANF_PSI: ('RTC Area Normalization Factor'
-                             ' Gamma0 to Beta0 (Projection Angle - Psi)'),
+    LAYER_NAME_RTC_ANF_PROJECTION_ANGLE: (
+        'RTC Area Normalization Factor'
+        ' Gamma0 to Beta0 (Projection Angle - ProjectionAngle)'),
     LAYER_NAME_RANGE_SLOPE: 'Range Slope',
     LAYER_NAME_DEM: 'Digital Elevation Model (DEM)'
 }
@@ -119,10 +124,11 @@ layer_description_dict = {
 
     # TODO improve description below
     LAYER_NAME_PROJECTION_ANGLE: 'Projection angle (psi)',
-    LAYER_NAME_RTC_ANF_PSI: ('Radiometric terrain correction (RTC)'
-                             ' area normalization factor (ANF) '
-                             ' gamma0 to beta0 computed with'
-                             ' the projection angle method'),
+    LAYER_NAME_RTC_ANF_PROJECTION_ANGLE: (
+        'Radiometric terrain correction (RTC)'
+        ' area normalization factor (ANF) '
+        ' gamma0 to beta0 computed with'
+        ' the projection angle method'),
     LAYER_NAME_RANGE_SLOPE: 'Range slope',
     LAYER_NAME_DEM: 'Digital elevation model (DEM)'
 }

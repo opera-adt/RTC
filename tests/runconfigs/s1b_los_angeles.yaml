@@ -153,7 +153,7 @@ runconfig:
               save_projection_angle: False
 
               # Save the RTC ANF compuated with the projection angle method
-              save_rtc_anf_psi: False
+              save_rtc_anf_projection_angle: False
 
               # Save the range slope angle
               save_range_slope: False

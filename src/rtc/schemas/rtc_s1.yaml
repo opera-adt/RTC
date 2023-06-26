@@ -216,7 +216,7 @@ geocoding_options:
 
     # Save the RTC area normalization factor (ANF) computed with
     # the projection angle method
-    save_rtc_anf_psi: bool(required=False)
+    save_rtc_anf_projection_angle: bool(required=False)
 
     # Save the range slope angle
     save_range_slope: bool(required=False)
