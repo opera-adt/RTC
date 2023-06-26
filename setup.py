@@ -64,7 +64,7 @@ setup(
                       'scipy', 'pytest', 'requests',
                       'pyproj', 'shapely', 'matplotlib'],
     url='https://github.com/opera-adt/RTC',
-    license='Copyright by the California Institute of Technology.'
-    ' ALL RIGHTS RESERVED.',
+    license=('Copyright by the California Institute of Technology.'
+             ' ALL RIGHTS RESERVED.'),
     long_description=long_description,
 )
