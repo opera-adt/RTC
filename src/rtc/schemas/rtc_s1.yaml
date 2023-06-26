@@ -4,6 +4,8 @@ runconfig:
     groups:
 
         primary_executable:
+
+            # Required. Output product type: "RTC_S1" or "RTC_S1_SL"
             product_type: enum('RTC_S1', 'RTC_S1_SL')
 
         pge_name_group:
