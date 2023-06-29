@@ -751,31 +751,8 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
             path_layover_shadow_mask, radar_grid.width, radar_grid.length,
             1, gdal.GDT_Byte, 'MEM')
 
-    # TODO Remove next lines after topo is fixed and X, Y, and inc will
-    # not be required to compute the layover/shadow mask
-    x_raster_path = (f'x_{burst_in.burst_id}_'
-                     f'{burst_in.polarization}_{str_datetime}')
-    x_raster = isce3.io.Raster(x_raster_path, radar_grid.width,
-                               radar_grid.length,
-                               1, gdal.GDT_Byte, 'MEM')
-    y_raster_path = (f'x_{burst_in.burst_id}_'
-                     f'{burst_in.polarization}_{str_datetime}')
-    y_raster = isce3.io.Raster(y_raster_path, radar_grid.width,
-                               radar_grid.length,
-                               1, gdal.GDT_Byte, 'MEM')
-    incidence_angle_raster_path = (
-        f'x_{burst_in.burst_id}_'
-        f'{burst_in.polarization}_{str_datetime}')
-    incidence_angle_raster = isce3.io.Raster(incidence_angle_raster_path,
-                                             radar_grid.width,
-                                             radar_grid.length,
-                                             1, gdal.GDT_Byte, 'MEM')
-
     rdr2geo_obj.topo(
         dem_raster,
-        x_raster=x_raster,
-        y_raster=y_raster,
-        incidence_angle_raster=incidence_angle_raster,
         layover_shadow_raster=slantrange_layover_shadow_mask_raster)
 
     if shadow_dilation_size > 0:
