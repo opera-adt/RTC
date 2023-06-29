@@ -1079,6 +1079,21 @@ def run_single_job(cfg: RunConfig):
     rtc_upsampling = rtc_namespace.dem_upsampling
     rtc_area_beta_mode = rtc_namespace.area_beta_mode
 
+    if rtc_area_beta_mode == 'pixel_area':
+        rtc_area_beta_mode_enum = \
+            isce3.geometry.RtcAreaBetaMode.PIXEL_AREA
+    elif rtc_area_beta_mode == 'projection_angle':
+        rtc_area_beta_mode_enum = \
+            isce3.geometry.RtcAreaBetaMode.PROJECTION_ANGLE
+    elif (rtc_area_beta_mode == 'auto' or
+            rtc_area_beta_mode is None):
+        rtc_area_beta_mode_enum = \
+            isce3.geometry.RtcAreaBetaMode.AUTO
+    else:
+        err_msg = ('ERROR invalid area beta mode:'
+                   f' {rtc_area_beta_mode}')
+        raise ValueError(err_msg)
+
     logger.info('Identification:')
     logger.info(f'    product type: {product_type}')
     logger.info(f'    product version: {product_version}')
@@ -1577,35 +1592,6 @@ def run_single_job(cfg: RunConfig):
                             geogrid.spacing_x, geogrid.spacing_y,
                             geogrid.width, geogrid.length, geogrid.epsg)
 
-            if rtc_area_beta_mode != 'auto':
-
-
-
-
-
-                # TODO! This code should be moved to runconfig after `area_beta_mode`
-                # is added to geocode() in ISCE3
-                if rtc_area_beta_mode == 'pixel_area':
-                    rtc_area_beta_mode_enum = \
-                        isce3.geometry.RtcAreaBetaMode.PIXEL_AREA
-                elif rtc_area_beta_mode == 'projection_angle':
-                    rtc_area_beta_mode_enum = \
-                        isce3.geometry.RtcAreaBetaMode.PROJECTION_ANGLE
-                elif (rtc_area_beta_mode == 'auto' or
-                        rtc_area_beta_mode is None):
-                    rtc_area_beta_mode_enum = \
-                        isce3.geometry.RtcAreaBetaMode.AUTO
-                else:
-                    err_msg = ('ERROR invalid area beta mode:'
-                               f' {rtc_area_beta_mode}')
-                    raise ValueError(err_msg)
-
-
-
-
-
-                geocode_kwargs['rtc_area_beta_mode'] = rtc_area_beta_mode_enum
-
             geo_obj.geocode(radar_grid=radar_grid,
                             input_raster=rdr_burst_raster,
                             output_raster=geo_burst_raster,
@@ -1625,6 +1611,7 @@ def run_single_job(cfg: RunConfig):
                             clip_max=clip_max,
                             out_geo_nlooks=out_geo_nlooks_obj,
                             out_geo_rtc=out_geo_rtc_obj,
+                            rtc_area_beta_mode=rtc_area_beta_mode_enum,
                             # out_geo_rtc_gamma0_to_sigma0=out_geo_rtc_gamma0_to_sigma0_obj,
                             input_rtc=None,
                             output_rtc=None,
