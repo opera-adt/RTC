@@ -750,7 +750,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         slantrange_layover_shadow_mask_raster = isce3.io.Raster(
             path_layover_shadow_mask, radar_grid.width, radar_grid.length,
             1, gdal.GDT_Byte, 'MEM')
- 
+
     # TODO Remove next lines after topo is fixed and X, Y, and inc will
     # not be required to compute the layover/shadow mask
     x_raster_path = (f'x_{burst_in.burst_id}_'

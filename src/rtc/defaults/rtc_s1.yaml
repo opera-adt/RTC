@@ -3,7 +3,7 @@ runconfig:
 
     groups:
 
-        # Required. Output product type: "RTC_S1" or "RTC_S1_SL"
+        # Required. Output product type: "RTC_S1" or "RTC_S1_STATIC"
         primary_executable:
             product_type: RTC_S1
 

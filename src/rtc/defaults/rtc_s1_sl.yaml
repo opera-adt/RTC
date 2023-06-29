@@ -5,8 +5,8 @@ runconfig:
 
         primary_executable:
 
-        # Required. Output product type: "RTC_S1" or "RTC_S1_SL"
-            product_type: RTC_S1_SL
+        # Required. Output product type: "RTC_S1" or "RTC_S1_STATIC"
+            product_type: RTC_S1_STATIC
 
         pge_name_group:
             pge_name: RTC_S1_PGE
