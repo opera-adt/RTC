@@ -64,7 +64,6 @@ layer_hdf5_dict = {
     LAYER_NAME_DEM: 'interpolatedDem'
 }
 
-
 # RTC-S1 product layer names
 layer_names_dict = {
     LAYER_NAME_VV: 'RTC-S1 VV Backscatter',
