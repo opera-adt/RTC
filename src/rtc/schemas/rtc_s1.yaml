@@ -2,6 +2,12 @@ runconfig:
     name: str()
 
     groups:
+
+        primary_executable:
+
+            # Required. Output product type: "RTC_S1" or "RTC_S1_SL"
+            product_type: enum('RTC_S1', 'RTC_S1_SL')
+
         pge_name_group:
             pge_name: enum('RTC_S1_PGE')
 
@@ -25,12 +31,9 @@ runconfig:
             # burst database sqlite file
             burst_database_file: str(required=False)
 
-        primary_executable:
-            product_type: enum('RTC_S1')
-
         product_group:
 
-            processing_type: enum('NOMINAL', 'STATIC_LAYERS', 'URGENT', 'CUSTOM', 'UNDEFINED', required=False)
+            processing_type: enum('NOMINAL', 'URGENT', 'CUSTOM', 'UNDEFINED', required=False)
 
             product_version: num(required=False)
 
@@ -53,8 +56,12 @@ runconfig:
             # `RTC-S1_069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
             # will become `RTC-S1_S1B` for the mosaic product.
             #
-            # If the field `product_id`` is left empty, the prefix
-            # "OPERA_L2_RTC-S1_{burst_id}"  will be used instead.
+            # If the field `product_id`` is left empty, the product ID will
+            # follow the RTC-S1 file naming conventions:
+            # `OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}_
+            # {processing_datetime}_{sensor}_{pixel_spacing}
+            #  _{product_version}`.
+            #
             # `suffix` is only used when there are multiple output files.
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir: str()
@@ -211,19 +218,22 @@ geocoding_options:
 
     # Save the RTC area normalization factor (ANF) computed with
     # the projection angle method
-    save_rtc_anf_psi: bool(required=False)
+    save_rtc_anf_projection_angle: bool(required=False)
 
     # Save the range slope angle
     save_range_slope: bool(required=False)
 
-    # Save the number of looks used to generate the RTC product
+    # Save the number of looks used to generate the RTC-S1 product
     save_nlooks: bool(required=False)
 
     # Save the RTC area normalization factor (ANF) used to generate
     # the RTC product
     save_rtc_anf: bool(required=False)
 
-    # Save the interpolated DEM used to generate the RTC product
+    # Save the RTC area normalization factor (ANF) gamma0 to sigma0
+    save_rtc_anf_gamma0_to_sigma0: bool(required=False)
+
+    # Save the interpolated DEM used to generate the RTC-S1 product
     save_dem: bool(required=False)
 
     # Save layover/shadow mask

@@ -20,6 +20,8 @@ from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from s1reader.s1_orbit import get_orbit_file_from_list
 from s1reader.s1_reader import load_bursts
 
+STATIC_LAYERS_PRODUCT_TYPE = 'RTC_S1_SL'
+
 logger = logging.getLogger('rtc_s1')
 
 
@@ -59,17 +61,17 @@ def load_parameters(cfg):
 
     rtc_output_type = rtc_namespace.output_type
     if rtc_output_type == 'sigma0':
-        rtc_namespace.output_type = \
+        rtc_namespace.output_type_enum = \
             isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT
     else:
-        rtc_namespace.output_type = \
+        rtc_namespace.output_type_enum = \
             isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT
 
     if rtc_namespace.input_terrain_radiometry == "sigma0":
-        rtc_namespace.input_terrain_radiometry = \
+        rtc_namespace.input_terrain_radiometry_enum = \
             isce3.geometry.RtcInputTerrainRadiometry.SIGMA_NAUGHT_ELLIPSOID
     else:
-        rtc_namespace.input_terrain_radiometry = \
+        rtc_namespace.input_terrain_radiometry_enum = \
             isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT
 
     if rtc_namespace.rtc_min_value_db is None:
@@ -98,28 +100,19 @@ def load_parameters(cfg):
         dem_interp_method_enum
 
 
-
-def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
+def load_validate_yaml(yaml_path: str) -> dict:
     """Initialize RunConfig class with options from given yaml file.
 
     Parameters
     ----------
     yaml_path : str
         Path to yaml file containing the options to load
-    workflow_name: str
-        Name of the workflow for which uploading default options
     """
+    schema_filepath = f'{helpers.WORKFLOW_SCRIPTS_DIR}/schemas/rtc_s1.yaml'
     try:
-        # Load schema corresponding to 'workflow_name' and to validate against
-        if workflow_name == 's1_cslc_geo' or workflow_name == 'rtc_s1':            
-            schema_name = workflow_name
-        else:
-            schema_name = 's1_cslc_radar'
-        schema = yamale.make_schema(
-            f'{helpers.WORKFLOW_SCRIPTS_DIR}/schemas/{schema_name}.yaml',
-            parser='ruamel')
+        schema = yamale.make_schema(schema_filepath, parser='ruamel')
     except:
-        err_str = f'unable to load schema for workflow {workflow_name}.'
+        err_str = f'unable to load schema from file {schema_filepath}'
         logger.error(err_str)
         raise ValueError(err_str)
 
@@ -128,7 +121,8 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
         try:
             data = yamale.make_data(yaml_path, parser='ruamel')
         except yamale.YamaleError as yamale_err:
-            err_str = f'Yamale unable to load {workflow_name} runconfig yaml {yaml_path} for validation.'
+            err_str = (f'Yamale unable to load runconfig yaml'
+                       f'{yaml_path} for validation.')
             logger.error(err_str)
             raise yamale.YamaleError(err_str) from yamale_err
     else:
@@ -139,18 +133,29 @@ def load_validate_yaml(yaml_path: str, workflow_name: str) -> dict:
     try:
         yamale.validate(schema, data)
     except yamale.YamaleError as yamale_err:
-        err_str = f'Validation fail for {workflow_name} runconfig yaml {yaml_path}.'
+        err_str = (f'Validation failed for runconfig yaml {yaml_path}.')
         logger.error(err_str)
         raise yamale.YamaleError(err_str) from yamale_err
 
     # load default runconfig
     parser = YAML(typ='safe')
-    default_cfg_path = f'{helpers.WORKFLOW_SCRIPTS_DIR}/defaults/{schema_name}.yaml'
-    with open(default_cfg_path, 'r') as f_default:
-        default_cfg = parser.load(f_default)
 
     with open(yaml_path, 'r') as f_yaml:
         user_cfg = parser.load(f_yaml)
+
+    product_type = user_cfg['runconfig']['groups']['primary_executable'][
+        'product_type']
+    if (product_type == STATIC_LAYERS_PRODUCT_TYPE):
+        default_cfg_path = (f'{helpers.WORKFLOW_SCRIPTS_DIR}/defaults/'
+                            f'rtc_s1_sl.yaml')
+        print('Loading RTC-S1 runconfig default for static layers')
+    else:
+        default_cfg_path = (f'{helpers.WORKFLOW_SCRIPTS_DIR}/defaults/'
+                            f'rtc_s1.yaml')
+        print('Loading RTC-S1 runconfig default')
+
+    with open(default_cfg_path, 'r') as f_default:
+        default_cfg = parser.load(f_default)
 
     # Copy user-supplied configuration options into default runconfig
     helpers.deep_update(default_cfg, user_cfg)
@@ -242,20 +247,24 @@ def runconfig_to_bursts(cfg: SimpleNamespace):
             cfg.input_file_group.orbit_file_path)
 
         if not orbit_file_path:
-            err_str = f"No orbit file correlates to safe file: {os.path.basename(safe_file)}"
+            err_str = ("No orbit file correlates to safe file:"
+                       f" {os.path.basename(safe_file)}")
             logger.error(err_str)
             raise ValueError(err_str)
 
-        # from SAFE file mode, create dict of runconfig pol mode to polarization(s)
+        # from SAFE file mode, create dict of runconfig pol mode to
+        # polarization(s)
         safe_pol_mode = helpers.get_file_polarization_mode(safe_file)
         if safe_pol_mode == 'SV':
-            mode_to_pols = {'co-pol':['VV']}
+            mode_to_pols = {'co-pol': ['VV']}
         elif safe_pol_mode == 'DV':
-            mode_to_pols = {'co-pol':['VV'], 'cross-pol':['VH'], 'dual-pol':['VV', 'VH']}
+            mode_to_pols = {'co-pol': ['VV'], 'cross-pol': ['VH'],
+                            'dual-pol': ['VV', 'VH']}
         elif safe_pol_mode == 'SH':
-            mode_to_pols = {'co-pol':['HH']}
+            mode_to_pols = {'co-pol': ['HH']}
         else:
-            mode_to_pols = {'co-pol':['HH'], 'cross-pol':['HV'], 'dual-pol':['HH', 'HV']}
+            mode_to_pols = {'co-pol': ['HH'], 'cross-pol': ['HV'],
+                            'dual-pol': ['HH', 'HV']}
         pols = mode_to_pols[cfg.processing.polarization]
 
         # zip pol and IW subswath indices together
@@ -271,13 +280,13 @@ def runconfig_to_bursts(cfg: SimpleNamespace):
         for pol, i_subswath in pol_subswath_index_pairs:
 
             # loop over burst objs extracted from SAFE zip
-            for burst in load_bursts(safe_file, orbit_file_path, i_subswath, pol,
-                                     flag_apply_eap=False):
+            for burst in load_bursts(safe_file, orbit_file_path, i_subswath,
+                                     pol, flag_apply_eap=False):
                 # get burst ID
                 burst_id = str(burst.burst_id)
 
                 # is burst_id wanted? skip if not given in config
-                if (not cfg.input_file_group.burst_id is None and
+                if (cfg.input_file_group.burst_id is not None and
                         burst_id not in cfg.input_file_group.burst_id):
                     continue
 
@@ -299,7 +308,8 @@ def runconfig_to_bursts(cfg: SimpleNamespace):
 
     # check if no bursts were found
     if not bursts:
-        err_str = "Could not find any of the burst IDs in the provided safe files"
+        err_str = ("Could not find any of the burst IDs in the provided safe"
+                   " files")
         logger.error(err_str)
         raise ValueError(err_str)
 
@@ -325,7 +335,8 @@ def get_ref_radar_grid_info(ref_path, burst_id):
     rdr_grid_files = f'{ref_path}/radar_grid.txt'
 
     if not os.path.isfile(rdr_grid_files):
-        raise FileNotFoundError(f'No reference radar grids not found in {ref_path}')
+        raise FileNotFoundError('No reference radar grids not found in'
+                                f' {ref_path}')
 
     ref_rdr_path = os.path.dirname(rdr_grid_files)
     ref_rdr_grid = file_to_rdr_grid(rdr_grid_files)
@@ -391,9 +402,8 @@ class RunConfig:
     # orbit file path
     orbit_file_path: str
 
-
     @classmethod
-    def load_from_yaml(cls, yaml_path: str, workflow_name: str) -> RunConfig:
+    def load_from_yaml(cls, yaml_path: str) -> RunConfig:
         """Initialize RunConfig class with options from given yaml file.
 
         Parameters
@@ -403,7 +413,7 @@ class RunConfig:
         workflow_name: str
             Name of the workflow for which uploading default options
         """
-        cfg = load_validate_yaml(yaml_path, workflow_name)
+        cfg = load_validate_yaml(yaml_path)
         groups_cfg = cfg['runconfig']['groups']
 
         # Read mosaic dict
@@ -421,9 +431,11 @@ class RunConfig:
         bursts, orbit_file_path = runconfig_to_bursts(sns)
 
         # Load geogrids
-        burst_database_file = groups_cfg['static_ancillary_file_group']['burst_database_file']
+        burst_database_file = groups_cfg['static_ancillary_file_group'][
+            'burst_database_file']
         if burst_database_file is None:
-            geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict, mosaic_dict)
+            geogrid_all, geogrids = generate_geogrids(bursts, geocoding_dict,
+                                                      mosaic_dict)
         else:
             geogrid_all, geogrids = generate_geogrids_from_db(
                 bursts, geocoding_dict, mosaic_dict, burst_database_file)

@@ -18,7 +18,7 @@ if __name__ == "__main__":
     '''
 
     # load arguments from command line
-    parser  = get_rtc_s1_parser()
+    parser = get_rtc_s1_parser()
 
     # parse arguments
     args = parser.parse_args()
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     logger = create_logger(args.log_file, args.full_log_formatting)
 
     # Get a runconfig dict from command line argumens
-    cfg = RunConfig.load_from_yaml(args.run_config_path, 'rtc_s1')
+    cfg = RunConfig.load_from_yaml(args.run_config_path)
 
     load_parameters(cfg)
 

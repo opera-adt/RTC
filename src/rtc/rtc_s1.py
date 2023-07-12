@@ -19,7 +19,8 @@ from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    get_radar_grid,
                                    save_browse,
                                    append_metadata_to_geotiff_file,
-                                   populate_product_id)
+                                   populate_product_id,
+                                   read_and_validate_rtc_anf_flags)
 from rtc.mosaic_geobursts import (mosaic_single_output_file,
                                   mosaic_multiple_output_files)
 from rtc.core import save_as_cog, check_ancillary_inputs
@@ -27,9 +28,12 @@ from rtc.version import VERSION as SOFTWARE_VERSION
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          get_metadata_dict,
                          all_metadata_dict_to_geotiff_metadata_dict,
-                         DATA_BASE_GROUP)
-
-from rtc.runconfig import RunConfig
+                         layer_hdf5_dict,
+                         DATA_BASE_GROUP,
+                         LAYER_NAME_LAYOVER_SHADOW_MASK,
+                         LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0,
+                         LAYER_NAME_NUMBER_OF_LOOKS)
+from rtc.runconfig import RunConfig, STATIC_LAYERS_PRODUCT_TYPE
 
 logger = logging.getLogger('rtc_s1')
 
@@ -265,7 +269,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 f' v{SOFTWARE_VERSION}')
 
     # primary executable
-    processing_type = cfg.groups.product_group.processing_type
+    product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
@@ -372,11 +376,10 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
-    save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
+    save_rtc_anf_projection_angle = geocode_namespace.save_rtc_anf_projection_angle
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
-    save_rtc_anf = geocode_namespace.save_rtc_anf
     save_dem = geocode_namespace.save_dem
     save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
 
@@ -386,7 +389,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     flag_call_radar_grid = (save_incidence_angle or
                             save_local_inc_angle or save_projection_angle or
-                            save_rtc_anf_psi or save_dem or
+                            save_rtc_anf_projection_angle or save_dem or
                             save_range_slope)
 
     # unpack RTC run parameters
@@ -395,26 +398,22 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # only 2 RTC algorithms supported: area_projection (default) &
     # bilinear_distribution
 
-    output_terrain_radiometry = rtc_namespace.output_type
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
-    if (flag_apply_rtc and output_terrain_radiometry ==
-            isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
-        rtc_anf_suffix = "sigma0_to_beta0"
-        output_radiometry_str = "radar backscatter sigma0"
-    elif (flag_apply_rtc and output_terrain_radiometry ==
-            isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT):
-        rtc_anf_suffix = "gamma0_to_beta0"
-        output_radiometry_str = 'radar backscatter gamma0'
-    elif (input_terrain_radiometry ==
-            isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT):
-        rtc_anf_suffix = "beta0_to_beta0"
-        output_radiometry_str = 'radar backscatter beta0'
+    output_terrain_radiometry = rtc_namespace.output_type
+    output_terrain_radiometry_enum = rtc_namespace.output_type_enum
+    output_radiometry_str = f"radar backscatter {output_terrain_radiometry}"
+    if flag_apply_rtc:
+        layer_name_rtc_anf = (f"rtc_anf_{output_terrain_radiometry}_to_"
+                              f"{input_terrain_radiometry}")
     else:
-        rtc_anf_suffix = "sigma0_to_beta0"
-        output_radiometry_str = 'radar backscatter sigma0'
+        layer_name_rtc_anf = ''
+
+    save_rtc_anf, save_rtc_anf_gamma0_to_sigma0 = \
+        read_and_validate_rtc_anf_flags(geocode_namespace, flag_apply_rtc,
+                                        output_terrain_radiometry_enum, logger)
 
     logger.info('Identification:')
-    logger.info(f'    processing type: {processing_type}')
+    logger.info(f'    product type: {product_type}')
     logger.info(f'    product version: {product_version}')
     if save_mosaics:
         logger.info(f'    mosaic product ID: {mosaic_product_id}')
@@ -487,14 +486,18 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # configure mosaic secondary layers
     # e.g. layover shadow mask, nlooks, area normalization factor
     add_output_to_output_metadata_dict(
-        save_layover_shadow_mask, 'layover_shadow_mask',
+        save_layover_shadow_mask, LAYER_NAME_LAYOVER_SHADOW_MASK,
         output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
+        save_nlooks, LAYER_NAME_NUMBER_OF_LOOKS, output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, 'rtc_area_normalization_factor',
+        save_rtc_anf, layer_name_rtc_anf,
+        output_dir_sec_mosaic_raster,
+        output_metadata_dict, mosaic_product_id, imagery_extension)
+    add_output_to_output_metadata_dict(
+        save_rtc_anf_gamma0_to_sigma0, LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0,
         output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
 
@@ -611,8 +614,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         burst_product_id = burst_product_id_list[burst_index]
         logger.info(f'    product ID: {burst_product_id}')
 
-        if processing_type == 'STATIC_LAYERS':
-            # for STATIC_LAYERS, we just use the first polarization as
+        if product_type == STATIC_LAYERS_PRODUCT_TYPE:
+            # for static layers, we just use the first polarization as
             # reference
             pol_list = [pol_list[0]]
             burst_pol_dict = {pol_list[0]: burst}
@@ -662,10 +665,11 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if save_secondary_layers_as_hdf5:
                 nlooks_file = (f'NETCDF:"{burst_hdf5_in_output}":'
                                f'{DATA_BASE_GROUP}/'
-                               'numberOfLooks')
+                               f'{layer_hdf5_dict[LAYER_NAME_NUMBER_OF_LOOKS]}')
             else:
                 nlooks_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
-                               f'_nlooks.{imagery_extension}')
+                               f'_{LAYER_NAME_NUMBER_OF_LOOKS}.'
+                               f'{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
@@ -678,11 +682,11 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if save_secondary_layers_as_hdf5:
                 rtc_anf_file = (f'NETCDF:"{burst_hdf5_in_output}":'
                                 f'{DATA_BASE_GROUP}/'
-                                'RTCAreaNormalizationFactor')
+                                f'{layer_hdf5_dict[layer_name_rtc_anf]}')
             else:
                 rtc_anf_file = (
                     f'{output_dir_sec_bursts}/{burst_product_id}'
-                    f'_rtc_anf_{rtc_anf_suffix}.{imagery_extension}')
+                    f'_{layer_name_rtc_anf}.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -691,6 +695,26 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
         else:
             rtc_anf_file = None
+
+        if save_rtc_anf_gamma0_to_sigma0:
+            if save_secondary_layers_as_hdf5:
+                rtc_anf_gamma0_to_sigma0_file = (
+                    f'NETCDF:"{burst_hdf5_in_output}":'
+                    f'{DATA_BASE_GROUP}/'
+                    f'{layer_hdf5_dict[LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0]}')
+            else:
+                rtc_anf_gamma0_to_sigma0_file = (
+                    f'{output_dir_sec_bursts}/{burst_product_id}'
+                    f'_{LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0}.'
+                    f'{imagery_extension}')
+
+            if flag_bursts_secondary_files_are_temporary:
+                temp_files_list.append(rtc_anf_gamma0_to_sigma0_file)
+            else:
+                output_file_list.append(rtc_anf_gamma0_to_sigma0_file)
+
+        else:
+            rtc_anf_gamma0_to_sigma0_file = None
 
         # Calculate layover/shadow mask when requested
         if save_layover_shadow_mask or apply_shadow_masking:
@@ -702,12 +726,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 # layover/shadow mask is temporary
                 layover_shadow_mask_file = \
                     (f'{burst_scratch_path}/{burst_product_id}'
-                     f'_layover_shadow_mask.{imagery_extension}')
+                     f'_{LAYER_NAME_LAYOVER_SHADOW_MASK}.{imagery_extension}')
             else:
                 # layover/shadow mask is saved in `output_dir_sec_bursts`
                 layover_shadow_mask_file = \
                     (f'{output_dir_sec_bursts}/{burst_product_id}'
-                     f'_layover_shadow_mask.{imagery_extension}')
+                     f'_{LAYER_NAME_LAYOVER_SHADOW_MASK}.{imagery_extension}')
 
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
@@ -721,11 +745,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                     layover_shadow_mask_file = (
                         f'NETCDF:{burst_hdf5_in_output}:'
                         f'{DATA_BASE_GROUP}/'
-                        'layoverShadowMask')
+                        f'{layer_hdf5_dict[LAYER_NAME_LAYOVER_SHADOW_MASK]}')
 
                 if save_layover_shadow_mask:
-                    output_metadata_dict['layover_shadow_mask'][1].append(
-                        layover_shadow_mask_file)
+                    output_metadata_dict[
+                        LAYER_NAME_LAYOVER_SHADOW_MASK][1].append(
+                            layover_shadow_mask_file)
 
             if not save_layover_shadow_mask:
                 layover_shadow_mask_file = None
@@ -766,10 +791,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             temp_files_list += output_burst_imagery_list
 
         if save_nlooks:
-            output_metadata_dict['nlooks'][1].append(nlooks_file)
+            output_metadata_dict[
+                LAYER_NAME_NUMBER_OF_LOOKS][1].append(nlooks_file)
 
         if save_rtc_anf:
-            output_metadata_dict['rtc_area_normalization_factor'][1].append(
+            output_metadata_dict[layer_name_rtc_anf][1].append(
+                rtc_anf_file)
+        if save_rtc_anf_gamma0_to_sigma0:
+            output_metadata_dict[
+                LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0][1].append(
                 rtc_anf_file)
 
         radar_grid_file_dict = {}
@@ -780,7 +810,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 'incidence_angle': save_incidence_angle,
                 'local_incidence_angle': save_local_inc_angle,
                 'projection_angle': save_projection_angle,
-                'rtc_anf_psi': save_rtc_anf_psi,
+                'rtc_anf_projection_angle': save_rtc_anf_projection_angle,
                 'range_slope': save_range_slope,
                 'interpolated_dem': save_dem}
 
@@ -838,7 +868,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                        radar_grid_output_dir, imagery_extension,
                        save_incidence_angle,
                        save_local_inc_angle, save_projection_angle,
-                       save_rtc_anf_psi,
+                       save_rtc_anf_projection_angle,
                        save_range_slope, save_dem,
                        dem_raster, radar_grid_file_dict,
                        lookside, wavelength,
@@ -863,7 +893,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_imagery_filename_list.append(geo_pol_filename)
 
         if save_nlooks:
-            nlooks_list = output_metadata_dict['nlooks'][1]
+            nlooks_list = output_metadata_dict[LAYER_NAME_NUMBER_OF_LOOKS][1]
         else:
             nlooks_list = []
 
@@ -896,7 +926,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
-                    (key == 'nlooks' and not save_nlooks)):
+                    (key == LAYER_NAME_NUMBER_OF_LOOKS and not save_nlooks)):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
@@ -916,17 +946,23 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         # Save the mosaicked layers as HDF5
         if save_hdf5_metadata:
             if save_nlooks:
-                nlooks_mosaic_file = output_metadata_dict['nlooks'][0]
+                nlooks_mosaic_file = output_metadata_dict[
+                    LAYER_NAME_NUMBER_OF_LOOKS][0]
             else:
                 nlooks_mosaic_file = None
             if save_rtc_anf:
                 rtc_anf_mosaic_file = output_metadata_dict[
-                    'rtc_area_normalization_factor'][0]
+                    layer_name_rtc_anf][0]
             else:
                 rtc_anf_mosaic_file = None
+            if save_rtc_anf_gamma0_to_sigma0:
+                rtc_anf_gamma0_to_sigma0_mosaic_file = output_metadata_dict[
+                    LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0][0]
+            else:
+                rtc_anf_gamma0_to_sigma0_mosaic_file = None
             if save_layover_shadow_mask:
                 layover_shadow_mask_file = output_metadata_dict[
-                    'layover_shadow_mask'][0]
+                    LAYER_NAME_LAYOVER_SHADOW_MASK][0]
             else:
                 layover_shadow_mask_file = None
 
@@ -962,10 +998,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             temp_files_list.append(geo_filename_vrt)
 
             save_hdf5_file(
-                hdf5_mosaic_obj, output_hdf5_file, flag_apply_rtc,
+                hdf5_mosaic_obj, output_hdf5_file,
                 clip_max, clip_min, output_radiometry_str,
                 cfg.geogrid, pol_list, geo_filename_vrt, nlooks_mosaic_file,
-                rtc_anf_mosaic_file, layover_shadow_mask_file,
+                rtc_anf_mosaic_file, layer_name_rtc_anf,
+                rtc_anf_gamma0_to_sigma0_mosaic_file,
+                layover_shadow_mask_file,
                 radar_grid_file_dict, save_imagery=save_imagery_as_hdf5,
                 save_secondary_layers=save_secondary_layers_as_hdf5)
             hdf5_mosaic_obj.close()

@@ -3,9 +3,10 @@ runconfig:
 
     groups:
 
-        # Required. Output product type: "RTC_S1" or "RTC_S1_SL"
         primary_executable:
-            product_type: RTC_S1
+
+        # Required. Output product type: "RTC_S1" or "RTC_S1_SL"
+            product_type: RTC_S1_SL
 
         pge_name_group:
             pge_name: RTC_S1_PGE
@@ -52,15 +53,11 @@ runconfig:
             #     - An empty string, if the product is a mosaic.
             #
             # For example, the `product_id` = `RTC-S1_{burst_id}_S1B` will become
-            # `RTC-S1_T069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
+            # `RTC-S1_069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
             # will become `RTC-S1_S1B` for the mosaic product.
             #
-            # If the field `product_id` is left empty, the product ID will
-            # follow the RTC-S1 file naming conventions:
-            # `OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}_
-            # {processing_datetime}_{sensor}_{pixel_spacing}
-            #  _{product_version}`.
-            #
+            # If the field `product_id`` is left empty, the prefix
+            # "OPERA_L2_RTC-S1_{burst_id}"  will be used instead.
             # `suffix` is only used when there are multiple output files.
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir:
@@ -73,7 +70,7 @@ runconfig:
             save_mosaics: False
 
             # Save browse image(s)
-            save_browse: True
+            save_browse: False
 
             output_imagery_format: COG
             output_imagery_compression: DEFLATE
@@ -87,7 +84,7 @@ runconfig:
             # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
             # 'COG', and enabled by default for `output_imagery_format` equal
             # to 'HDF5' or 'NETCDF' or `save_secondary_layers_as_hdf5` is True
-            save_metadata: True
+            save_metadata: False
 
         processing:
 
@@ -190,10 +187,10 @@ runconfig:
                 geogrid_upsampling: 1
 
                 # Save the incidence angle
-                save_incidence_angle: False
+                save_incidence_angle: True
 
                 # Save the local-incidence angle
-                save_local_inc_angle: False
+                save_local_inc_angle: True
 
                 # Save the projection angle
                 save_projection_angle: False
@@ -206,18 +203,18 @@ runconfig:
                 save_range_slope: False
 
                 # Save the number of looks used to generate the RTC-S1 product
-                save_nlooks: False
-
+                save_nlooks: True
+              
                 # Save the area normalization factor (ANF) to normalize RTC-S1
                 # imagery to the original SLC backscatter convention:
                 # beta0 or sigma0 (ellipsoid)
-                save_rtc_anf: False
+                save_rtc_anf: True
 
                 # Save the RTC area normalization factor (ANF) gamma0 to sigma0
-                save_rtc_anf_gamma0_to_sigma0: False
+                save_rtc_anf_gamma0_to_sigma0: True
 
                 # Save the interpolated DEM used to generate the RTC-S1 product
-                save_dem: False
+                save_dem: True
 
                 # Save layover shadow mask
                 save_layover_shadow_mask: True
@@ -237,7 +234,6 @@ runconfig:
 
                 # Double SLC sampling in the range direction
                 upsample_radargrid: False
-
 
                 bursts_geogrid:
 

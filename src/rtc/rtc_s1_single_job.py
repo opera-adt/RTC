@@ -19,7 +19,7 @@ import matplotlib.image as mpimg
 from s1reader.s1_burst_slc import Sentinel1BurstSlc
 
 from rtc.geogrid import snap_coord
-from rtc.runconfig import RunConfig
+from rtc.runconfig import RunConfig, STATIC_LAYERS_PRODUCT_TYPE
 from rtc.mosaic_geobursts import (mosaic_single_output_file,
                                   mosaic_multiple_output_files)
 from rtc.core import (save_as_cog, check_ancillary_inputs,
@@ -27,69 +27,25 @@ from rtc.core import (save_as_cog, check_ancillary_inputs,
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          get_metadata_dict,
                          all_metadata_dict_to_geotiff_metadata_dict,
+                         layer_names_dict,
+                         layer_description_dict,
                          DATA_BASE_GROUP,
-                         DATE_TIME_FILENAME_FORMAT)
+                         DATE_TIME_FILENAME_FORMAT,
+                         LAYER_NAME_LAYOVER_SHADOW_MASK,
+                         LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0,
+                         LAYER_NAME_NUMBER_OF_LOOKS,
+                         LAYER_NAME_INCIDENCE_ANGLE,
+                         LAYER_NAME_LOCAL_INCIDENCE_ANGLE,
+                         LAYER_NAME_PROJECTION_ANGLE,
+                         LAYER_NAME_RTC_ANF_PROJECTION_ANGLE,
+                         LAYER_NAME_RANGE_SLOPE,
+                         LAYER_NAME_DEM)
 from rtc.version import VERSION as SOFTWARE_VERSION
 
 logger = logging.getLogger('rtc_s1')
 
 STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR = 3
 
-# RTC-S1 product layer names
-layer_names_dict = {
-    'VV': 'RTC-S1 VV Backscatter (Gamma0)',
-    'VH': 'RTC-S1 VH Backscatter (Gamma0)',
-    'layover_shadow_mask': 'Layover/Shadow Mask',
-    'rtc_anf_gamma0_to_beta0': ('RTC Area Normalization Factor'
-                                ' Gamma0 to Beta0'),
-    'rtc_anf_sigma0_to_beta0': ('RTC Area Normalization Factor'
-                                ' Sigma0 to Beta0'),
-    'rtc_anf_beta0_to_beta0': ('RTC Area Normalization Factor'
-                               ' Beta0 to Beta0'),
-    'incidence_angle': 'Incidence Angle',
-    'local_incidence_angle': 'Local Incidence Angle',
-    
-    # TODO improve description below
-    'projection_angle': 'Projection Angle',
-    'rtc_anf_psi': ('RTC Area Normalization Factor'
-                    ' Gamma0 to Beta0 (Projection Angle - Psi)'),
-    'range_slope': 'Range Slope',
-    'dem': 'Digital Elevation Model (DEM)'
-}
-
-# RTC-S1 product layer description dict
-layer_description_dict = {
-    'VV': ('Radiometric terrain corrected Sentinel-1 VV backscatter'
-           ' coefficient normalized to gamma0'),
-    'VH': ('Radiometric terrain corrected Sentinel-1 VH backscatter'
-           ' coefficient normalized to gamma0'),
-    'layover_shadow_mask': ('Layover/shadow mask. Values: 0: not masked;'
-                            '1: shadow; 2: layover; 3: layover and shadow'),
-    'rtc_anf_gamma0_to_beta0': ('Radiometric terrain correction (RTC)'
-                                ' area normalization factor (ANF)'
-                                ' gamma0 to beta0'),
-    'rtc_anf_sigma0_to_beta0': ('Radiometric terrain correction (RTC)'
-                                ' area normalization factor (ANF)'
-                                ' sigma0 to beta0'),
-    'rtc_anf_beta0_to_beta0': ('Radiometric terrain correction (RTC)'
-                               ' area normalization factor (ANF)'
-                               ' beta0 to beta0'),
-    'incidence_angle': ('Incidence angle is defined as the angle between'
-                        ' the line-of-sight (LOS) vector and the normal to'
-                        ' the ellipsoid at the target height'),
-    'local_incidence_angle': ('Local incidence angle is defined as the angle'
-                              ' between the line-of-sight (LOS) vector and the'
-                              ' normal to the ellipsoid at the target height'),
-    
-    # TODO improve description below
-    'projection_angle': 'Projection angle (psi)',
-    'rtc_anf_psi': ('Radiometric terrain correction (RTC)'
-                    ' area normalization factor (ANF) '
-                    ' gamma0 to beta0 computed with'
-                    ' the projection angle method'),
-    'range_slope': 'Range slope',
-    'dem': 'Digital elevation model (DEM)'
-}
 
 
 def populate_product_id(product_id, burst_in, processing_datetime,
@@ -495,7 +451,7 @@ def _separate_pol_channels(multi_band_file, output_file_list,
         logger.info(f'file saved: {output_file}')
 
 
-def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
+def _create_raster_obj(output_dir, product_id, layer_name, dtype, shape,
                        radar_grid_file_dict, output_obj_list,
                        flag_create_raster_obj, extension):
     """Create an ISCE3 raster object (GTiff) for a radar geometry layer.
@@ -504,8 +460,10 @@ def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
        ----------
        output_dir: str
               Output directory
-       ds_name: str
-              Dataset (geometry layer) name
+       layer_name: str
+              Layer name
+       product_id: str
+              Product ID
        ds_hdf5: str
               HDF5 dataset name
        dtype:: gdal.DataType
@@ -528,6 +486,8 @@ def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
     if flag_create_raster_obj is not True:
         return None
 
+    ds_name = f'{product_id}_{layer_name}'
+
     output_file = os.path.join(output_dir, ds_name) + '.' + extension
     raster_obj = isce3.io.Raster(
         output_file,
@@ -537,7 +497,7 @@ def _create_raster_obj(output_dir, ds_name, ds_hdf5, dtype, shape,
         dtype,
         "GTiff")
     output_obj_list.append(raster_obj)
-    radar_grid_file_dict[ds_hdf5] = output_file
+    radar_grid_file_dict[layer_name] = output_file
     return raster_obj
 
 
@@ -575,7 +535,7 @@ def apply_slc_corrections(burst_in: Sentinel1BurstSlc,
     flag_thermal_correction: bool
         flag whether or not to apple the thermal correction.
     flag_apply_abs_rad_correction: bool
-        Flag to apply radiometirc calibration
+        Flag to apply radiometric calibration
     '''
 
     # Load the SLC of the burst
@@ -900,6 +860,64 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
     return slantrange_layover_shadow_mask_raster
 
 
+def read_and_validate_rtc_anf_flags(geocode_namespace, flag_apply_rtc,
+                                    output_terrain_radiometry, logger):
+    '''
+    Read and validate radiometric terrain correction (RTC) area
+    normalization factor (ANF) flags
+
+    Parameters
+    ----------
+    geocode_namespace: types.SimpleNamespace
+        Runconfig geocode namespace
+    flag_apply_rtc: Bool
+        Flag apply RTC (radiometric terrain correction)
+    output_terrain_radiometry: isce3.geometry.RtcOutputTerrainRadiometry
+        Output terrain radiometry (backscatter coefficient convention)
+    logger : loggin.Logger
+        Logger
+
+    Returns
+    -------
+    save_rtc_anf: bool
+        Flag indicating wheter the radiometric terrain correction (RTC)
+        area normalization factor (ANF) layer should be created
+    save_rtc_anf_gamma0_to_sigma0: bool
+        Flag indicating wheter the radiometric terrain correction (RTC)
+        area normalization factor (ANF) gamma0 to sigma0 layer should be
+        created
+    '''
+    save_rtc_anf = geocode_namespace.save_rtc_anf
+    save_rtc_anf_gamma0_to_sigma0 = \
+        geocode_namespace.save_rtc_anf_gamma0_to_sigma0
+
+    if not flag_apply_rtc and save_rtc_anf:
+        logger.warning("WARNING the option `save_rtc_anf` is not available"
+                       " with radiometric terrain correction"
+                       " disabled (`apply_rtc = False`). Setting"
+                       " flag `save_rtc_anf` to `False`.")
+        save_rtc_anf = False
+
+    if not flag_apply_rtc and save_rtc_anf_gamma0_to_sigma0:
+        logger.warning = ("WARNING the option `save_rtc_anf_gamma0_to_sigma0`"
+                          " is not available with radiometric terrain"
+                          " correction disabled (`apply_rtc = False`)."
+                          " Setting flag `save_rtc_anf_gamma0_to_sigma0` to"
+                          " `False`.")
+        save_rtc_anf_gamma0_to_sigma0 = False
+    elif (save_rtc_anf_gamma0_to_sigma0 and
+          output_terrain_radiometry ==
+            isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
+        logger.warning = ("WARNING the option `save_rtc_anf_gamma0_to_sigma0`"
+                          " is not available with output radiometric terrain"
+                          " radiometry (`output_type`) set to `sigma0`."
+                          " Setting flag `save_rtc_anf_gamma0_to_sigma0` to"
+                          " `False`.")
+        save_rtc_anf_gamma0_to_sigma0 = False
+
+    return save_rtc_anf, save_rtc_anf_gamma0_to_sigma0
+
+
 def run_single_job(cfg: RunConfig):
     '''
     Run geocode burst workflow with user-defined
@@ -918,7 +936,7 @@ def run_single_job(cfg: RunConfig):
                 f' v{SOFTWARE_VERSION}')
 
     # primary executable
-    processing_type = cfg.groups.product_group.processing_type
+    product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
@@ -1039,11 +1057,10 @@ def run_single_job(cfg: RunConfig):
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
-    save_rtc_anf_psi = geocode_namespace.save_rtc_anf_psi
+    save_rtc_anf_projection_angle = geocode_namespace.save_rtc_anf_projection_angle
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
-    save_rtc_anf = geocode_namespace.save_rtc_anf
     save_dem = geocode_namespace.save_dem
     save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
 
@@ -1053,7 +1070,7 @@ def run_single_job(cfg: RunConfig):
 
     flag_call_radar_grid = (save_incidence_angle or
                             save_local_inc_angle or save_projection_angle or
-                            save_rtc_anf_psi or save_dem or
+                            save_rtc_anf_projection_angle or save_dem or
                             save_range_slope)
 
     # unpack RTC run parameters
@@ -1066,29 +1083,27 @@ def run_single_job(cfg: RunConfig):
     else:
         rtc_algorithm = isce3.geometry.RtcAlgorithm.RTC_AREA_PROJECTION
 
-    output_terrain_radiometry = rtc_namespace.output_type
     input_terrain_radiometry = rtc_namespace.input_terrain_radiometry
+    input_terrain_radiometry_enum = rtc_namespace.input_terrain_radiometry_enum
+    output_terrain_radiometry = rtc_namespace.output_type
+    output_terrain_radiometry_enum = rtc_namespace.output_type_enum
+    output_radiometry_str = f"radar backscatter {output_terrain_radiometry}"
+    if flag_apply_rtc:
+        layer_name_rtc_anf = (f"rtc_anf_{output_terrain_radiometry}_to_"
+                              f"{input_terrain_radiometry}")
+    else:
+        layer_name_rtc_anf = ''
+
+    save_rtc_anf, save_rtc_anf_gamma0_to_sigma0 = \
+        read_and_validate_rtc_anf_flags(geocode_namespace, flag_apply_rtc,
+                                        output_terrain_radiometry_enum, logger)
+
     rtc_min_value_db = rtc_namespace.rtc_min_value_db
     rtc_upsampling = rtc_namespace.dem_upsampling
     rtc_area_beta_mode = rtc_namespace.area_beta_mode
-    if (flag_apply_rtc and output_terrain_radiometry ==
-            isce3.geometry.RtcOutputTerrainRadiometry.SIGMA_NAUGHT):
-        rtc_anf_suffix = "sigma0_to_beta0"
-        output_radiometry_str = "radar backscatter sigma0"
-    elif (flag_apply_rtc and output_terrain_radiometry ==
-            isce3.geometry.RtcOutputTerrainRadiometry.GAMMA_NAUGHT):
-        rtc_anf_suffix = "gamma0_to_beta0"
-        output_radiometry_str = 'radar backscatter gamma0'
-    elif (input_terrain_radiometry ==
-          isce3.geometry.RtcInputTerrainRadiometry.BETA_NAUGHT):
-        rtc_anf_suffix = "beta0_to_beta0"
-        output_radiometry_str = 'radar backscatter beta0'
-    else:
-        rtc_anf_suffix = "sigma0_to_beta0"
-        output_radiometry_str = 'radar backscatter sigma0'
 
     logger.info('Identification:')
-    logger.info(f'    processing type: {processing_type}')
+    logger.info(f'    product type: {product_type}')
     logger.info(f'    product version: {product_version}')
     if save_mosaics:
         logger.info(f'    mosaic product ID: {mosaic_product_id}')
@@ -1119,6 +1134,28 @@ def run_single_job(cfg: RunConfig):
                 f' {save_secondary_layers_as_hdf5}')
     logger.info(f'    check ancillary coverage:'
                 f' {check_ancillary_inputs_coverage}')
+
+    logger.info('Save layers:')
+    logger.info(f'    {layer_names_dict[LAYER_NAME_LAYOVER_SHADOW_MASK]}:'
+                f' {save_rtc_anf}')
+    logger.info(f'    RTC area normalization factor: {save_rtc_anf}')
+    logger.info(f'    RTC area normalization factor Gamma0 to Beta0:'
+                f' {save_rtc_anf_gamma0_to_sigma0}')
+    logger.info(f'    {layer_names_dict[LAYER_NAME_NUMBER_OF_LOOKS]}:'
+                f' {save_nlooks}')
+    logger.info(f'    {layer_names_dict[LAYER_NAME_INCIDENCE_ANGLE]}:'
+                f' {save_incidence_angle}')
+    logger.info(f'    {layer_names_dict[LAYER_NAME_LOCAL_INCIDENCE_ANGLE]}:'
+                f' {save_local_inc_angle}')
+    logger.info(f'    {layer_names_dict[LAYER_NAME_PROJECTION_ANGLE]}:'
+                f' {save_projection_angle}')
+    logger.info(f'    {layer_names_dict[LAYER_NAME_RTC_ANF_PROJECTION_ANGLE]}:'
+                f' {save_rtc_anf_projection_angle}')
+    logger.info(f'    {layer_names_dict[LAYER_NAME_RANGE_SLOPE]}:'
+                f' {save_range_slope}')
+    logger.info(f'    {layer_names_dict[LAYER_NAME_DEM]}:'
+                f' {save_dem}')
+
     logger.info('Browse images:')
     logger.info(f'    burst height: {browse_image_burst_height}')
     logger.info(f'    burst width: {browse_image_burst_width}')
@@ -1166,16 +1203,19 @@ def run_single_job(cfg: RunConfig):
     else:
         output_dir_sec_mosaic_raster = output_dir
 
-    # configure mosaic secondary layers
     add_output_to_output_metadata_dict(
-        save_layover_shadow_mask, 'layover_shadow_mask',
+        save_layover_shadow_mask, LAYER_NAME_LAYOVER_SHADOW_MASK,
         output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_nlooks, 'nlooks', output_dir_sec_mosaic_raster,
+        save_nlooks, LAYER_NAME_NUMBER_OF_LOOKS, output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
-        save_rtc_anf, f'rtc_anf_{rtc_anf_suffix}',
+        save_rtc_anf, layer_name_rtc_anf,
+        output_dir_sec_mosaic_raster,
+        output_metadata_dict, mosaic_product_id, imagery_extension)
+    add_output_to_output_metadata_dict(
+        save_rtc_anf_gamma0_to_sigma0, LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0,
         output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
 
@@ -1220,8 +1260,8 @@ def run_single_job(cfg: RunConfig):
 
         logger.info(f'    product ID: {burst_product_id}')
 
-        if processing_type == 'STATIC_LAYERS':
-            # for STATIC_LAYERS, we just use the first polarization as
+        if product_type == STATIC_LAYERS_PRODUCT_TYPE:
+            # for static layers, we just use the first polarization as
             # reference
             pol_list = [pol_list[0]]
             burst_pol_dict = {pol_list[0]: burst}
@@ -1292,7 +1332,7 @@ def run_single_job(cfg: RunConfig):
             logger.info('    reading burst SLCs')
 
         radar_grid = burst.as_isce3_radargrid()
-        if processing_type == 'STATIC_LAYERS':
+        if product_type == STATIC_LAYERS_PRODUCT_TYPE:
             radar_grid = radar_grid.offset_and_resize(
                 - int(1.5 * radar_grid.length),
                 - int(radar_grid.width),
@@ -1313,7 +1353,7 @@ def run_single_job(cfg: RunConfig):
 
             if (flag_process and (flag_apply_thermal_noise_correction or
                 flag_apply_abs_rad_correction) and 
-                    processing_type == 'STATIC_LAYERS'):
+                    product_type == STATIC_LAYERS_PRODUCT_TYPE):
                 fill_value = 1
                 build_empty_vrt(temp_slc_path, radar_grid.length,
                                 radar_grid.width, fill_value)
@@ -1346,7 +1386,7 @@ def run_single_job(cfg: RunConfig):
         out_geo_nlooks_obj = None
         if save_nlooks:
             nlooks_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
-                           f'_nlooks.{imagery_extension}')
+                           f'_{LAYER_NAME_NUMBER_OF_LOOKS}.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
@@ -1358,7 +1398,7 @@ def run_single_job(cfg: RunConfig):
         out_geo_rtc_obj = None
         if save_rtc_anf:
             rtc_anf_file = (f'{output_dir_sec_bursts}/{burst_product_id}'
-                            f'_rtc_anf_{rtc_anf_suffix}.{imagery_extension}')
+                            f'_{layer_name_rtc_anf}.{imagery_extension}')
 
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
@@ -1368,12 +1408,27 @@ def run_single_job(cfg: RunConfig):
         else:
             rtc_anf_file = None
 
+        out_geo_rtc_gamma0_to_sigma0_obj = None
+        if save_rtc_anf_gamma0_to_sigma0:
+            rtc_anf_gamma0_to_sigma0_file = \
+                (f'{output_dir_sec_bursts}/{burst_product_id}'
+                 f'_{LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0}.{imagery_extension}')
+
+            if flag_bursts_secondary_files_are_temporary:
+                temp_files_list.append(rtc_anf_gamma0_to_sigma0_file)
+            else:
+                output_file_list.append(rtc_anf_gamma0_to_sigma0_file)
+
+        else:
+            rtc_anf_gamma0_to_sigma0_file = None
+
         # geocoding optional arguments
         geocode_kwargs = {}
         layover_shadow_mask_geocode_kwargs = {}
+
         # get sub_swaths metadata
         if (flag_process and apply_valid_samples_sub_swath_masking and
-                not processing_type == 'STATIC_LAYERS'):
+                not product_type == STATIC_LAYERS_PRODUCT_TYPE):
             # Extract burst boundaries and create sub_swaths object to mask
             # invalid radar samples
             n_subswaths = 1
@@ -1419,18 +1474,18 @@ def run_single_job(cfg: RunConfig):
                 # layover/shadow mask is temporary
                 layover_shadow_mask_file = \
                     (f'{burst_scratch_path}/{burst_product_id}'
-                     f'_layover_shadow_mask.{imagery_extension}')
+                     f'_{LAYER_NAME_LAYOVER_SHADOW_MASK}.{imagery_extension}')
             else:
                 # layover/shadow mask is saved in `output_dir_sec_bursts`
                 layover_shadow_mask_file = \
                     (f'{output_dir_sec_bursts}/{burst_product_id}'
-                     f'_layover_shadow_mask.{imagery_extension}')
+                     f'_{LAYER_NAME_LAYOVER_SHADOW_MASK}.{imagery_extension}')
             if flag_process:
 
                 logger.info('    computing layover shadow mask for'
                             f' {burst_id}')
 
-                if processing_type == 'STATIC_LAYERS':
+                if product_type == STATIC_LAYERS_PRODUCT_TYPE:
                     radar_grid_layover_shadow_mask = radar_grid.multilook(
                         STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR,
                         STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR)
@@ -1461,7 +1516,7 @@ def run_single_job(cfg: RunConfig):
                 output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
                 if save_layover_shadow_mask:
-                    output_metadata_dict['layover_shadow_mask'][1].append(
+                    output_metadata_dict[LAYER_NAME_LAYOVER_SHADOW_MASK][1].append(
                         layover_shadow_mask_file)
 
             if not save_layover_shadow_mask:
@@ -1472,7 +1527,7 @@ def run_single_job(cfg: RunConfig):
             # number is not unitary, the layover shadow mask cannot be used
             # with geocoding
             if (apply_shadow_masking and flag_process and
-                    processing_type != 'STATIC_LAYERS' or
+                    product_type != STATIC_LAYERS_PRODUCT_TYPE or
                     STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR == 1):
                 geocode_kwargs['input_layover_shadow_mask_raster'] = \
                     slantrange_layover_shadow_mask_raster
@@ -1487,11 +1542,18 @@ def run_single_job(cfg: RunConfig):
                     gdal.GDT_Float32, output_raster_format)
 
             if save_rtc_anf:
-
                 out_geo_rtc_obj = isce3.io.Raster(
                     rtc_anf_file,
                     geogrid.width, geogrid.length, 1,
                     gdal.GDT_Float32, output_raster_format)
+
+            if save_rtc_anf_gamma0_to_sigma0:
+                out_geo_rtc_gamma0_to_sigma0_obj = isce3.io.Raster(
+                    rtc_anf_gamma0_to_sigma0_file,
+                    geogrid.width, geogrid.length, 1,
+                    gdal.GDT_Float32, output_raster_format)
+                geocode_kwargs['out_geo_rtc_gamma0_to_sigma0'] = \
+                    out_geo_rtc_gamma0_to_sigma0_obj
 
             # create multi-band VRT
             if len(input_file_list) == 1:
@@ -1557,9 +1619,9 @@ def run_single_job(cfg: RunConfig):
                     rtc_area_beta_mode_enum = \
                         isce3.geometry.RtcAreaBetaMode.AUTO
                 else:
-                    err_msg = f"ERROR invalid area beta mode: {rtc_area_beta_mode}"
+                    err_msg = ('ERROR invalid area beta mode:'
+                               f' {rtc_area_beta_mode}')
                     raise ValueError(err_msg)
-
 
 
 
@@ -1574,8 +1636,8 @@ def run_single_job(cfg: RunConfig):
                             output_mode=geocode_algorithm,
                             geogrid_upsampling=geogrid_upsampling,
                             flag_apply_rtc=flag_apply_rtc,
-                            input_terrain_radiometry=input_terrain_radiometry,
-                            output_terrain_radiometry=output_terrain_radiometry,
+                            input_terrain_radiometry=input_terrain_radiometry_enum,
+                            output_terrain_radiometry=output_terrain_radiometry_enum,
                             exponent=exponent,
                             rtc_min_value_db=rtc_min_value_db,
                             rtc_upsampling=rtc_upsampling,
@@ -1586,6 +1648,7 @@ def run_single_job(cfg: RunConfig):
                             clip_max=clip_max,
                             out_geo_nlooks=out_geo_nlooks_obj,
                             out_geo_rtc=out_geo_rtc_obj,
+                            # out_geo_rtc_gamma0_to_sigma0=out_geo_rtc_gamma0_to_sigma0_obj,
                             input_rtc=None,
                             output_rtc=None,
                             dem_interp_method=dem_interp_method_enum,
@@ -1621,19 +1684,32 @@ def run_single_job(cfg: RunConfig):
             output_file_list += output_burst_imagery_list
 
         if save_nlooks:
+            out_geo_nlooks_obj.close_dataset()
             del out_geo_nlooks_obj
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {nlooks_file}')
-            output_metadata_dict['nlooks'][1].append(nlooks_file)
+            output_metadata_dict[
+                LAYER_NAME_NUMBER_OF_LOOKS][1].append(nlooks_file)
 
         if save_rtc_anf:
+            out_geo_rtc_obj.close_dataset()
             del out_geo_rtc_obj
 
             if not flag_bursts_secondary_files_are_temporary:
                 logger.info(f'file saved: {rtc_anf_file}')
-            output_metadata_dict[f'rtc_anf_{rtc_anf_suffix}'][1].append(
+            output_metadata_dict[layer_name_rtc_anf][1].append(
                 rtc_anf_file)
+
+        if save_rtc_anf_gamma0_to_sigma0:
+            out_geo_rtc_gamma0_to_sigma0_obj.close_dataset()
+            del out_geo_rtc_gamma0_to_sigma0_obj
+
+            if not flag_bursts_secondary_files_are_temporary:
+                logger.info(f'file saved: {rtc_anf_gamma0_to_sigma0_file}')
+            output_metadata_dict[
+                LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0][1].append(
+                    rtc_anf_gamma0_to_sigma0_file)
 
         radar_grid_file_dict = {}
 
@@ -1642,7 +1718,7 @@ def run_single_job(cfg: RunConfig):
                 geogrid, dem_interp_method_enum, burst_product_id,
                 output_dir_sec_bursts, imagery_extension, save_incidence_angle,
                 save_local_inc_angle, save_projection_angle,
-                save_rtc_anf_psi,
+                save_rtc_anf_projection_angle,
                 save_range_slope, save_dem,
                 dem_raster, radar_grid_file_dict,
                 lookside, wavelength, orbit,
@@ -1661,11 +1737,12 @@ def run_single_job(cfg: RunConfig):
                                   processing_datetime,
                                   is_mosaic=False) as hdf5_burst_obj:
                 save_hdf5_file(
-                    hdf5_burst_obj, output_hdf5_file_burst, flag_apply_rtc,
+                    hdf5_burst_obj, output_hdf5_file_burst,
                     clip_max, clip_min, output_radiometry_str,
                     geogrid, pol_list, geo_burst_filename, nlooks_file,
-                    rtc_anf_file, layover_shadow_mask_file,
-                    radar_grid_file_dict,
+                    rtc_anf_file, layer_name_rtc_anf,
+                    rtc_anf_gamma0_to_sigma0_file,
+                    layover_shadow_mask_file, radar_grid_file_dict,
                     save_imagery=save_imagery_as_hdf5,
                     save_secondary_layers=save_secondary_layers_as_hdf5)
             output_file_list.append(output_hdf5_file_burst)
@@ -1730,7 +1807,7 @@ def run_single_job(cfg: RunConfig):
             radar_grid_output_dir, imagery_extension,
             save_incidence_angle,
             save_local_inc_angle, save_projection_angle,
-            save_rtc_anf_psi,
+            save_rtc_anf_projection_angle,
             save_range_slope, save_dem,
             dem_raster, radar_grid_file_dict,
             lookside, wavelength, orbit,
@@ -1755,7 +1832,7 @@ def run_single_job(cfg: RunConfig):
             output_imagery_filename_list.append(geo_pol_filename)
 
         if save_nlooks:
-            nlooks_list = output_metadata_dict['nlooks'][1]
+            nlooks_list = output_metadata_dict[LAYER_NAME_NUMBER_OF_LOOKS][1]
         else:
             nlooks_list = []
 
@@ -1788,7 +1865,7 @@ def run_single_job(cfg: RunConfig):
 
             # TODO: Remove nlooks exception below
             if (save_secondary_layers_as_hdf5 or
-                    (key == 'nlooks' and not save_nlooks)):
+                    (key == LAYER_NAME_NUMBER_OF_LOOKS and not save_nlooks)):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
@@ -1808,17 +1885,23 @@ def run_single_job(cfg: RunConfig):
         # Save HDF5
         if save_hdf5_metadata:
             if save_nlooks:
-                nlooks_mosaic_file = output_metadata_dict['nlooks'][0]
+                nlooks_mosaic_file = output_metadata_dict[
+                    LAYER_NAME_NUMBER_OF_LOOKS][0]
             else:
                 nlooks_mosaic_file = None
             if save_rtc_anf:
                 rtc_anf_mosaic_file = output_metadata_dict[
-                    f'rtc_anf_{rtc_anf_suffix}'][0]
+                    layer_name_rtc_anf][0]
             else:
                 rtc_anf_mosaic_file = None
+            if save_rtc_anf_gamma0_to_sigma0:
+                rtc_anf_gamma0_to_sigma0_mosaic_file = output_metadata_dict[
+                    LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0][0]
+            else:
+                rtc_anf_gamma0_to_sigma0_mosaic_file = None
             if save_layover_shadow_mask:
                 layover_shadow_mask_file = output_metadata_dict[
-                    'layover_shadow_mask'][0]
+                    LAYER_NAME_LAYOVER_SHADOW_MASK][0]
             else:
                 layover_shadow_mask_file = None
 
@@ -1854,10 +1937,12 @@ def run_single_job(cfg: RunConfig):
             temp_files_list.append(geo_filename_vrt)
 
             save_hdf5_file(
-                hdf5_mosaic_obj, output_hdf5_file, flag_apply_rtc,
+                hdf5_mosaic_obj, output_hdf5_file,
                 clip_max, clip_min, output_radiometry_str,
                 cfg.geogrid, pol_list, geo_filename_vrt, nlooks_mosaic_file,
-                rtc_anf_mosaic_file, layover_shadow_mask_file,
+                rtc_anf_mosaic_file, layer_name_rtc_anf,
+                rtc_anf_gamma0_to_sigma0_mosaic_file,
+                layover_shadow_mask_file,
                 radar_grid_file_dict, save_imagery=save_imagery_as_hdf5,
                 save_secondary_layers=save_secondary_layers_as_hdf5)
             hdf5_mosaic_obj.close()
@@ -1916,7 +2001,7 @@ def run_single_job(cfg: RunConfig):
 def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
                    output_dir, extension, save_incidence_angle,
                    save_local_inc_angle, save_projection_angle,
-                   save_rtc_anf_psi,
+                   save_rtc_anf_projection_angle,
                    save_range_slope, save_dem, dem_raster,
                    radar_grid_file_dict, lookside, wavelength, orbit,
                    verbose=True):
@@ -1925,30 +2010,30 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
     shape = [layers_nbands, geogrid.length, geogrid.width]
 
     incidence_angle_raster = _create_raster_obj(
-        output_dir, f'{product_id}_incidence_angle',
-        'incidenceAngle', gdal.GDT_Float32, shape, radar_grid_file_dict,
+        output_dir, product_id, LAYER_NAME_INCIDENCE_ANGLE,
+        gdal.GDT_Float32, shape, radar_grid_file_dict,
         output_obj_list, save_incidence_angle, extension)
     local_incidence_angle_raster = _create_raster_obj(
-        output_dir, f'{product_id}_local_incidence_angle',
-        'localIncidenceAngle', gdal.GDT_Float32, shape,
+        output_dir, product_id, LAYER_NAME_LOCAL_INCIDENCE_ANGLE,
+        gdal.GDT_Float32, shape,
         radar_grid_file_dict, output_obj_list, save_local_inc_angle,
         extension)
     projection_angle_raster = _create_raster_obj(
-        output_dir, f'{product_id}_projection_angle',
-        'projectionAngle', gdal.GDT_Float32, shape, radar_grid_file_dict,
+        output_dir, product_id, LAYER_NAME_PROJECTION_ANGLE,
+        gdal.GDT_Float32, shape, radar_grid_file_dict,
         output_obj_list, save_projection_angle, extension)
-    rtc_anf_psi_raster = _create_raster_obj(
-        output_dir, f'{product_id}_rtc_anf_psi',
-        'RTCAreaNormalizationFactorPsi', gdal.GDT_Float32, shape,
+    rtc_anf_projection_angle_raster = _create_raster_obj(
+        output_dir, product_id, LAYER_NAME_RTC_ANF_PROJECTION_ANGLE,
+        gdal.GDT_Float32, shape,
         radar_grid_file_dict, output_obj_list,
-        save_rtc_anf_psi, extension)
+        save_rtc_anf_projection_angle, extension)
     range_slope_raster = _create_raster_obj(
-        output_dir, f'{product_id}_range_slope',
-        'rangeSlope', gdal.GDT_Float32, shape, radar_grid_file_dict,
+        output_dir, product_id, LAYER_NAME_RANGE_SLOPE,
+        gdal.GDT_Float32, shape, radar_grid_file_dict,
         output_obj_list, save_range_slope, extension)
     interpolated_dem_raster = _create_raster_obj(
-        output_dir, f'{product_id}_interpolated_dem',
-        'interpolatedDem', gdal.GDT_Float32, shape, radar_grid_file_dict,
+        output_dir, product_id, LAYER_NAME_DEM,
+        gdal.GDT_Float32, shape, radar_grid_file_dict,
         output_obj_list, save_dem, extension)
 
     # TODO review this (Doppler)!!!
@@ -1977,7 +2062,7 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
         incidence_angle_raster=incidence_angle_raster,
         local_incidence_angle_raster=local_incidence_angle_raster,
         projection_angle_raster=projection_angle_raster,
-        simulated_radar_brightness_raster=rtc_anf_psi_raster,
+        simulated_radar_brightness_raster=rtc_anf_projection_angle_raster,
         interpolated_dem_raster=interpolated_dem_raster,
         dem_interp_method=dem_interp_method_enum,
         **kwargs_get_radar_grid)
