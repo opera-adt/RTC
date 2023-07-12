@@ -98,7 +98,8 @@ layer_description_dict = {
                     ' coefficient normalized to gamma0'),
     LAYER_NAME_LAYOVER_SHADOW_MASK: ('Layover/shadow mask. Values: 0: not'
                                      ' masked; 1: shadow; 2: layover;'
-                                     ' 3: layover and shadow'),
+                                     ' 3: layover and shadow;'
+                                     ' 255: invalid/fill value'),
     LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0: ('Radiometric terrain correction (RTC)'
                                          ' area normalization factor (ANF)'
                                          ' gamma0 to beta0'),
