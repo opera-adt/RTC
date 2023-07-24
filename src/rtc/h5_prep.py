@@ -460,10 +460,11 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              'Interferometric Wide (IW)',
              'Acquisition mode'],
-        # 'identification/CARDProductType':
-        #    ['card_product_type', 'Normalised Radar Backscatter',
-        #     'CARD Product type'], # 1.3
-
+        'identification/ceosProductType':  # 1.3
+            ['ceos_product_type',
+             ALL_PRODUCTS,
+             'Normalised Radar Backscatter',
+             'CEOS Analysis Ready Data (CARD) product type'],
         'identification/lookDirection':
             ['look_direction',
              ALL_PRODUCTS,
@@ -525,10 +526,11 @@ def get_metadata_dict(product_id: str,
         #       f'site: "Pasadena, CA", '
         #       f'country: "United States of America"'),
         #      'Data processing center'],
- 
-        # 'identification/CEOSDocumentIdentifier':
-        #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
-        #     'Product version'],
+        'identification/ceosDocumentIdentifier':
+            ['ceos_document_identifier',
+             'https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf',
+             ALL_PRODUCTS,
+             'CEOS Analysis Ready Data (CARD) document identifier'],
         'metadata/sourceData/numberOfAcquisitions':  # 1.6.4
             ['source_data_number_of_acquisitions',
              ALL_PRODUCTS,
@@ -653,38 +655,71 @@ def get_metadata_dict(product_id: str,
         #    ['product_data_access',
         #     'TBD',
         #     'URL to access the product data'],
-        'metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
-            ['post_processing_filtering_applied',
-             STANDARD_RTC_S1_ONLY,
+        'metadata/processingInformation/parameters/' +
+        'preprocessingMultilookingApplied':  # 1.7.4
+            ['processing_information_multilooking_applied',
+             ALL_PRODUCTS,
+             False,
+             'Flag to indicate if a preprocessing multilooking has been'
+             ' applied'],
+        'metadata/processingInformation/parameters/' +
+        'filteringApplied':  # 1.7.4
+            ['processing_information_filtering_applied',
+             ALL_PRODUCTS,
              False,
              'Flag to indicate if post-processing filtering has been applied'],
 
         # 3.3
         'metadata/processingInformation/parameters/noiseCorrectionApplied':
-            ['noise_correction_applied',
-             STANDARD_RTC_S1_ONLY,
+            ['processing_information_noise_correction_applied',
+             ALL_PRODUCTS,
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'Flag to indicate if noise removal has been applied'],
-        'metadata/processingInformation/parameters/radiometricTerrainCorrectionApplied':
-            ['rtc_applied',
-             STANDARD_RTC_S1_ONLY,
+        'metadata/processingInformation/parameters/' +
+        'radiometricTerrainCorrectionApplied':
+            ['processing_information_radiometric_terrain_correction_applied',
+             ALL_PRODUCTS,
              cfg_in.groups.processing.apply_rtc,
-             'Flag to indicate if radiometric terrain correction (RTC) has been applied'],
-        'metadata/processingInformation/parameters/dryTroposphericGeolocationCorrectionApplied':
-            ['dry_tropospheric_geolocation_correction_applied',
-             STANDARD_RTC_S1_ONLY,
+             'Flag to indicate if radiometric terrain correction (RTC) has'
+             ' been applied'],
+        'metadata/processingInformation/parameters/' +
+        'dryTroposphericGeolocationCorrectionApplied':
+            ['processing_information'
+             '_dry_tropospheric_geolocation_correction_applied',
+             ALL_PRODUCTS,
              cfg_in.groups.processing.apply_dry_tropospheric_delay_correction,
-             'Flag to indicate if the dry tropospheric correction has been applied'],
-        'metadata/processingInformation/parameters/wetTroposphericGeolocationCorrectionApplied':
-            ['wet_tropospheric_geolocation_correction_applied',
-             STANDARD_RTC_S1_ONLY,
+             'Flag to indicate if the dry tropospheric correction has been'
+             ' applied'],
+        'metadata/processingInformation/parameters/' +
+        'wetTroposphericGeolocationCorrectionApplied':
+            ['processing_information'
+             '_wet_tropospheric_geolocation_correction_applied',
+             ALL_PRODUCTS,
              False,
-             'Flag to indicate if the wet tropospheric correction has been applied'],
-        'metadata/processingInformation/parameters/bistaticDelayCorrectionApplied':
-            ['bistatic_delay_correction_applied',
-             STANDARD_RTC_S1_ONLY,
+             'Flag to indicate if the wet tropospheric correction has been'
+             ' applied'],
+        'metadata/processingInformation/parameters/' +
+        'bistaticDelayCorrectionApplied':
+            ['processing_information'
+             '_bistatic_delay_correction_applied',
+             ALL_PRODUCTS,
              cfg_in.groups.processing.apply_bistatic_delay_correction,
-             'Flag to indicate if the bistatic delay correction has been applied'],
+             'Flag to indicate if the bistatic delay correction has been'
+             ' applied'],
+        'metadata/processingInformation/parameters/' +
+        'inputBackscatterNormalizationConvention':
+            ['processing_information'
+             '_input_backscatter_normalization_convention',
+             ALL_PRODUCTS,
+             cfg_in.groups.processing.rtc.input_terrain_radiometry,
+             'Backscatter normalization convention of the source data'],
+        'metadata/processingInformation/parameters/' +
+        'outputBackscatterNormalizationConvention':
+            ['processing_information'
+             '_output_backscatter_normalization_convention',
+             ALL_PRODUCTS,
+             cfg_in.groups.processing.rtc.output_type,
+             'Backscatter normalization convention of this product (RTC-S1)'],
 
         # 'metadata/processingInformation/geoidReference':  # for 4.2
 
