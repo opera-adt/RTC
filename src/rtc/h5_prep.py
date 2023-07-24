@@ -40,7 +40,7 @@ LAYER_NAME_LOCAL_INCIDENCE_ANGLE = 'local_incidence_angle'
 LAYER_NAME_PROJECTION_ANGLE = 'projection_angle'
 LAYER_NAME_RTC_ANF_PROJECTION_ANGLE = 'rtc_anf_projection_angle'
 LAYER_NAME_RANGE_SLOPE = 'range_slope'
-LAYER_NAME_DEM = 'dem'
+LAYER_NAME_DEM = 'interpolated_dem'
 
 # RTC-S1 product layer names
 layer_hdf5_dict = {

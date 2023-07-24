@@ -30,6 +30,12 @@ from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          all_metadata_dict_to_geotiff_metadata_dict,
                          layer_hdf5_dict,
                          DATA_BASE_GROUP,
+                         LAYER_NAME_INCIDENCE_ANGLE,
+                         LAYER_NAME_LOCAL_INCIDENCE_ANGLE,
+                         LAYER_NAME_PROJECTION_ANGLE,
+                         LAYER_NAME_RTC_ANF_PROJECTION_ANGLE,
+                         LAYER_NAME_RANGE_SLOPE,
+                         LAYER_NAME_DEM,
                          LAYER_NAME_LAYOVER_SHADOW_MASK,
                          LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0,
                          LAYER_NAME_NUMBER_OF_LOOKS)
@@ -807,12 +813,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         # radar-grid layers
         if flag_call_radar_grid:
             radar_grid_layer_dict = {
-                'incidence_angle': save_incidence_angle,
-                'local_incidence_angle': save_local_inc_angle,
-                'projection_angle': save_projection_angle,
-                'rtc_anf_projection_angle': save_rtc_anf_projection_angle,
-                'range_slope': save_range_slope,
-                'interpolated_dem': save_dem}
+                LAYER_NAME_INCIDENCE_ANGLE: save_incidence_angle,
+                LAYER_NAME_LOCAL_INCIDENCE_ANGLE: save_local_inc_angle,
+                LAYER_NAME_PROJECTION_ANGLE: save_projection_angle,
+                LAYER_NAME_RTC_ANF_PROJECTION_ANGLE: save_rtc_anf_projection_angle,
+                LAYER_NAME_RANGE_SLOPE: save_range_slope,
+                LAYER_NAME_DEM: save_dem}
 
             for layer_name, flag_save in radar_grid_layer_dict.items():
                 if not flag_save:
