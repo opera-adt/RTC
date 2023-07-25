@@ -46,6 +46,8 @@ logger = logging.getLogger('rtc_s1')
 
 STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR = 3
 
+STATIC_LAYERS_AZ_MARGIN = 1.2
+STATIC_LAYERS_RG_MARGIN = 0.2
 
 
 def populate_product_id(product_id, burst_in, processing_datetime,
@@ -1034,7 +1036,8 @@ def run_single_job(cfg: RunConfig):
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
-    save_rtc_anf_projection_angle = geocode_namespace.save_rtc_anf_projection_angle
+    save_rtc_anf_projection_angle = \
+        geocode_namespace.save_rtc_anf_projection_angle
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
@@ -1326,10 +1329,10 @@ def run_single_job(cfg: RunConfig):
         radar_grid = burst.as_isce3_radargrid()
         if product_type == STATIC_LAYERS_PRODUCT_TYPE:
             radar_grid = radar_grid.offset_and_resize(
-                - int(1.5 * radar_grid.length),
-                - int(radar_grid.width),
-                int(4 * radar_grid.length),
-                int(3 * radar_grid.width))
+                - int((STATIC_LAYERS_AZ_MARGIN) * radar_grid.length),
+                - int((STATIC_LAYERS_RG_MARGIN) * radar_grid.width),
+                int((1 + 2 * STATIC_LAYERS_AZ_MARGIN) * radar_grid.length),
+                int((1 + 2 * STATIC_LAYERS_RG_MARGIN) * radar_grid.width))
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
         wavelength = burst.wavelength
