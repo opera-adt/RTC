@@ -403,6 +403,16 @@ def append_metadata_to_geotiff_file(input_file, metadata_dict, product_id):
     # Write metadata
     gdal_ds.SetMetadata(existing_metadata)
 
+    # Check NoDataValue
+    for band in range(gdal_ds.RasterCount):
+        band_ds = gdal_ds.GetRasterBand(band + 1)
+        dtype = band_ds.DataType
+        dtype_name = gdal.GetDataTypeName(dtype)
+        if ('float' in dtype_name.lower() and
+                band_ds.GetNoDataValue() is None):
+            band_ds.SetNoDataValue(np.nan)
+        del band_ds
+
     # Close GDAL dataset
     del gdal_ds
 
@@ -1626,7 +1636,8 @@ def run_single_job(cfg: RunConfig):
 
             # Output imagery list contains multi-band files that
             # will be used for mosaicking
-            output_imagery_list.append(geo_burst_filename)
+            if product_type != STATIC_LAYERS_PRODUCT_TYPE:
+                output_imagery_list.append(geo_burst_filename)
 
         else:
             # Bundle the single-pol geo burst files into .vrt
@@ -1635,7 +1646,8 @@ def run_single_job(cfg: RunConfig):
             os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
             gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
                           options=vrt_options_mosaic)
-            output_imagery_list.append(geo_burst_filename)
+            if product_type != STATIC_LAYERS_PRODUCT_TYPE:
+                output_imagery_list.append(geo_burst_filename)
 
         if (flag_process and save_layover_shadow_mask and
                 not save_secondary_layers_as_hdf5):
@@ -1643,7 +1655,8 @@ def run_single_job(cfg: RunConfig):
                                            geo_burst_filename)
 
         # If burst imagery is not temporary, separate polarization channels
-        if flag_process and not flag_bursts_files_are_temporary:
+        if (flag_process and not flag_bursts_files_are_temporary and
+                product_type != STATIC_LAYERS_PRODUCT_TYPE):
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
                                    output_raster_format, logger)
@@ -1788,15 +1801,16 @@ def run_single_job(cfg: RunConfig):
 
     if save_mosaics:
 
-        # Mosaic sub-bursts imagery
-        logger.info('mosaicking files:')
-        output_imagery_filename_list = []
-        for pol in pol_list:
-            geo_pol_filename = \
-                (f'{output_dir_mosaic_raster}/{mosaic_product_id}_{pol}.'
-                 f'{imagery_extension}')
-            logger.info(f'    {geo_pol_filename}')
-            output_imagery_filename_list.append(geo_pol_filename)
+        if len(output_imagery_list) > 0:
+            # Mosaic sub-bursts imagery
+            logger.info('mosaicking files:')
+            output_imagery_filename_list = []
+            for pol in pol_list:
+                geo_pol_filename = \
+                    (f'{output_dir_mosaic_raster}/{mosaic_product_id}_{pol}.'
+                     f'{imagery_extension}')
+                logger.info(f'    {geo_pol_filename}')
+                output_imagery_filename_list.append(geo_pol_filename)
 
         if save_nlooks:
             nlooks_list = output_metadata_dict[LAYER_NAME_NUMBER_OF_LOOKS][1]
@@ -1812,13 +1826,13 @@ def run_single_job(cfg: RunConfig):
                 temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-        if save_imagery_as_hdf5:
-            temp_files_list += output_imagery_filename_list
-        else:
-            output_file_list += output_imagery_filename_list
-            mosaic_output_file_list += output_imagery_filename_list
+            if save_imagery_as_hdf5:
+                temp_files_list += output_imagery_filename_list
+            else:
+                output_file_list += output_imagery_filename_list
+                mosaic_output_file_list += output_imagery_filename_list
 
-        # Mosaic other bands
+        # Mosaic other layers
         for key, (output_file, input_files) in output_metadata_dict.items():
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
