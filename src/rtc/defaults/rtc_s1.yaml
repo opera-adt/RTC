@@ -13,8 +13,13 @@ runconfig:
         input_file_group:
             # Required. List of SAFE files (min=1)
             safe_file_path:
+
+            # Location from where the source data can be retrieved (URL or DOI)
+            source_data_access:
+
             # Required. List of orbit (EOF) files (min=1)
             orbit_file_path:
+
             # Optional. Burst ID to process (empty for all bursts)
             burst_id:
 
@@ -65,6 +70,9 @@ runconfig:
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir:
             product_id:
+
+            # Location from where the output product can be retrieved (URL or DOI)
+            product_data_access:
 
             # Save RTC-S1 bursts
             save_bursts: True

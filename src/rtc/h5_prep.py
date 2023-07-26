@@ -370,6 +370,9 @@ def get_metadata_dict(product_id: str,
         # If the DEM description is not provided, use DEM source
         dem_file_description = os.path.basename(cfg_in.dem)
 
+    source_data_access = cfg_in.groups.input_file_group.source_data_access
+    product_data_access = cfg_in.groups.product_group.product_data_access
+
     if burst_in.platform_id == 'S1A':
         platform_id = 'Sentinel-1A'
     elif burst_in.platform_id == 'S1B':
@@ -531,16 +534,23 @@ def get_metadata_dict(product_id: str,
              'https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf',
              ALL_PRODUCTS,
              'CEOS Analysis Ready Data (CARD) document identifier'],
+        'identification/dataAccess':
+            ['product_data_access',
+             ALL_PRODUCTS,
+             product_data_access,
+             'Location from where this product can be retrieved'
+             ' (URL or DOI)'],
         'metadata/sourceData/numberOfAcquisitions':  # 1.6.4
             ['source_data_number_of_acquisitions',
              ALL_PRODUCTS,
              1,
              'Number of source data acquisitions'],
-        # TODO Review: should we expose this parameter in the runconfig?
-        # 'metadata/sourceData/dataAccess':
-        #     ['source_data_access',
-        #      'https://search.asf.alaska.edu/',
-        #      'Data access URL'],
+        'metadata/sourceData/dataAccess':
+            ['source_data_access',
+             ALL_PRODUCTS,
+             source_data_access,
+             'Location from where the source data can be retrieved'
+             ' (URL or DOI)'],
         # 'metadata/sourceData/radarBand':  # 1.6.4
         #    ['radar_band', 'C', 'Acquired frequency band'],
 
@@ -761,7 +771,8 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              cfg_in.groups.processing.geocoding.algorithm_type,
              'Geocoding algorithm'],
-        'metadata/processingInformation/algorithms/radiometricTerrainCorrection':
+        'metadata/processingInformation/algorithms/' +
+        'radiometricTerrainCorrection':
             ['radiometric_terrain_correction_algorithm',
              ALL_PRODUCTS,
              cfg_in.groups.processing.rtc.algorithm_type,
@@ -780,7 +791,7 @@ def get_metadata_dict(product_id: str,
              release_version,
              'Version of the OPERA s1-reader used for processing'],
 
-        'metadata/processingInformation/inputs/l1SLCGranules':
+        'metadata/processingInformation/inputs/l1SlcGranules':
             ['l1_slc_granules',
              ALL_PRODUCTS,
              l1_slc_granules,
