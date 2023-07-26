@@ -352,13 +352,9 @@ def get_metadata_dict(product_id: str,
 
     # processing type
     processing_type = cfg_in.groups.product_group.processing_type
-    if not processing_type:
-        processing_type = '(NOT PROVIDED)'
 
     # product type
     product_type = cfg_in.groups.primary_executable.product_type
-    if not product_type:
-        product_type = '(NOT PROVIDED)'
 
     # product version
     product_version_float = cfg_in.groups.product_group.product_version
@@ -375,7 +371,12 @@ def get_metadata_dict(product_id: str,
         dem_file_description = os.path.basename(cfg_in.dem)
 
     source_data_access = cfg_in.groups.input_file_group.source_data_access
+    if not source_data_access:
+        source_data_access = '(NOT PROVIDED)'
+
     product_data_access = cfg_in.groups.product_group.product_data_access
+    if not product_data_access:
+        product_data_access = '(NOT PROVIDED)'
 
     if burst_in.platform_id == 'S1A':
         platform_id = 'Sentinel-1A'
@@ -747,8 +748,7 @@ def get_metadata_dict(product_id: str,
              '_output_backscatter_decibel_conversion_equation',
              ALL_PRODUCTS,
              'backscatter_dB = 10*log10(backscatter_linear)',
-             'Equation to convert provided backscatter to decibel (dB)']
-
+             'Equation to convert provided backscatter to decibel (dB)'],
         # 'metadata/processingInformation/geoidReference':  # for 4.2
 
         # 'data/processingInformation/absoluteAccuracyNorthing':  
