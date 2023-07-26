@@ -1664,29 +1664,32 @@ def run_single_job(cfg: RunConfig):
             output_file_list += output_burst_imagery_list
 
         if save_nlooks:
-            out_geo_nlooks_obj.close_dataset()
-            del out_geo_nlooks_obj
+            if flag_process:
+                out_geo_nlooks_obj.close_dataset()
+                del out_geo_nlooks_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
-                logger.info(f'file saved: {nlooks_file}')
+                if not flag_bursts_secondary_files_are_temporary:
+                    logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict[
                 LAYER_NAME_NUMBER_OF_LOOKS][1].append(nlooks_file)
 
         if save_rtc_anf:
-            out_geo_rtc_obj.close_dataset()
-            del out_geo_rtc_obj
+            if flag_process:
+                out_geo_rtc_obj.close_dataset()
+                del out_geo_rtc_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
-                logger.info(f'file saved: {rtc_anf_file}')
+                if not flag_bursts_secondary_files_are_temporary:
+                    logger.info(f'file saved: {rtc_anf_file}')
             output_metadata_dict[layer_name_rtc_anf][1].append(
                 rtc_anf_file)
 
         if save_rtc_anf_gamma0_to_sigma0:
-            out_geo_rtc_gamma0_to_sigma0_obj.close_dataset()
-            del out_geo_rtc_gamma0_to_sigma0_obj
+            if flag_process:
+                out_geo_rtc_gamma0_to_sigma0_obj.close_dataset()
+                del out_geo_rtc_gamma0_to_sigma0_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
-                logger.info(f'file saved: {rtc_anf_gamma0_to_sigma0_file}')
+                if not flag_bursts_secondary_files_are_temporary:
+                    logger.info(f'file saved: {rtc_anf_gamma0_to_sigma0_file}')
             output_metadata_dict[
                 LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0][1].append(
                     rtc_anf_gamma0_to_sigma0_file)
@@ -1844,9 +1847,7 @@ def run_single_job(cfg: RunConfig):
                 geogrid_in=cfg.geogrid, temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-            # TODO: Remove nlooks exception below
-            if (save_secondary_layers_as_hdf5 or
-                    (key == LAYER_NAME_NUMBER_OF_LOOKS and not save_nlooks)):
+            if save_secondary_layers_as_hdf5:
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)

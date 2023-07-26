@@ -163,17 +163,6 @@ def split_runconfig(cfg_in,
                                  'save_bursts'],
                                 True)
 
-        # TODO: Remove the code below once the
-        # mosaicking algorithm does not take nlooks as the weight input
-        if cfg_in.groups.product_group.save_mosaics:
-            set_dict_item_recursive(runconfig_dict_out,
-                                    ['runconfig',
-                                     'groups',
-                                     'processing',
-                                     'geocoding',
-                                     'save_nlooks'],
-                                    True)
-
         runconfig_burst_list.append(path_temp_runconfig)
         logfile_burst_list.append(path_logfile_child)
 
@@ -932,9 +921,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-            # TODO: Remove nlooks exception below
-            if (save_secondary_layers_as_hdf5 or
-                    (key == LAYER_NAME_NUMBER_OF_LOOKS and not save_nlooks)):
+            if (save_secondary_layers_as_hdf5):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
