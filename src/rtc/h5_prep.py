@@ -463,8 +463,8 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              'Interferometric Wide (IW)',
              'Acquisition mode'],
-        'identification/ceosProductType':  # 1.3
-            ['ceos_product_type',
+        'identification/ceosAnalysisReadyDataProductType':  # 1.3
+            ['ceos_analysis_ready_data_product_type',
              ALL_PRODUCTS,
              'Normalised Radar Backscatter',
              'CEOS Analysis Ready Data (CARD) product type'],
@@ -529,8 +529,8 @@ def get_metadata_dict(product_id: str,
         #       f'site: "Pasadena, CA", '
         #       f'country: "United States of America"'),
         #      'Data processing center'],
-        'identification/ceosDocumentIdentifier':
-            ['ceos_document_identifier',
+        'identification/ceosAnalysisReadyDataDocumentIdentifier':
+            ['ceos_analysis_ready_data_document_identifier',
              'https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf',
              ALL_PRODUCTS,
              'CEOS Analysis Ready Data (CARD) document identifier'],
