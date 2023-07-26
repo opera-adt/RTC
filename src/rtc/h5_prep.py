@@ -741,6 +741,13 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              'linear power/intensity',
              'Backscatter expression convension'],
+        'metadata/processingInformation/parameters/' +
+        'outputBackscatterDecibelConversionEquation':
+            ['processing_information'
+             '_output_backscatter_decibel_conversion_equation',
+             ALL_PRODUCTS,
+             'backscatter_dB = 10*log10(backscatter_linear)',
+             'Equation to convert backscatter to decibel (dB)']
 
         # 'metadata/processingInformation/geoidReference':  # for 4.2
 
