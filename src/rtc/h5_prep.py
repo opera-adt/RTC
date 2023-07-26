@@ -352,9 +352,13 @@ def get_metadata_dict(product_id: str,
 
     # processing type
     processing_type = cfg_in.groups.product_group.processing_type
+    if not processing_type:
+        processing_type = '(NOT PROVIDED)'
 
     # product type
     product_type = cfg_in.groups.primary_executable.product_type
+    if not product_type:
+        product_type = '(NOT PROVIDED)'
 
     # product version
     product_version_float = cfg_in.groups.product_group.product_version
