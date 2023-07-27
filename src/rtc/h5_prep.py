@@ -370,14 +370,17 @@ def get_metadata_dict(product_id: str,
         # If the DEM description is not provided, use DEM source
         dem_file_description = os.path.basename(cfg_in.dem)
 
+    # source data access (URL or DOI)
     source_data_access = cfg_in.groups.input_file_group.source_data_access
     if not source_data_access:
         source_data_access = '(NOT PROVIDED)'
 
+    # product data access (URL or DOI)
     product_data_access = cfg_in.groups.product_group.product_data_access
     if not product_data_access:
         product_data_access = '(NOT PROVIDED)'
 
+    # platform ID
     if burst_in.platform_id == 'S1A':
         platform_id = 'Sentinel-1A'
     elif burst_in.platform_id == 'S1B':
@@ -389,6 +392,20 @@ def get_metadata_dict(product_id: str,
     else:
         error_msg = f'ERROR Not recognized platform ID: {burst_in.platform_id}'
         raise NotImplementedError(error_msg)
+
+    # burst and mosaic snap values
+    burst_snap_x = cfg_in.groups.processing.geocoding.bursts_geogrid.x_snap
+    if not burst_snap_x:
+        burst_snap_x = '(SNAP DISABLED FOR COORDINATE X)'
+    burst_snap_y = cfg_in.groups.processing.geocoding.bursts_geogrid.y_snap
+    if not burst_snap_y:
+        burst_snap_y = '(SNAP DISABLED FOR COORDINATE Y)'
+    mosaic_snap_x = cfg_in.groups.processing.mosaicking.mosaic_geogrid.x_snap
+    if not mosaic_snap_x:
+        mosaic_snap_x = '(SNAP DISABLED FOR COORDINATE X)'
+    mosaic_snap_y = cfg_in.groups.processing.mosaicking.mosaic_geogrid.y_snap
+    if not mosaic_snap_y:
+        mosaic_snap_y = '(SNAP DISABLED FOR COORDINATE Y)'
 
     # mission_id = 'Sentinel'
 
@@ -749,6 +766,19 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              'backscatter_dB = 10*log10(backscatter_linear)',
              'Equation to convert provided backscatter to decibel (dB)'],
+
+        'metadata/processingInformation/parameters/geocoding/' +
+        'burstGeogridSnapX':
+            ['processing_information_burst_geogrid_snap_x',
+             ALL_PRODUCTS,
+             burst_snap_x,
+             'Burst geogrid snap for Coordinate X (W/E)'],
+        'metadata/processingInformation/parameters/geocoding/' +
+        'burstGeogridSnapY':
+            ['processing_information_burst_geogrid_snap_y',
+             ALL_PRODUCTS,
+             burst_snap_y,
+             'Burst geogrid snap for Coordinate Y (S/N)'],
         # 'metadata/processingInformation/geoidReference':  # for 4.2
 
         # 'data/processingInformation/absoluteAccuracyNorthing':  
@@ -903,9 +933,23 @@ def get_metadata_dict(product_id: str,
              url_geocoding_algorithm_document,
              'Reference to the geocoding algorithm applied']
 
-    if not is_mosaic:
+    if is_mosaic:
+        # Metadata only for the mosaic product
+        metadata_dict['metadata/processingInformation/parameters/geocoding/' +
+                      'mosaicGeogridSnapX'] = \
+            ['processing_information_mosaic_geogrid_snap_x',
+             ALL_PRODUCTS,
+             mosaic_snap_x,
+             'mosaic geogrid snap for Coordinate X (W/E)'],
+        metadata_dict['metadata/processingInformation/parameters/geocoding/' +
+                      'mosaicGeogridSnapY'] = \
+            ['processing_information_mosaic_geogrid_snap_y',
+             ALL_PRODUCTS,
+             mosaic_snap_y,
+             'mosaic geogrid snap for Coordinate Y (S/N)'],
 
-        # Metadata only for for burst product
+    else:
+        # Metadata only for the burst product
         # Calculate bounding box
         xmin_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_x
         ymax_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_y
