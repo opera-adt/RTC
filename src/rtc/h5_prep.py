@@ -367,7 +367,8 @@ def get_metadata_dict(product_id: str,
     dem_file_description = cfg_in.dem_file_description
 
     # Slant range and azimuth resolution of the sensor
-    slant_range_resolution, azimuth_resolution = get_range_azimuth_resolution(burst_in)
+    slant_range_resolution, azimuth_resolution = \
+        get_range_azimuth_resolution(burst_in)
 
     if not dem_file_description:
         # If the DEM description is not provided, use DEM source
@@ -622,7 +623,7 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              azimuth_resolution,
              'Azimuth resolution of the source data in meters'],
-        'metadata/sourceData/slantRangeResolutuion':  # 1.6.7
+        'metadata/sourceData/slantRangeResolutionInMeters':  # 1.6.7
             ['source_data_slant_range_resolution',
              ALL_PRODUCTS,
              slant_range_resolution,
@@ -1318,12 +1319,12 @@ def get_range_azimuth_resolution(burst: Sentinel1BurstSlc):
     burst: Sentinel1BurstSlc
         Burst object to compute the resolution
 
-    returns
+    Returns
     -------
     slant_range_resolution: float
-        Slant range recolution
+        Slant-range resolution in meters
     azimuth_resolution: float
-        Azimuth resolution
+        Azimuth resolution in meters
 
     Reference
     ---------
