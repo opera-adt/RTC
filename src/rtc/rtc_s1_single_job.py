@@ -87,7 +87,7 @@ def populate_product_id(product_id, burst_in, processing_datetime,
         product_id = '{product_id}'
 
     if ('{product_id}' in product_id and
-            product_type == STATIC_LAYERS_PRODUCT_TYPE):
+            product_type != STATIC_LAYERS_PRODUCT_TYPE):
         product_id = ('OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}'
                       '_{processing_datetime}_{sensor}_{pixel_spacing}'
                       '_{product_version}')
@@ -781,7 +781,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         dem_raster,
         layover_shadow_raster=slantrange_layover_shadow_mask_raster)
 
-    if shadow_dilation_size > 0:
+    if shadow_dilation_size > 1:
         '''
         constants from ISCE3:
             SHADOW_VALUE = 1;
