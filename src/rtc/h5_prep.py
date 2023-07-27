@@ -687,13 +687,13 @@ def get_metadata_dict(product_id: str,
         # 3.3
         'metadata/processingInformation/parameters/noiseCorrectionApplied':
             ['processing_information_noise_correction_applied',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'Flag to indicate if noise removal has been applied'],
         'metadata/processingInformation/parameters/' +
         'radiometricTerrainCorrectionApplied':
             ['processing_information_radiometric_terrain_correction_applied',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_rtc,
              'Flag to indicate if radiometric terrain correction (RTC) has'
              ' been applied'],
@@ -780,18 +780,21 @@ def get_metadata_dict(product_id: str,
         # applied'],
 
         'metadata/processingInformation/algorithms/demInterpolation':
-            ['dem_interpolation_algorithm',
+            ['processing_information'
+             '_dem_interpolation_algorithm',
              ALL_PRODUCTS,
              cfg_in.groups.processing.dem_interpolation_method,
              'DEM interpolation method'],
         'metadata/processingInformation/algorithms/geocoding':
-            ['geocoding_algorithm',
+            ['processing_information'
+             '_geocoding_algorithm',
              ALL_PRODUCTS,
              cfg_in.groups.processing.geocoding.algorithm_type,
              'Geocoding algorithm'],
         'metadata/processingInformation/algorithms/' +
         'radiometricTerrainCorrection':
-            ['radiometric_terrain_correction_algorithm',
+            ['processing_information'
+             '_radiometric_terrain_correction_algorithm',
              ALL_PRODUCTS,
              cfg_in.groups.processing.rtc.algorithm_type,
              'Radiometric terrain correction (RTC) algorithm'],
@@ -849,7 +852,8 @@ def get_metadata_dict(product_id: str,
         noise_removal_algorithm_reference = '(noise removal not applied)'
     metadata_dict['metadata/processingInformation/algorithms/'
                   'noiseCorrectionAlgorithmReference'] =\
-        ['noise_removal_algorithm_reference',
+        ['processing_information'
+         '_noise_removal_algorithm_reference',
          STANDARD_RTC_S1_ONLY,
          noise_removal_algorithm_reference,
          'A reference to the noise removal algorithm applied']
@@ -875,7 +879,8 @@ def get_metadata_dict(product_id: str,
             raise NotImplementedError
     metadata_dict['metadata/processingInformation/algorithms/'
                   'radiometricTerrainCorrectionAlgorithmReference'] =\
-        ['rtc_algorithm_reference',
+        ['processing_information'
+         '_radiometric_terrain_correction_algorithm_reference',
          ALL_PRODUCTS,
          url_rtc_algorithm_document,
          'Reference to the radiometric terrain correction (RTC) algorithm'
@@ -892,7 +897,8 @@ def get_metadata_dict(product_id: str,
                  ' Art no. 5222723, doi: 10.1109/TGRS.2022.3147472.')
         metadata_dict['metadata/processingInformation/algorithms/'
                       'geocodingAlgorithmReference'] =\
-            ['geocoding_algorithm_reference',
+            ['processing_information'
+             '_geocoding_algorithm_reference',
              ALL_PRODUCTS,
              url_geocoding_algorithm_document,
              'Reference to the geocoding algorithm applied']
@@ -932,14 +938,14 @@ def get_metadata_dict(product_id: str,
 
         metadata_dict['identification/boundingBox'] = \
             [None,
-             STANDARD_RTC_S1_ONLY,
+             ALL_PRODUCTS,
              np.array(xy_bounding_box),  # 1.7.5
              'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
 
         # Attribute `epsg` for HDF5 dataset /identification/boundingBox
         metadata_dict['identification/boundingBox[epsg]'] = \
             [None,
-             STANDARD_RTC_S1_ONLY,
+             ALL_PRODUCTS,
              str(epsg_geogrid),
              'Bounding box EPSG code']
 
@@ -985,19 +991,19 @@ def get_metadata_dict(product_id: str,
              ' YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
         metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
             ['source_data_number_of_azimuth_lines',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.length,
              'Number of azimuth lines within the source data product']
 
         metadata_dict['metadata/sourceData/numberOfRangeSamples'] = \
             ['source_data_number_of_range_samples',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.width,
              'Number of slant range samples for each azimuth line within the'
              ' source data']
         metadata_dict['metadata/sourceData/slantRangeStart'] = \
             ['source_data_slant_range_start',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.starting_range,
              'Source data slant range start distance']
 
@@ -1010,7 +1016,7 @@ def get_metadata_dict(product_id: str,
         this_product_metadata_dict[h5_path] = [geotiff_field, data,
                                                description]
 
-    if not is_mosaic:
+    if not is_mosaic and product_type != STATIC_LAYERS_PRODUCT_TYPE:
 
         # Add RFI metadata into `metadata_dict`
         rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
@@ -1273,7 +1279,7 @@ def get_rfi_metadata_dict(burst_in,
              'Azimuth time of the burst that corresponds to the RFI report'
              ' in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'rfiBurstReport/inBandOutBandPowerRatio':
-            ['in_band_out_band_power_ratio',
+            ['rfi_in_band_out_band_power_ratio',
              burst_in.burst_rfi_info.rfi_burst_report[
                  'inBandOutBandPowerRatio'],
              'Ratio between the in-band and out-of-band power of the burst.']
