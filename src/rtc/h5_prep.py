@@ -815,6 +815,12 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              cfg_in.groups.processing.dem_interpolation_method,
              'DEM interpolation method'],
+        'metadata/processingInformation/algorithms/demEgmModel':
+            ['processing_information'
+             '_dem_egm_model',
+             ALL_PRODUCTS,
+             'Earth Gravitational Model EGM08',
+             'DEM interpolation method'],
         'metadata/processingInformation/algorithms/geocoding':
             ['processing_information'
              '_geocoding_algorithm',
