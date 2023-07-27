@@ -1274,7 +1274,7 @@ def run_single_job(cfg: RunConfig):
         geogrid = cfg.geogrids[burst_id]
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
- 
+
         # populate burst_product_id
         pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
         burst_product_id = populate_product_id(

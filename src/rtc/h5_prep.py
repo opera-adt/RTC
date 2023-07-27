@@ -940,13 +940,13 @@ def get_metadata_dict(product_id: str,
             ['processing_information_mosaic_geogrid_snap_x',
              ALL_PRODUCTS,
              mosaic_snap_x,
-             'mosaic geogrid snap for Coordinate X (W/E)'],
+             'mosaic geogrid snap for Coordinate X (W/E)']
         metadata_dict['metadata/processingInformation/parameters/geocoding/' +
                       'mosaicGeogridSnapY'] = \
             ['processing_information_mosaic_geogrid_snap_y',
              ALL_PRODUCTS,
              mosaic_snap_y,
-             'mosaic geogrid snap for Coordinate Y (S/N)'],
+             'mosaic geogrid snap for Coordinate Y (S/N)']
 
     else:
         # Metadata only for the burst product
