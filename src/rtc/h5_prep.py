@@ -367,7 +367,7 @@ def get_metadata_dict(product_id: str,
     dem_file_description = cfg_in.dem_file_description
 
     # Slant range and azimuth resolution of the sensor
-    slant_range_resolution, azimuth_resolution = compute_range_azimuth_resolution_sentinel1(burst_in)
+    slant_range_resolution, azimuth_resolution = get_range_azimuth_resolution(burst_in)
 
     if not dem_file_description:
         # If the DEM description is not provided, use DEM source
@@ -1309,10 +1309,9 @@ def get_rfi_metadata_dict(burst_in,
     return rfi_metadata_dict
 
 
-def compute_range_azimuth_resolution_sentinel1(burst: Sentinel1BurstSlc):
+def get_range_azimuth_resolution(burst: Sentinel1BurstSlc):
     '''
-    Compute the range / azimuth resolution of the sentinel-1 C-SAR
-    The computation of the azimuth resolution is based on the average speed of the satellite.
+    Get the range and azimuth resolution based on the ESA documentation
 
     Paremeters
     ----------
@@ -1325,25 +1324,19 @@ def compute_range_azimuth_resolution_sentinel1(burst: Sentinel1BurstSlc):
         Slant range recolution
     azimuth_resolution: float
         Azimuth resolution
-    
-    References
-    ----------
-    https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-1-sar/sar-instrument (for antenna length)
-    Francesco De Zan and Andrea Monti Guarnieri, TOPSAR: Terrain Observation by Progressive Scans, IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, 44(9) pp. 2352-2360
+
+    Reference
+    ---------
+    https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-1-sar/products-algorithms/level-1/single-look-complex/interferometric-wide-swath
     '''
 
-    # Compute the range resolution
-    slant_range_resolution = isce3.core.speed_of_light / (2 * burst.range_bandwidth)
+    resolution_subswath_range_azimuth_dict = {
+        'IW1':[2.7, 22.5],
+        'IW2':[3.1, 22.7],
+        'IW3':[3.5, 22.6]
+    }
 
-    # Compute the azimuth resolution
-    # compute the mean speed
-    antenna_length = 12.3
-    time_mid = (burst.orbit.start_time + burst.orbit.end_time) / 2
-    velocity_mid = burst.orbit.interpolate(time_mid)[0]
-    speed_mid = np.linalg.norm(velocity_mid)
-    alpha = 1 + burst.starting_range * abs(burst.azimuth_steer_rate) / speed_mid
-    azimuth_resolution = alpha * antenna_length / 2
+    slant_range_resolution, azimuth_resolution =\
+        resolution_subswath_range_azimuth_dict[burst.burst_id.subswath]
 
     return slant_range_resolution, azimuth_resolution
-
-
