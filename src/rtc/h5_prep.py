@@ -767,6 +767,15 @@ def get_metadata_dict(product_id: str,
              'backscatter_dB = 10*log10(backscatter_linear)',
              'Equation to convert provided backscatter to decibel (dB)'],
 
+        # 1.7.8
+        'metadata/processingInformation/parameters/geocoding/' +
+        '/ceosAnalysisReadyDataPixelCoordinateConvention':
+            ['ceos_analysis_ready_data_pixel_coordinate_convention',
+             ALL_PRODUCTS,
+             'ULC',
+             'CEOS Analysis Ready Data (CARD) pixel coordinate convention'],
+
+        # 4.4
         'metadata/processingInformation/parameters/geocoding/' +
         'burstGeogridSnapX':
             ['processing_information_burst_geogrid_snap_x',
