@@ -519,7 +519,7 @@ def get_metadata_dict(product_id: str,
              processing_type,
              'Processing type: "NOMINAL", "URGENT", "CUSTOM", or "UNDEFINED"'],
         'identification/processingDateTime':
-            ['processing_date_time',
+            ['processing_datetime',
              ALL_PRODUCTS,
              processing_datetime.strftime(DATE_TIME_METADATA_FORMAT),
              'Processing date and time in the format YYYY-MM-DDThh:mm:ss.sZ'],
@@ -583,7 +583,7 @@ def get_metadata_dict(product_id: str,
         # populate source data processingDateTime with from processing_info
         # "stop" (SLC Post processing date time)
         'metadata/sourceData/processingDateTime':  # 1.6.6
-            ['source_data_processing_date_time',
+            ['source_data_processing_datetime',
              ALL_PRODUCTS,
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing UTC date and time of the source data product (SLC'
