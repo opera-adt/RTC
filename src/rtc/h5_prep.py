@@ -1328,7 +1328,8 @@ def get_range_azimuth_resolution(burst: Sentinel1BurstSlc):
 
     Reference
     ---------
-    https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-1-sar/products-algorithms/level-1/single-look-complex/interferometric-wide-swath
+    https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-1-sar/
+    products-algorithms/level-1/single-look-complex/interferometric-wide-swath
     '''
 
     resolution_subswath_range_azimuth_dict = {
