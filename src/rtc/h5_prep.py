@@ -642,7 +642,7 @@ def get_metadata_dict(product_id: str,
             ['source_data_zero_doppler_time_spacing',
              ALL_PRODUCTS,
              burst_in.azimuth_time_interval,
-             'Azimuth spacing of the source data in seconds'], 
+             'Azimuth spacing of the source data in seconds'],
         'metadata/sourceData/slantRangeSpacing':  # 1.6.7
             ['source_data_slant_range_spacing',
              ALL_PRODUCTS,

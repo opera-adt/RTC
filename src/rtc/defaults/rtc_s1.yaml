@@ -233,7 +233,7 @@ runconfig:
 
                 # Layover/shadow mask dilation size of shadow pixels
                 # (values 1 and 3)
-                shadow_dilation_size: 3
+                shadow_dilation_size: 0
 
                 # OPTIONAL - Absolute radiometric correction
                 abs_rad_cal: 1
