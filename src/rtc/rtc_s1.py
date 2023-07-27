@@ -266,6 +266,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # primary executable
     product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
+    validity_start_date = cfg.groups.product_group.validity_start_date
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
     else:
@@ -298,7 +299,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                             2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
-        pixel_spacing_avg, is_mosaic=True)
+        validity_start_date, pixel_spacing_avg, product_type, is_mosaic=True)
 
     # set scratch directory and output_dir
     scratch_path = os.path.join(
@@ -530,7 +531,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
-            pixel_spacing_avg, is_mosaic=True)
+            pixel_spacing_avg, product_type, validity_start_date,
+            is_mosaic=True)
         burst_product_id_list.append(burst_product_id)
 
     # burst files are saved in scratch dir

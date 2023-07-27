@@ -51,7 +51,8 @@ STATIC_LAYERS_RG_MARGIN = 0.2
 
 
 def populate_product_id(product_id, burst_in, processing_datetime,
-                        product_version, pixel_spacing, is_mosaic):
+                        product_version, pixel_spacing, product_type,
+                        validity_start_date,is_mosaic):
     '''
     Populate product_id string with S1/RTC-S1 parameters
 
@@ -67,9 +68,14 @@ def populate_product_id(product_id, burst_in, processing_datetime,
         Product version
     pixel_spacing: scalar
         Pixel spacing
+    product_type: string
+        Product type
+    validity_start_date: string
+        Validity start date (only applicable for the RTC-S1-STATIC product)
     is_mosaic: bool
         Flag indicating whether the product ID refers to a mosaic or a
         burst product
+
 
     Returns
     -------
@@ -80,9 +86,17 @@ def populate_product_id(product_id, burst_in, processing_datetime,
     if product_id is None:
         product_id = '{product_id}'
 
+    if ('{product_id}' in product_id and
+            product_type == STATIC_LAYERS_PRODUCT_TYPE):
+        product_id = ('OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}'
+                      '_{processing_datetime}_{sensor}_{pixel_spacing}'
+                      '_{product_version}')
     if '{product_id}' in product_id:
-        product_id = ('OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}_'
-                      '{processing_datetime}_{sensor}_{pixel_spacing}'
+        if not validity_start_date:
+            error_msg = 'ERROR please provide a `validity_start_date`'
+            raise ValueError(error_msg)
+        product_id = ('OPERA_L2_RTC-S1-STATIC_{burst_id}_{validity_start_date}'
+                      '_{processing_datetime}_{sensor}_{pixel_spacing}'
                       '_{product_version}')
 
     # Populate product_id sensing_start_datetime
@@ -927,6 +941,7 @@ def run_single_job(cfg: RunConfig):
     # primary executable
     product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
+    validity_start_date = cfg.groups.product_group.validity_start_date
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
     else:
@@ -959,7 +974,7 @@ def run_single_job(cfg: RunConfig):
                             2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
-        pixel_spacing_avg, is_mosaic=True)
+        pixel_spacing_avg, product_type, validity_start_date, is_mosaic=True)
 
     scratch_path = os.path.join(
         cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
@@ -1261,7 +1276,8 @@ def run_single_job(cfg: RunConfig):
         pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
-            pixel_spacing_avg, is_mosaic=True)
+            pixel_spacing_avg, product_type, validity_start_date,
+            is_mosaic=True)
 
         logger.info(f'    product ID: {burst_product_id}')
 
