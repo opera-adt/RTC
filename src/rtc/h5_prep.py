@@ -366,6 +366,9 @@ def get_metadata_dict(product_id: str,
     # DEM description
     dem_file_description = cfg_in.dem_file_description
 
+    # Slant range and azimuth resolution of the sensor
+    slant_range_resolution, azimuth_resolution = compute_range_azimuth_resolution_sentinel1(burst_in)
+
     if not dem_file_description:
         # If the DEM description is not provided, use DEM source
         dem_file_description = os.path.basename(cfg_in.dem)
@@ -614,6 +617,16 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'],
+        'metadata/sourceData/azimuthResolution':  # 1.6.7
+            ['source_data_azimuth_resolution',
+             ALL_PRODUCTS,
+             azimuth_resolution,
+             'Azimuth resolution of the source data in meters'],
+        'metadata/sourceData/slantRangeResolutuion':  # 1.6.7
+            ['source_data_slant_range_resolution',
+             ALL_PRODUCTS,
+             slant_range_resolution,
+             'Slant range resoluton of the source data in meters'],
 
         # 'metadata/sourceData/azimuthResolution':  # 1.6.7
         #    ['source_azimuth_resolution',
@@ -1294,3 +1307,43 @@ def get_rfi_metadata_dict(burst_in,
         rfi_metadata_dict[path_in_rfi_dict] = data
 
     return rfi_metadata_dict
+
+
+def compute_range_azimuth_resolution_sentinel1(burst: Sentinel1BurstSlc):
+    '''
+    Compute the range / azimuth resolution of the sentinel-1 C-SAR
+    The computation of the azimuth resolution is based on the average speed of the satellite.
+
+    Paremeters
+    ----------
+    burst: Sentinel1BurstSlc
+        Burst object to compute the resolution
+
+    returns
+    -------
+    slant_range_resolution: float
+        Slant range recolution
+    azimuth_resolution: float
+        Azimuth resolution
+    
+    References
+    ----------
+    https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-1-sar/sar-instrument (for antenna length)
+    Francesco De Zan and Andrea Monti Guarnieri, TOPSAR: Terrain Observation by Progressive Scans, IEEE TRANSACTIONS ON GEOSCIENCE AND REMOTE SENSING, 44(9) pp. 2352-2360
+    '''
+
+    # Compute the range resolution
+    slant_range_resolution = isce3.core.speed_of_light / (2 * burst.range_bandwidth)
+
+    # Compute the azimuth resolution
+    # compute the mean speed
+    antenna_length = 12.3
+    time_mid = (burst.orbit.start_time + burst.orbit.end_time) / 2
+    velocity_mid = burst.orbit.interpolate(time_mid)[0]
+    speed_mid = np.linalg.norm(velocity_mid)
+    alpha = 1 + burst.starting_range * abs(burst.azimuth_steer_rate) / speed_mid
+    azimuth_resolution = alpha * antenna_length / 2
+
+    return slant_range_resolution, azimuth_resolution
+
+
