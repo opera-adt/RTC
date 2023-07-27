@@ -618,16 +618,16 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'],
-        'metadata/sourceData/azimuthResolution':  # 1.6.7
-            ['source_data_azimuth_resolution',
+        'metadata/sourceData/azimuthResolutionInMeters':  # 1.6.7
+            ['source_data_azimuth_resolution_in_meters',
              ALL_PRODUCTS,
              azimuth_resolution,
              'Azimuth resolution of the source data in meters'],
         'metadata/sourceData/slantRangeResolutionInMeters':  # 1.6.7
-            ['source_data_slant_range_resolution',
+            ['source_data_slant_range_resolution_in_meters',
              ALL_PRODUCTS,
              slant_range_resolution,
-             'Slant range resoluton of the source data in meters'],
+             'Slant-range resolution of the source data in meters'],
 
         # 'metadata/sourceData/azimuthResolution':  # 1.6.7
         #    ['source_azimuth_resolution',
@@ -1314,7 +1314,7 @@ def get_range_azimuth_resolution(burst: Sentinel1BurstSlc):
     '''
     Get the range and azimuth resolution based on the ESA documentation
 
-    Paremeters
+    Parameters
     ----------
     burst: Sentinel1BurstSlc
         Burst object to compute the resolution
