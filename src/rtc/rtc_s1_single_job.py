@@ -52,7 +52,7 @@ STATIC_LAYERS_RG_MARGIN = 0.2
 
 def populate_product_id(product_id, burst_in, processing_datetime,
                         product_version, pixel_spacing, product_type,
-                        rtc_s1_static_validity_start_date,is_mosaic):
+                        rtc_s1_static_validity_start_date, is_mosaic):
     '''
     Populate product_id string with S1/RTC-S1 parameters
 
@@ -70,8 +70,9 @@ def populate_product_id(product_id, burst_in, processing_datetime,
         Pixel spacing
     product_type: string
         Product type
-    rtc_s1_static_validity_start_date: string
+    rtc_s1_static_validity_start_date: int
         Validity start date (only applicable for the RTC-S1-STATIC product)
+        in the format YYYYMMDD
     is_mosaic: bool
         Flag indicating whether the product ID refers to a mosaic or a
         burst product
@@ -93,9 +94,11 @@ def populate_product_id(product_id, burst_in, processing_datetime,
                       '_{product_version}')
     if '{product_id}' in product_id:
         if not rtc_s1_static_validity_start_date:
-            error_msg = 'ERROR please provide a `rtc_s1_static_validity_start_date`'
+            error_msg = ('ERROR please provide a' +
+                         ' `rtc_s1_static_validity_start_date`')
             raise ValueError(error_msg)
-        product_id = ('OPERA_L2_RTC-S1-STATIC_{burst_id}_{rtc_s1_static_validity_start_date}'
+        product_id = ('OPERA_L2_RTC-S1-STATIC_{burst_id}'
+                      f'_{rtc_s1_static_validity_start_date}'
                       '_{processing_datetime}_{sensor}_{pixel_spacing}'
                       '_{product_version}')
 

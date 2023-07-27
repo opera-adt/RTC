@@ -80,7 +80,7 @@ runconfig:
             product_id: str(required=False)
 
             # Validity start date for RTC-S1-STATIC products in the format YYYYMMDD
-            rtc_s1_static_validity_start_date: str(required=False)
+            rtc_s1_static_validity_start_date: int(min=20000101, max=21991231,required=False)
 
             # Location from where the output product can be retrieved (URL or DOI)
             product_data_access: str(required=False)
