@@ -843,28 +843,28 @@ def get_metadata_dict(product_id: str,
              'Version of the OPERA s1-reader used for processing'],
 
         'metadata/processingInformation/inputs/l1SlcGranules':
-            ['l1_slc_granules',
+            ['inputs_l1_slc_granules',
              ALL_PRODUCTS,
              l1_slc_granules,
              'List of input L1 SLC products used'],
         'metadata/processingInformation/inputs/orbitFiles':
-            ['orbit_files',
+            ['inputs_orbit_files',
              ALL_PRODUCTS,
              orbit_files,
              'List of input orbit files used'],
         'metadata/processingInformation/inputs/annotationFiles':
-            ['annotation_files',
+            ['inputs_annotation_files',
              ALL_PRODUCTS,
              [burst_in.burst_calibration.basename_cads,
               burst_in.burst_noise.basename_nads],
              'List of input annotation files used'],
         'metadata/processingInformation/inputs/configFiles':
-            ['config_files',
+            ['inputs_config_files',
              ALL_PRODUCTS,
              cfg_in.run_config_path,
              'List of input config files used'],
         'metadata/processingInformation/inputs/demSource':
-            ['dem_source',
+            ['inputs_dem_source',
              ALL_PRODUCTS,
              dem_file_description,
              'Description of the input digital elevation model (DEM)']
