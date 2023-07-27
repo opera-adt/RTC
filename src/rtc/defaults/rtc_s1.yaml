@@ -47,9 +47,9 @@ runconfig:
             scratch_path:
 
             # If option `save_bursts` is set, output bursts are saved to:
-            #     {output_dir}/{burst_id}/{product_id}_v{product_version}{suffix}.{ext}
+            #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
             # If option `save_mosaics` is set, output mosaics are saved to:
-            #     {output_dir}/{product_id}_v{product_version}{suffix}.{ext}
+            #     {output_dir}/{product_id}{suffix}.{ext}
             #
             # If the `product_id` contains the substring "_{burst_id}", the
             # substring will be substituted by either:

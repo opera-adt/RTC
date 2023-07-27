@@ -48,21 +48,25 @@ runconfig:
             scratch_path:
 
             # If option `save_bursts` is set, output bursts are saved to:
-            #     {output_dir}/{burst_id}/{product_id}_v{product_version}{suffix}.{ext}
+            #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
             # If option `save_mosaics` is set, output mosaics are saved to:
-            #     {output_dir}/{product_id}_v{product_version}{suffix}.{ext}
+            #     {output_dir}/{product_id}{suffix}.{ext}
             #
             # If the `product_id` contains the substring "_{burst_id}", the
             # substring will be substituted by either:
             #     - "_" followed by the burst ID, if the product is a burst; or
             #     - An empty string, if the product is a mosaic.
             #
-            # For example, the `product_id` = `RTC-S1_{burst_id}_S1B` will become
-            # `RTC-S1_069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
-            # will become `RTC-S1_S1B` for the mosaic product.
+            # For example, the `product_id` = `RTC-S1-STATIC_{burst_id}_S1B` will become
+            # `RTC-S1-STATIC_069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
+            # will become `RTC-S1-STATIC_S1B` for the mosaic product.
             #
-            # If the field `product_id`` is left empty, the prefix
-            # "OPERA_L2_RTC-S1_{burst_id}"  will be used instead.
+            # If the field `product_id` is left empty, the product ID will
+            # follow the RTC-S1-STATIC file naming conventions:
+            # `OPERA_L2_RTC-S1-STATIC_{burst_id}_{validity_start_date}_
+            # {processing_datetime}_{sensor}_{pixel_spacing}
+            #  _{product_version}`.
+            #
             # `suffix` is only used when there are multiple output files.
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir:
