@@ -766,6 +766,8 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              cfg_in.groups.processing.rtc.output_type,
              'Backscatter normalization convention of this product (RTC-S1)'],
+
+        # 3.1
         'metadata/processingInformation/parameters/' +
         'outputBackscatterExpressionConvention':
             ['processing_information'
@@ -773,6 +775,8 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              'linear power/intensity',
              'Backscatter expression convension'],
+
+        # 3.2
         'metadata/processingInformation/parameters/' +
         'outputBackscatterDecibelConversionEquation':
             ['processing_information'
