@@ -696,20 +696,19 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              str(SOFTWARE_VERSION),
              'Software version'],
-        # TODO Review: should we expose this parameter in the runconfig?
-        # 'metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
-        #    ['product_data_access',
-        #     'TBD',
-        #     'URL to access the product data'],
-        'metadata/processingInformation/parameters/' +
-        'preprocessingMultilookingApplied':  # 1.7.4
+
+        # 1.7.4
+        ('metadata/processingInformation/parameters/'
+            'preprocessingMultilookingApplied'):
             ['processing_information_multilooking_applied',
              ALL_PRODUCTS,
              False,
              'Flag to indicate if a preprocessing multilooking has been'
              ' applied'],
-        'metadata/processingInformation/parameters/' +
-        'filteringApplied':  # 1.7.4
+
+        # 1.7.4
+        ('metadata/processingInformation/parameters/'
+            'filteringApplied'):
             ['processing_information_filtering_applied',
              ALL_PRODUCTS,
              False,
@@ -721,46 +720,46 @@ def get_metadata_dict(product_id: str,
              STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'Flag to indicate if noise removal has been applied'],
-        'metadata/processingInformation/parameters/' +
-        'radiometricTerrainCorrectionApplied':
+        ('metadata/processingInformation/parameters/'
+            'radiometricTerrainCorrectionApplied'):
             ['processing_information_radiometric_terrain_correction_applied',
              STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_rtc,
              'Flag to indicate if radiometric terrain correction (RTC) has'
              ' been applied'],
-        'metadata/processingInformation/parameters/' +
-        'dryTroposphericGeolocationCorrectionApplied':
+        ('metadata/processingInformation/parameters/'
+            'dryTroposphericGeolocationCorrectionApplied'):
             ['processing_information'
              '_dry_tropospheric_geolocation_correction_applied',
              ALL_PRODUCTS,
              cfg_in.groups.processing.apply_dry_tropospheric_delay_correction,
              'Flag to indicate if the dry tropospheric correction has been'
              ' applied'],
-        'metadata/processingInformation/parameters/' +
-        'wetTroposphericGeolocationCorrectionApplied':
+        ('metadata/processingInformation/parameters/'
+            'wetTroposphericGeolocationCorrectionApplied'):
             ['processing_information'
              '_wet_tropospheric_geolocation_correction_applied',
              ALL_PRODUCTS,
              False,
              'Flag to indicate if the wet tropospheric correction has been'
              ' applied'],
-        'metadata/processingInformation/parameters/' +
-        'bistaticDelayCorrectionApplied':
+        ('metadata/processingInformation/parameters/'
+            'bistaticDelayCorrectionApplied'):
             ['processing_information'
              '_bistatic_delay_correction_applied',
              ALL_PRODUCTS,
              cfg_in.groups.processing.apply_bistatic_delay_correction,
              'Flag to indicate if the bistatic delay correction has been'
              ' applied'],
-        'metadata/processingInformation/parameters/' +
-        'inputBackscatterNormalizationConvention':
+        ('metadata/processingInformation/parameters/'
+            'inputBackscatterNormalizationConvention'):
             ['processing_information'
              '_input_backscatter_normalization_convention',
              ALL_PRODUCTS,
              cfg_in.groups.processing.rtc.input_terrain_radiometry,
              'Backscatter normalization convention of the source data'],
-        'metadata/processingInformation/parameters/' +
-        'outputBackscatterNormalizationConvention':
+        ('metadata/processingInformation/parameters/'
+            'outputBackscatterNormalizationConvention'):
             ['processing_information'
              '_output_backscatter_normalization_convention',
              ALL_PRODUCTS,
@@ -768,8 +767,8 @@ def get_metadata_dict(product_id: str,
              'Backscatter normalization convention of this product (RTC-S1)'],
 
         # 3.1
-        'metadata/processingInformation/parameters/' +
-        'outputBackscatterExpressionConvention':
+        ('metadata/processingInformation/parameters/'
+            'outputBackscatterExpressionConvention'):
             ['processing_information'
              '_output_backscatter_expression_convention',
              ALL_PRODUCTS,
@@ -777,8 +776,8 @@ def get_metadata_dict(product_id: str,
              'Backscatter expression convension'],
 
         # 3.2
-        'metadata/processingInformation/parameters/' +
-        'outputBackscatterDecibelConversionEquation':
+        ('metadata/processingInformation/parameters/'
+            'outputBackscatterDecibelConversionEquation'):
             ['processing_information'
              '_output_backscatter_decibel_conversion_equation',
              ALL_PRODUCTS,
@@ -786,14 +785,14 @@ def get_metadata_dict(product_id: str,
              'Equation to convert provided backscatter to decibel (dB)'],
 
         # 4.4
-        'metadata/processingInformation/parameters/geocoding/' +
-        'burstGeogridSnapX':
+        ('metadata/processingInformation/parameters/geocoding/'
+            'burstGeogridSnapX'):
             ['processing_information_burst_geogrid_snap_x',
              ALL_PRODUCTS,
              burst_snap_x,
              'Burst geogrid snap for Coordinate X (W/E)'],
-        'metadata/processingInformation/parameters/geocoding/' +
-        'burstGeogridSnapY':
+        ('metadata/processingInformation/parameters/geocoding/'
+            'burstGeogridSnapY'):
             ['processing_information_burst_geogrid_snap_y',
              ALL_PRODUCTS,
              burst_snap_y,
@@ -954,13 +953,13 @@ def get_metadata_dict(product_id: str,
 
     if is_mosaic:
         # Metadata only for the mosaic product
-        metadata_dict['metadata/processingInformation/parameters/geocoding/' +
+        metadata_dict['metadata/processingInformation/parameters/geocoding/'
                       'mosaicGeogridSnapX'] = \
             ['processing_information_mosaic_geogrid_snap_x',
              ALL_PRODUCTS,
              mosaic_snap_x,
              'mosaic geogrid snap for Coordinate X (W/E)']
-        metadata_dict['metadata/processingInformation/parameters/geocoding/' +
+        metadata_dict['metadata/processingInformation/parameters/geocoding/'
                       'mosaicGeogridSnapY'] = \
             ['processing_information_mosaic_geogrid_snap_y',
              ALL_PRODUCTS,
