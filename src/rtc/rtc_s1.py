@@ -1008,8 +1008,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             hdf5_mosaic_obj.close()
             output_file_list.append(output_hdf5_file)
 
-    # Append metadata to mosaic GeoTIFFs
-    if save_mosaics:
+        # Append metadata to mosaic GeoTIFFs
         for current_file in mosaic_output_file_list:
             if not current_file.endswith('.tif'):
                 continue
