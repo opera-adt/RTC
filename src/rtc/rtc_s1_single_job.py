@@ -944,7 +944,8 @@ def run_single_job(cfg: RunConfig):
     # primary executable
     product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
-    rtc_s1_static_validity_start_date = cfg.groups.product_group.rtc_s1_static_validity_start_date
+    rtc_s1_static_validity_start_date = \
+        cfg.groups.product_group.rtc_s1_static_validity_start_date
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
     else:

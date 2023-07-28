@@ -266,7 +266,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # primary executable
     product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
-    rtc_s1_static_validity_start_date = cfg.groups.product_group.rtc_s1_static_validity_start_date
+    rtc_s1_static_validity_start_date = \
+        cfg.groups.product_group.rtc_s1_static_validity_start_date
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
     else:
@@ -299,7 +300,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                             2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
-        rtc_s1_static_validity_start_date, pixel_spacing_avg, product_type, is_mosaic=True)
+        rtc_s1_static_validity_start_date, pixel_spacing_avg, product_type,
+        is_mosaic=True)
 
     # set scratch directory and output_dir
     scratch_path = os.path.join(
