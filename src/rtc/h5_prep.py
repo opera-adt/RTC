@@ -793,13 +793,13 @@ def get_metadata_dict(product_id: str,
              'CEOS Analysis Ready Data (CARD) pixel coordinate convention'],
 
         # 4.4
-        ('metadata/processingInformation/parameters/geocoding/' +
+        ('metadata/processingInformation/parameters/geocoding/'
             'burstGeogridSnapX'):
             ['processing_information_burst_geogrid_snap_x',
              ALL_PRODUCTS,
              burst_snap_x,
              'Burst geogrid snap for Coordinate X (W/E)'],
-        ('metadata/processingInformation/parameters/geocoding/' +
+        ('metadata/processingInformation/parameters/geocoding/'
             'burstGeogridSnapY'):
             ['processing_information_burst_geogrid_snap_y',
              ALL_PRODUCTS,
