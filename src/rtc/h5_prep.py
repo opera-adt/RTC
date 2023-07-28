@@ -1399,7 +1399,7 @@ def get_rfi_metadata_dict(burst_in,
              rfi_burst_report_freq['numSubBlocks'],
              'Number of sub-blocks in the current burst']
 
-        subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize']=\
+        subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize']= \
             ['frequency_domain_rfi_burst_report_sub_block_size',
              rfi_burst_report_freq['subBlockSize'],
              'Number of lines in each sub-block']
@@ -1455,16 +1455,16 @@ def get_range_azimuth_resolution(burst: Sentinel1BurstSlc):
     azimuth_resolution: float
         Azimuth resolution in meters
 
-    Reference
-    ---------
+    Notes
+    -----
     https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-1-sar/
     products-algorithms/level-1/single-look-complex/interferometric-wide-swath
     '''
 
     resolution_subswath_range_azimuth_dict = {
-        'IW1':[2.7, 22.5],
-        'IW2':[3.1, 22.7],
-        'IW3':[3.5, 22.6]
+        'IW1': [2.7, 22.5],
+        'IW2': [3.1, 22.7],
+        'IW3': [3.5, 22.6]
     }
 
     slant_range_resolution, azimuth_resolution =\
