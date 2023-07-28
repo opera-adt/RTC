@@ -20,7 +20,7 @@ from s1reader.s1_burst_slc import Sentinel1BurstSlc
 from s1reader.s1_orbit import get_orbit_file_from_list
 from s1reader.s1_reader import load_bursts
 
-STATIC_LAYERS_PRODUCT_TYPE = 'RTC_S1_SL'
+STATIC_LAYERS_PRODUCT_TYPE = 'RTC_S1_STATIC'
 
 logger = logging.getLogger('rtc_s1')
 
@@ -147,7 +147,7 @@ def load_validate_yaml(yaml_path: str) -> dict:
         'product_type']
     if (product_type == STATIC_LAYERS_PRODUCT_TYPE):
         default_cfg_path = (f'{helpers.WORKFLOW_SCRIPTS_DIR}/defaults/'
-                            f'rtc_s1_sl.yaml')
+                            f'rtc_s1_static.yaml')
         print('Loading RTC-S1 runconfig default for static layers')
     else:
         default_cfg_path = (f'{helpers.WORKFLOW_SCRIPTS_DIR}/defaults/'

@@ -46,10 +46,13 @@ logger = logging.getLogger('rtc_s1')
 
 STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR = 3
 
+STATIC_LAYERS_AZ_MARGIN = 1.2
+STATIC_LAYERS_RG_MARGIN = 0.2
 
 
 def populate_product_id(product_id, burst_in, processing_datetime,
-                        product_version, pixel_spacing, is_mosaic):
+                        product_version, pixel_spacing, product_type,
+                        rtc_s1_static_validity_start_date, is_mosaic):
     '''
     Populate product_id string with S1/RTC-S1 parameters
 
@@ -65,9 +68,15 @@ def populate_product_id(product_id, burst_in, processing_datetime,
         Product version
     pixel_spacing: scalar
         Pixel spacing
+    product_type: string
+        Product type
+    rtc_s1_static_validity_start_date: int
+        Validity start date (only applicable for the RTC-S1-STATIC product)
+        in the format YYYYMMDD
     is_mosaic: bool
         Flag indicating whether the product ID refers to a mosaic or a
         burst product
+
 
     Returns
     -------
@@ -78,9 +87,19 @@ def populate_product_id(product_id, burst_in, processing_datetime,
     if product_id is None:
         product_id = '{product_id}'
 
+    if ('{product_id}' in product_id and
+            product_type != STATIC_LAYERS_PRODUCT_TYPE):
+        product_id = ('OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}'
+                      '_{processing_datetime}_{sensor}_{pixel_spacing}'
+                      '_{product_version}')
     if '{product_id}' in product_id:
-        product_id = ('OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}_'
-                      '{processing_datetime}_{sensor}_{pixel_spacing}'
+        if not rtc_s1_static_validity_start_date:
+            error_msg = ('ERROR please provide a' +
+                         ' `rtc_s1_static_validity_start_date`')
+            raise ValueError(error_msg)
+        product_id = ('OPERA_L2_RTC-S1-STATIC_{burst_id}'
+                      f'_{rtc_s1_static_validity_start_date}'
+                      '_{processing_datetime}_{sensor}_{pixel_spacing}'
                       '_{product_version}')
 
     # Populate product_id sensing_start_datetime
@@ -400,6 +419,16 @@ def append_metadata_to_geotiff_file(input_file, metadata_dict, product_id):
 
     # Write metadata
     gdal_ds.SetMetadata(existing_metadata)
+
+    # Check NoDataValue
+    for band in range(gdal_ds.RasterCount):
+        band_ds = gdal_ds.GetRasterBand(band + 1)
+        dtype = band_ds.DataType
+        dtype_name = gdal.GetDataTypeName(dtype)
+        if ('float' in dtype_name.lower() and
+                band_ds.GetNoDataValue() is None):
+            band_ds.SetNoDataValue(np.nan)
+        del band_ds
 
     # Close GDAL dataset
     del gdal_ds
@@ -750,35 +779,12 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
         slantrange_layover_shadow_mask_raster = isce3.io.Raster(
             path_layover_shadow_mask, radar_grid.width, radar_grid.length,
             1, gdal.GDT_Byte, 'MEM')
- 
-    # TODO Remove next lines after topo is fixed and X, Y, and inc will
-    # not be required to compute the layover/shadow mask
-    x_raster_path = (f'x_{burst_in.burst_id}_'
-                     f'{burst_in.polarization}_{str_datetime}')
-    x_raster = isce3.io.Raster(x_raster_path, radar_grid.width,
-                               radar_grid.length,
-                               1, gdal.GDT_Byte, 'MEM')
-    y_raster_path = (f'x_{burst_in.burst_id}_'
-                     f'{burst_in.polarization}_{str_datetime}')
-    y_raster = isce3.io.Raster(y_raster_path, radar_grid.width,
-                               radar_grid.length,
-                               1, gdal.GDT_Byte, 'MEM')
-    incidence_angle_raster_path = (
-        f'x_{burst_in.burst_id}_'
-        f'{burst_in.polarization}_{str_datetime}')
-    incidence_angle_raster = isce3.io.Raster(incidence_angle_raster_path,
-                                             radar_grid.width,
-                                             radar_grid.length,
-                                             1, gdal.GDT_Byte, 'MEM')
 
     rdr2geo_obj.topo(
         dem_raster,
-        x_raster=x_raster,
-        y_raster=y_raster,
-        incidence_angle_raster=incidence_angle_raster,
         layover_shadow_raster=slantrange_layover_shadow_mask_raster)
 
-    if shadow_dilation_size > 0:
+    if shadow_dilation_size > 1:
         '''
         constants from ISCE3:
             SHADOW_VALUE = 1;
@@ -938,6 +944,8 @@ def run_single_job(cfg: RunConfig):
     # primary executable
     product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
+    rtc_s1_static_validity_start_date = \
+        cfg.groups.product_group.rtc_s1_static_validity_start_date
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
     else:
@@ -970,7 +978,7 @@ def run_single_job(cfg: RunConfig):
                             2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
-        pixel_spacing_avg, is_mosaic=True)
+        pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date, is_mosaic=True)
 
     scratch_path = os.path.join(
         cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
@@ -1057,7 +1065,8 @@ def run_single_job(cfg: RunConfig):
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
-    save_rtc_anf_projection_angle = geocode_namespace.save_rtc_anf_projection_angle
+    save_rtc_anf_projection_angle = \
+        geocode_namespace.save_rtc_anf_projection_angle
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
@@ -1101,6 +1110,21 @@ def run_single_job(cfg: RunConfig):
     rtc_min_value_db = rtc_namespace.rtc_min_value_db
     rtc_upsampling = rtc_namespace.dem_upsampling
     rtc_area_beta_mode = rtc_namespace.area_beta_mode
+
+    if rtc_area_beta_mode == 'pixel_area':
+        rtc_area_beta_mode_enum = \
+            isce3.geometry.RtcAreaBetaMode.PIXEL_AREA
+    elif rtc_area_beta_mode == 'projection_angle':
+        rtc_area_beta_mode_enum = \
+            isce3.geometry.RtcAreaBetaMode.PROJECTION_ANGLE
+    elif (rtc_area_beta_mode == 'auto' or
+            rtc_area_beta_mode is None):
+        rtc_area_beta_mode_enum = \
+            isce3.geometry.RtcAreaBetaMode.AUTO
+    else:
+        err_msg = ('ERROR invalid area beta mode:'
+                   f' {rtc_area_beta_mode}')
+        raise ValueError(err_msg)
 
     logger.info('Identification:')
     logger.info(f'    product type: {product_type}')
@@ -1251,12 +1275,13 @@ def run_single_job(cfg: RunConfig):
         geogrid = cfg.geogrids[burst_id]
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
- 
+
         # populate burst_product_id
         pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
-            pixel_spacing_avg, is_mosaic=True)
+            pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
+            is_mosaic=True)
 
         logger.info(f'    product ID: {burst_product_id}')
 
@@ -1334,10 +1359,10 @@ def run_single_job(cfg: RunConfig):
         radar_grid = burst.as_isce3_radargrid()
         if product_type == STATIC_LAYERS_PRODUCT_TYPE:
             radar_grid = radar_grid.offset_and_resize(
-                - int(1.5 * radar_grid.length),
-                - int(radar_grid.width),
-                int(4 * radar_grid.length),
-                int(3 * radar_grid.width))
+                - int((STATIC_LAYERS_AZ_MARGIN) * radar_grid.length),
+                - int((STATIC_LAYERS_RG_MARGIN) * radar_grid.width),
+                int((1 + 2 * STATIC_LAYERS_AZ_MARGIN) * radar_grid.length),
+                int((1 + 2 * STATIC_LAYERS_RG_MARGIN) * radar_grid.width))
         # native_doppler = burst.doppler.lut2d
         orbit = burst.orbit
         wavelength = burst.wavelength
@@ -1600,35 +1625,6 @@ def run_single_job(cfg: RunConfig):
                             geogrid.spacing_x, geogrid.spacing_y,
                             geogrid.width, geogrid.length, geogrid.epsg)
 
-            if rtc_area_beta_mode != 'auto':
-
-
-
-
-
-                # TODO! This code should be moved to runconfig after `area_beta_mode`
-                # is added to geocode() in ISCE3
-                if rtc_area_beta_mode == 'pixel_area':
-                    rtc_area_beta_mode_enum = \
-                        isce3.geometry.RtcAreaBetaMode.PIXEL_AREA
-                elif rtc_area_beta_mode == 'projection_angle':
-                    rtc_area_beta_mode_enum = \
-                        isce3.geometry.RtcAreaBetaMode.PROJECTION_ANGLE
-                elif (rtc_area_beta_mode == 'auto' or
-                        rtc_area_beta_mode is None):
-                    rtc_area_beta_mode_enum = \
-                        isce3.geometry.RtcAreaBetaMode.AUTO
-                else:
-                    err_msg = ('ERROR invalid area beta mode:'
-                               f' {rtc_area_beta_mode}')
-                    raise ValueError(err_msg)
-
-
-
-
-
-                geocode_kwargs['rtc_area_beta_mode'] = rtc_area_beta_mode_enum
-
             geo_obj.geocode(radar_grid=radar_grid,
                             input_raster=rdr_burst_raster,
                             output_raster=geo_burst_raster,
@@ -1648,6 +1644,7 @@ def run_single_job(cfg: RunConfig):
                             clip_max=clip_max,
                             out_geo_nlooks=out_geo_nlooks_obj,
                             out_geo_rtc=out_geo_rtc_obj,
+                            rtc_area_beta_mode=rtc_area_beta_mode_enum,
                             # out_geo_rtc_gamma0_to_sigma0=out_geo_rtc_gamma0_to_sigma0_obj,
                             input_rtc=None,
                             output_rtc=None,
@@ -1659,7 +1656,8 @@ def run_single_job(cfg: RunConfig):
 
             # Output imagery list contains multi-band files that
             # will be used for mosaicking
-            output_imagery_list.append(geo_burst_filename)
+            if product_type != STATIC_LAYERS_PRODUCT_TYPE:
+                output_imagery_list.append(geo_burst_filename)
 
         else:
             # Bundle the single-pol geo burst files into .vrt
@@ -1668,7 +1666,8 @@ def run_single_job(cfg: RunConfig):
             os.makedirs(os.path.dirname(geo_burst_filename), exist_ok=True)
             gdal.BuildVRT(geo_burst_filename, output_burst_imagery_list,
                           options=vrt_options_mosaic)
-            output_imagery_list.append(geo_burst_filename)
+            if product_type != STATIC_LAYERS_PRODUCT_TYPE:
+                output_imagery_list.append(geo_burst_filename)
 
         if (flag_process and save_layover_shadow_mask and
                 not save_secondary_layers_as_hdf5):
@@ -1676,7 +1675,8 @@ def run_single_job(cfg: RunConfig):
                                            geo_burst_filename)
 
         # If burst imagery is not temporary, separate polarization channels
-        if flag_process and not flag_bursts_files_are_temporary:
+        if (flag_process and not flag_bursts_files_are_temporary and
+                product_type != STATIC_LAYERS_PRODUCT_TYPE):
             _separate_pol_channels(geo_burst_filename,
                                    output_burst_imagery_list,
                                    output_raster_format, logger)
@@ -1684,29 +1684,32 @@ def run_single_job(cfg: RunConfig):
             output_file_list += output_burst_imagery_list
 
         if save_nlooks:
-            out_geo_nlooks_obj.close_dataset()
-            del out_geo_nlooks_obj
+            if flag_process:
+                out_geo_nlooks_obj.close_dataset()
+                del out_geo_nlooks_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
-                logger.info(f'file saved: {nlooks_file}')
+                if not flag_bursts_secondary_files_are_temporary:
+                    logger.info(f'file saved: {nlooks_file}')
             output_metadata_dict[
                 LAYER_NAME_NUMBER_OF_LOOKS][1].append(nlooks_file)
 
         if save_rtc_anf:
-            out_geo_rtc_obj.close_dataset()
-            del out_geo_rtc_obj
+            if flag_process:
+                out_geo_rtc_obj.close_dataset()
+                del out_geo_rtc_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
-                logger.info(f'file saved: {rtc_anf_file}')
+                if not flag_bursts_secondary_files_are_temporary:
+                    logger.info(f'file saved: {rtc_anf_file}')
             output_metadata_dict[layer_name_rtc_anf][1].append(
                 rtc_anf_file)
 
         if save_rtc_anf_gamma0_to_sigma0:
-            out_geo_rtc_gamma0_to_sigma0_obj.close_dataset()
-            del out_geo_rtc_gamma0_to_sigma0_obj
+            if flag_process:
+                out_geo_rtc_gamma0_to_sigma0_obj.close_dataset()
+                del out_geo_rtc_gamma0_to_sigma0_obj
 
-            if not flag_bursts_secondary_files_are_temporary:
-                logger.info(f'file saved: {rtc_anf_gamma0_to_sigma0_file}')
+                if not flag_bursts_secondary_files_are_temporary:
+                    logger.info(f'file saved: {rtc_anf_gamma0_to_sigma0_file}')
             output_metadata_dict[
                 LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0][1].append(
                     rtc_anf_gamma0_to_sigma0_file)
@@ -1821,15 +1824,16 @@ def run_single_job(cfg: RunConfig):
 
     if save_mosaics:
 
-        # Mosaic sub-bursts imagery
-        logger.info('mosaicking files:')
-        output_imagery_filename_list = []
-        for pol in pol_list:
-            geo_pol_filename = \
-                (f'{output_dir_mosaic_raster}/{mosaic_product_id}_{pol}.'
-                 f'{imagery_extension}')
-            logger.info(f'    {geo_pol_filename}')
-            output_imagery_filename_list.append(geo_pol_filename)
+        if len(output_imagery_list) > 0:
+            # Mosaic sub-bursts imagery
+            logger.info('mosaicking files:')
+            output_imagery_filename_list = []
+            for pol in pol_list:
+                geo_pol_filename = \
+                    (f'{output_dir_mosaic_raster}/{mosaic_product_id}_{pol}.'
+                     f'{imagery_extension}')
+                logger.info(f'    {geo_pol_filename}')
+                output_imagery_filename_list.append(geo_pol_filename)
 
         if save_nlooks:
             nlooks_list = output_metadata_dict[LAYER_NAME_NUMBER_OF_LOOKS][1]
@@ -1845,13 +1849,13 @@ def run_single_job(cfg: RunConfig):
                 temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-        if save_imagery_as_hdf5:
-            temp_files_list += output_imagery_filename_list
-        else:
-            output_file_list += output_imagery_filename_list
-            mosaic_output_file_list += output_imagery_filename_list
+            if save_imagery_as_hdf5:
+                temp_files_list += output_imagery_filename_list
+            else:
+                output_file_list += output_imagery_filename_list
+                mosaic_output_file_list += output_imagery_filename_list
 
-        # Mosaic other bands
+        # Mosaic other layers
         for key, (output_file, input_files) in output_metadata_dict.items():
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
@@ -1863,9 +1867,7 @@ def run_single_job(cfg: RunConfig):
                 geogrid_in=cfg.geogrid, temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-            # TODO: Remove nlooks exception below
-            if (save_secondary_layers_as_hdf5 or
-                    (key == LAYER_NAME_NUMBER_OF_LOOKS and not save_nlooks)):
+            if save_secondary_layers_as_hdf5:
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
@@ -1948,8 +1950,7 @@ def run_single_job(cfg: RunConfig):
             hdf5_mosaic_obj.close()
             output_file_list.append(output_hdf5_file)
 
-    # Append metadata to mosaic GeoTIFFs
-    if save_mosaics:
+        # Append metadata to mosaic GeoTIFFs
         for current_file in mosaic_output_file_list:
             if not current_file.endswith('.tif'):
                 continue

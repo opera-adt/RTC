@@ -3,7 +3,7 @@ runconfig:
 
     groups:
 
-        # Required. Output product type: "RTC_S1" or "RTC_S1_SL"
+        # Required. Output product type: "RTC_S1" or "RTC_S1_STATIC"
         primary_executable:
             product_type: RTC_S1
 
@@ -13,8 +13,13 @@ runconfig:
         input_file_group:
             # Required. List of SAFE files (min=1)
             safe_file_path:
+
+            # Location from where the source data can be retrieved (URL or DOI)
+            source_data_access:
+
             # Required. List of orbit (EOF) files (min=1)
             orbit_file_path:
+
             # Optional. Burst ID to process (empty for all bursts)
             burst_id:
 
@@ -42,9 +47,9 @@ runconfig:
             scratch_path:
 
             # If option `save_bursts` is set, output bursts are saved to:
-            #     {output_dir}/{burst_id}/{product_id}_v{product_version}{suffix}.{ext}
+            #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
             # If option `save_mosaics` is set, output mosaics are saved to:
-            #     {output_dir}/{product_id}_v{product_version}{suffix}.{ext}
+            #     {output_dir}/{product_id}{suffix}.{ext}
             #
             # If the `product_id` contains the substring "_{burst_id}", the
             # substring will be substituted by either:
@@ -55,7 +60,7 @@ runconfig:
             # `RTC-S1_T069-147170-IW1_S1B` for the burst t069-147170-IW1; and it
             # will become `RTC-S1_S1B` for the mosaic product.
             #
-            # If the field `product_id` is left empty, the product ID will
+            # If the field `product_id` is left empty, the burst product ID will
             # follow the RTC-S1 file naming conventions:
             # `OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}_
             # {processing_datetime}_{sensor}_{pixel_spacing}
@@ -65,6 +70,12 @@ runconfig:
             # `ext` is determined by geocoding_options.output_imagery_format.
             output_dir:
             product_id:
+
+            # Validity start date for RTC-S1-STATIC products in the format YYYYMMDD
+            rtc_s1_static_validity_start_date:
+
+            # Location from where the output product can be retrieved (URL or DOI)
+            product_data_access:
 
             # Save RTC-S1 bursts
             save_bursts: True
@@ -224,7 +235,7 @@ runconfig:
 
                 # Layover/shadow mask dilation size of shadow pixels
                 # (values 1 and 3)
-                shadow_dilation_size: 3
+                shadow_dilation_size: 0
 
                 # OPTIONAL - Absolute radiometric correction
                 abs_rad_cal: 1

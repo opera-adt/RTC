@@ -30,6 +30,12 @@ from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          all_metadata_dict_to_geotiff_metadata_dict,
                          layer_hdf5_dict,
                          DATA_BASE_GROUP,
+                         LAYER_NAME_INCIDENCE_ANGLE,
+                         LAYER_NAME_LOCAL_INCIDENCE_ANGLE,
+                         LAYER_NAME_PROJECTION_ANGLE,
+                         LAYER_NAME_RTC_ANF_PROJECTION_ANGLE,
+                         LAYER_NAME_RANGE_SLOPE,
+                         LAYER_NAME_DEM,
                          LAYER_NAME_LAYOVER_SHADOW_MASK,
                          LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0,
                          LAYER_NAME_NUMBER_OF_LOOKS)
@@ -157,17 +163,6 @@ def split_runconfig(cfg_in,
                                  'save_bursts'],
                                 True)
 
-        # TODO: Remove the code below once the
-        # mosaicking algorithm does not take nlooks as the weight input
-        if cfg_in.groups.product_group.save_mosaics:
-            set_dict_item_recursive(runconfig_dict_out,
-                                    ['runconfig',
-                                     'groups',
-                                     'processing',
-                                     'geocoding',
-                                     'save_nlooks'],
-                                    True)
-
         runconfig_burst_list.append(path_temp_runconfig)
         logfile_burst_list.append(path_logfile_child)
 
@@ -271,6 +266,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # primary executable
     product_type = cfg.groups.primary_executable.product_type
     product_version_float = cfg.groups.product_group.product_version
+    rtc_s1_static_validity_start_date = \
+        cfg.groups.product_group.rtc_s1_static_validity_start_date
     if product_version_float is None:
         product_version = SOFTWARE_VERSION
     else:
@@ -303,7 +300,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                             2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
-        pixel_spacing_avg, is_mosaic=True)
+        rtc_s1_static_validity_start_date, pixel_spacing_avg, product_type,
+        is_mosaic=True)
 
     # set scratch directory and output_dir
     scratch_path = os.path.join(
@@ -535,7 +533,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
-            pixel_spacing_avg, is_mosaic=True)
+            pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
+            is_mosaic=True)
         burst_product_id_list.append(burst_product_id)
 
     # burst files are saved in scratch dir
@@ -758,37 +757,38 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         else:
             layover_shadow_mask_file = None
 
-        # Output imagery list contains multi-band files that
-        # will be used for mosaicking
-        output_burst_imagery_list = []
-        for pol in pol_list:
-            if save_imagery_as_hdf5:
-                geo_burst_pol_filename = (f'NETCDF:{burst_hdf5_in_output}:'
-                                          f'{DATA_BASE_GROUP}/'
-                                          f'{pol}')
+        if product_type != STATIC_LAYERS_PRODUCT_TYPE:
+            # Output imagery list contains multi-band files that
+            # will be used for mosaicking
+            output_burst_imagery_list = []
+            for pol in pol_list:
+                if save_imagery_as_hdf5:
+                    geo_burst_pol_filename = (f'NETCDF:{burst_hdf5_in_output}:'
+                                              f'{DATA_BASE_GROUP}/'
+                                              f'{pol}')
+                else:
+                    geo_burst_pol_filename = \
+                        os.path.join(output_path_child, burst_id,
+                                     f'{burst_product_id}_{pol}.' +
+                                     f'{imagery_extension}')
+                output_burst_imagery_list.append(geo_burst_pol_filename)
+
+            # Bundle the single-pol geo burst files into .vrt
+            geo_burst_vrt_filename = geo_burst_filename.replace(
+                f'.{imagery_extension}', '.vrt')
+            os.makedirs(os.path.dirname(geo_burst_vrt_filename), exist_ok=True)
+            gdal.BuildVRT(geo_burst_vrt_filename, output_burst_imagery_list,
+                          options=vrt_options_mosaic)
+            output_imagery_list.append(geo_burst_vrt_filename)
+
+            # .vrt files (for RTC product in geogrid) will be removed after the
+            # process
+            temp_files_list.append(geo_burst_vrt_filename)
+
+            if not flag_bursts_files_are_temporary:
+                output_file_list += output_burst_imagery_list
             else:
-                geo_burst_pol_filename = \
-                    os.path.join(output_path_child, burst_id,
-                                 f'{burst_product_id}_{pol}.' +
-                                 f'{imagery_extension}')
-            output_burst_imagery_list.append(geo_burst_pol_filename)
-
-        # Bundle the single-pol geo burst files into .vrt
-        geo_burst_vrt_filename = geo_burst_filename.replace(
-            f'.{imagery_extension}', '.vrt')
-        os.makedirs(os.path.dirname(geo_burst_vrt_filename), exist_ok=True)
-        gdal.BuildVRT(geo_burst_vrt_filename, output_burst_imagery_list,
-                      options=vrt_options_mosaic)
-        output_imagery_list.append(geo_burst_vrt_filename)
-
-        # .vrt files (for RTC product in geogrid) will be removed after the
-        # process
-        temp_files_list.append(geo_burst_vrt_filename)
-
-        if not flag_bursts_files_are_temporary:
-            output_file_list += output_burst_imagery_list
-        else:
-            temp_files_list += output_burst_imagery_list
+                temp_files_list += output_burst_imagery_list
 
         if save_nlooks:
             output_metadata_dict[
@@ -807,12 +807,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         # radar-grid layers
         if flag_call_radar_grid:
             radar_grid_layer_dict = {
-                'incidence_angle': save_incidence_angle,
-                'local_incidence_angle': save_local_inc_angle,
-                'projection_angle': save_projection_angle,
-                'rtc_anf_projection_angle': save_rtc_anf_projection_angle,
-                'range_slope': save_range_slope,
-                'interpolated_dem': save_dem}
+                LAYER_NAME_INCIDENCE_ANGLE: save_incidence_angle,
+                LAYER_NAME_LOCAL_INCIDENCE_ANGLE: save_local_inc_angle,
+                LAYER_NAME_PROJECTION_ANGLE: save_projection_angle,
+                LAYER_NAME_RTC_ANF_PROJECTION_ANGLE: save_rtc_anf_projection_angle,
+                LAYER_NAME_RANGE_SLOPE: save_range_slope,
+                LAYER_NAME_DEM: save_dem}
 
             for layer_name, flag_save in radar_grid_layer_dict.items():
                 if not flag_save:
@@ -882,15 +882,16 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     if save_mosaics:
 
-        # Mosaic sub-bursts imagery
-        logger.info('mosaicking files:')
-        output_imagery_filename_list = []
-        for pol in pol_list:
-            geo_pol_filename = \
-                (f'{output_dir_mosaic_raster}/{mosaic_product_id}_{pol}.'
-                 f'{imagery_extension}')
-            logger.info(f'    {geo_pol_filename}')
-            output_imagery_filename_list.append(geo_pol_filename)
+        if len(output_imagery_list) > 0:
+            # Mosaic sub-bursts imagery
+            logger.info('mosaicking files:')
+            output_imagery_filename_list = []
+            for pol in pol_list:
+                geo_pol_filename = \
+                    (f'{output_dir_mosaic_raster}/{mosaic_product_id}_{pol}.'
+                     f'{imagery_extension}')
+                logger.info(f'    {geo_pol_filename}')
+                output_imagery_filename_list.append(geo_pol_filename)
 
         if save_nlooks:
             nlooks_list = output_metadata_dict[LAYER_NAME_NUMBER_OF_LOOKS][1]
@@ -906,13 +907,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-        if save_imagery_as_hdf5:
-            temp_files_list += output_imagery_filename_list
-        else:
-            output_file_list += output_imagery_filename_list
-            mosaic_output_file_list += output_imagery_filename_list
+            if save_imagery_as_hdf5:
+                temp_files_list += output_imagery_filename_list
+            else:
+                output_file_list += output_imagery_filename_list
+                mosaic_output_file_list += output_imagery_filename_list
 
-        # Mosaic other bands
+        # Mosaic other layers
         for key, (output_file, input_files) in output_metadata_dict.items():
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
@@ -924,9 +925,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-            # TODO: Remove nlooks exception below
-            if (save_secondary_layers_as_hdf5 or
-                    (key == LAYER_NAME_NUMBER_OF_LOOKS and not save_nlooks)):
+            if (save_secondary_layers_as_hdf5):
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
@@ -1009,8 +1008,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             hdf5_mosaic_obj.close()
             output_file_list.append(output_hdf5_file)
 
-    # Append metadata to mosaic GeoTIFFs
-    if save_mosaics:
+        # Append metadata to mosaic GeoTIFFs
         for current_file in mosaic_output_file_list:
             if not current_file.endswith('.tif'):
                 continue

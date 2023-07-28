@@ -40,7 +40,7 @@ LAYER_NAME_LOCAL_INCIDENCE_ANGLE = 'local_incidence_angle'
 LAYER_NAME_PROJECTION_ANGLE = 'projection_angle'
 LAYER_NAME_RTC_ANF_PROJECTION_ANGLE = 'rtc_anf_projection_angle'
 LAYER_NAME_RANGE_SLOPE = 'range_slope'
-LAYER_NAME_DEM = 'dem'
+LAYER_NAME_DEM = 'interpolated_dem'
 
 # RTC-S1 product layer names
 layer_hdf5_dict = {
@@ -374,6 +374,17 @@ def get_metadata_dict(product_id: str,
         # If the DEM description is not provided, use DEM source
         dem_file_description = os.path.basename(cfg_in.dem)
 
+    # source data access (URL or DOI)
+    source_data_access = cfg_in.groups.input_file_group.source_data_access
+    if not source_data_access:
+        source_data_access = '(NOT PROVIDED)'
+
+    # product data access (URL or DOI)
+    product_data_access = cfg_in.groups.product_group.product_data_access
+    if not product_data_access:
+        product_data_access = '(NOT PROVIDED)'
+
+    # platform ID
     if burst_in.platform_id == 'S1A':
         platform_id = 'Sentinel-1A'
     elif burst_in.platform_id == 'S1B':
@@ -385,6 +396,20 @@ def get_metadata_dict(product_id: str,
     else:
         error_msg = f'ERROR Not recognized platform ID: {burst_in.platform_id}'
         raise NotImplementedError(error_msg)
+
+    # burst and mosaic snap values
+    burst_snap_x = cfg_in.groups.processing.geocoding.bursts_geogrid.x_snap
+    if not burst_snap_x:
+        burst_snap_x = '(DISABLED)'
+    burst_snap_y = cfg_in.groups.processing.geocoding.bursts_geogrid.y_snap
+    if not burst_snap_y:
+        burst_snap_y = '(DISABLED)'
+    mosaic_snap_x = cfg_in.groups.processing.mosaicking.mosaic_geogrid.x_snap
+    if not mosaic_snap_x:
+        mosaic_snap_x = '(DISABLED)'
+    mosaic_snap_y = cfg_in.groups.processing.mosaicking.mosaic_geogrid.y_snap
+    if not mosaic_snap_y:
+        mosaic_snap_y = '(DISABLED)'
 
     # mission_id = 'Sentinel'
 
@@ -464,10 +489,11 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              'Interferometric Wide (IW)',
              'Acquisition mode'],
-        # 'identification/CARDProductType':
-        #    ['card_product_type', 'Normalised Radar Backscatter',
-        #     'CARD Product type'], # 1.3
-
+        'identification/ceosAnalysisReadyDataProductType':  # 1.3
+            ['ceos_analysis_ready_data_product_type',
+             ALL_PRODUCTS,
+             'Normalised Radar Backscatter',
+             'CEOS Analysis Ready Data (CARD) product type'],
         'identification/lookDirection':
             ['look_direction',
              ALL_PRODUCTS,
@@ -514,7 +540,7 @@ def get_metadata_dict(product_id: str,
              processing_type,
              'Processing type: "NOMINAL", "URGENT", "CUSTOM", or "UNDEFINED"'],
         'identification/processingDateTime':
-            ['processing_date_time',
+            ['processing_datetime',
              ALL_PRODUCTS,
              processing_datetime.strftime(DATE_TIME_METADATA_FORMAT),
              'Processing date and time in the format YYYY-MM-DDThh:mm:ss.sZ'],
@@ -529,20 +555,28 @@ def get_metadata_dict(product_id: str,
         #       f'site: "Pasadena, CA", '
         #       f'country: "United States of America"'),
         #      'Data processing center'],
- 
-        # 'identification/CEOSDocumentIdentifier':
-        #    ["https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf",
-        #     'Product version'],
+        'identification/ceosAnalysisReadyDataDocumentIdentifier':
+            ['ceos_analysis_ready_data_document_identifier',
+             'https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf',
+             ALL_PRODUCTS,
+             'CEOS Analysis Ready Data (CARD) document identifier'],
+        'identification/dataAccess':
+            ['product_data_access',
+             ALL_PRODUCTS,
+             product_data_access,
+             'Location from where this product can be retrieved'
+             ' (URL or DOI)'],
         'metadata/sourceData/numberOfAcquisitions':  # 1.6.4
             ['source_data_number_of_acquisitions',
              ALL_PRODUCTS,
              1,
              'Number of source data acquisitions'],
-        # TODO Review: should we expose this parameter in the runconfig?
-        # 'metadata/sourceData/dataAccess':
-        #     ['source_data_access',
-        #      'https://search.asf.alaska.edu/',
-        #      'Data access URL'],
+        'metadata/sourceData/dataAccess':
+            ['source_data_access',
+             ALL_PRODUCTS,
+             source_data_access,
+             'Location from where the source data can be retrieved'
+             ' (URL or DOI)'],
         # 'metadata/sourceData/radarBand':  # 1.6.4
         #    ['radar_band', 'C', 'Acquired frequency band'],
 
@@ -570,7 +604,7 @@ def get_metadata_dict(product_id: str,
         # populate source data processingDateTime with from processing_info
         # "stop" (SLC Post processing date time)
         'metadata/sourceData/processingDateTime':  # 1.6.6
-            ['source_data_processing_date_time',
+            ['source_data_processing_datetime',
              ALL_PRODUCTS,
              burst_in.burst_misc_metadata.processing_info_dict['stop'],
              'Processing UTC date and time of the source data product (SLC'
@@ -612,7 +646,7 @@ def get_metadata_dict(product_id: str,
             ['source_data_zero_doppler_time_spacing',
              ALL_PRODUCTS,
              burst_in.azimuth_time_interval,
-             'Azimuth spacing of the source data in seconds'], 
+             'Azimuth spacing of the source data in seconds'],
         'metadata/sourceData/slantRangeSpacing':  # 1.6.7
             ['source_data_slant_range_spacing',
              ALL_PRODUCTS,
@@ -662,44 +696,107 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              str(SOFTWARE_VERSION),
              'Software version'],
-        # TODO Review: should we expose this parameter in the runconfig?
-        # 'metadata/processingInformation/dataAccess':  # placeholder for 1.7.1
-        #    ['product_data_access',
-        #     'TBD',
-        #     'URL to access the product data'],
-        'metadata/processingInformation/parameters/postProcessingFilteringApplied':  # 1.7.4
-            ['post_processing_filtering_applied',
-             STANDARD_RTC_S1_ONLY,
+
+        # 1.7.4
+        ('metadata/processingInformation/parameters/'
+            'preprocessingMultilookingApplied'):
+            ['processing_information_multilooking_applied',
+             ALL_PRODUCTS,
+             False,
+             'Flag to indicate if a preprocessing multilooking has been'
+             ' applied'],
+
+        # 1.7.4
+        ('metadata/processingInformation/parameters/'
+            'filteringApplied'):
+            ['processing_information_filtering_applied',
+             ALL_PRODUCTS,
              False,
              'Flag to indicate if post-processing filtering has been applied'],
 
         # 3.3
         'metadata/processingInformation/parameters/noiseCorrectionApplied':
-            ['noise_correction_applied',
+            ['processing_information_noise_correction_applied',
              STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_thermal_noise_correction,
              'Flag to indicate if noise removal has been applied'],
-        'metadata/processingInformation/parameters/radiometricTerrainCorrectionApplied':
-            ['rtc_applied',
+        ('metadata/processingInformation/parameters/'
+            'radiometricTerrainCorrectionApplied'):
+            ['processing_information_radiometric_terrain_correction_applied',
              STANDARD_RTC_S1_ONLY,
              cfg_in.groups.processing.apply_rtc,
-             'Flag to indicate if radiometric terrain correction (RTC) has been applied'],
-        'metadata/processingInformation/parameters/dryTroposphericGeolocationCorrectionApplied':
-            ['dry_tropospheric_geolocation_correction_applied',
-             STANDARD_RTC_S1_ONLY,
+             'Flag to indicate if radiometric terrain correction (RTC) has'
+             ' been applied'],
+        ('metadata/processingInformation/parameters/'
+            'dryTroposphericGeolocationCorrectionApplied'):
+            ['processing_information'
+             '_dry_tropospheric_geolocation_correction_applied',
+             ALL_PRODUCTS,
              cfg_in.groups.processing.apply_dry_tropospheric_delay_correction,
-             'Flag to indicate if the dry tropospheric correction has been applied'],
-        'metadata/processingInformation/parameters/wetTroposphericGeolocationCorrectionApplied':
-            ['wet_tropospheric_geolocation_correction_applied',
-             STANDARD_RTC_S1_ONLY,
+             'Flag to indicate if the dry tropospheric correction has been'
+             ' applied'],
+        ('metadata/processingInformation/parameters/'
+            'wetTroposphericGeolocationCorrectionApplied'):
+            ['processing_information'
+             '_wet_tropospheric_geolocation_correction_applied',
+             ALL_PRODUCTS,
              False,
-             'Flag to indicate if the wet tropospheric correction has been applied'],
-        'metadata/processingInformation/parameters/bistaticDelayCorrectionApplied':
-            ['bistatic_delay_correction_applied',
-             STANDARD_RTC_S1_ONLY,
+             'Flag to indicate if the wet tropospheric correction has been'
+             ' applied'],
+        ('metadata/processingInformation/parameters/'
+            'bistaticDelayCorrectionApplied'):
+            ['processing_information'
+             '_bistatic_delay_correction_applied',
+             ALL_PRODUCTS,
              cfg_in.groups.processing.apply_bistatic_delay_correction,
-             'Flag to indicate if the bistatic delay correction has been applied'],
+             'Flag to indicate if the bistatic delay correction has been'
+             ' applied'],
+        ('metadata/processingInformation/parameters/'
+            'inputBackscatterNormalizationConvention'):
+            ['processing_information'
+             '_input_backscatter_normalization_convention',
+             ALL_PRODUCTS,
+             cfg_in.groups.processing.rtc.input_terrain_radiometry,
+             'Backscatter normalization convention of the source data'],
+        ('metadata/processingInformation/parameters/'
+            'outputBackscatterNormalizationConvention'):
+            ['processing_information'
+             '_output_backscatter_normalization_convention',
+             ALL_PRODUCTS,
+             cfg_in.groups.processing.rtc.output_type,
+             'Backscatter normalization convention of this product (RTC-S1)'],
 
+        # 3.1
+        ('metadata/processingInformation/parameters/'
+            'outputBackscatterExpressionConvention'):
+            ['processing_information'
+             '_output_backscatter_expression_convention',
+             ALL_PRODUCTS,
+             'linear backscatter intensity',
+             'Backscatter expression convension'],
+
+        # 3.2
+        ('metadata/processingInformation/parameters/'
+            'outputBackscatterDecibelConversionEquation'):
+            ['processing_information'
+             '_output_backscatter_decibel_conversion_equation',
+             ALL_PRODUCTS,
+             'backscatter_dB = 10*log10(backscatter_linear)',
+             'Equation to convert provided backscatter to decibel (dB)'],
+
+        # 4.4
+        ('metadata/processingInformation/parameters/geocoding/'
+            'burstGeogridSnapX'):
+            ['processing_information_burst_geogrid_snap_x',
+             ALL_PRODUCTS,
+             burst_snap_x,
+             'Burst geogrid snap for Coordinate X (W/E)'],
+        ('metadata/processingInformation/parameters/geocoding/'
+            'burstGeogridSnapY'):
+            ['processing_information_burst_geogrid_snap_y',
+             ALL_PRODUCTS,
+             burst_snap_y,
+             'Burst geogrid snap for Coordinate Y (S/N)'],
         # 'metadata/processingInformation/geoidReference':  # for 4.2
 
         # 'data/processingInformation/absoluteAccuracyNorthing':  
@@ -731,17 +828,21 @@ def get_metadata_dict(product_id: str,
         # applied'],
 
         'metadata/processingInformation/algorithms/demInterpolation':
-            ['dem_interpolation_algorithm',
+            ['processing_information'
+             '_dem_interpolation_algorithm',
              ALL_PRODUCTS,
              cfg_in.groups.processing.dem_interpolation_method,
              'DEM interpolation method'],
         'metadata/processingInformation/algorithms/geocoding':
-            ['geocoding_algorithm',
+            ['processing_information'
+             '_geocoding_algorithm',
              ALL_PRODUCTS,
              cfg_in.groups.processing.geocoding.algorithm_type,
              'Geocoding algorithm'],
-        'metadata/processingInformation/algorithms/radiometricTerrainCorrection':
-            ['radiometric_terrain_correction_algorithm',
+        'metadata/processingInformation/algorithms/' +
+        'radiometricTerrainCorrection':
+            ['processing_information'
+             '_radiometric_terrain_correction_algorithm',
              ALL_PRODUCTS,
              cfg_in.groups.processing.rtc.algorithm_type,
              'Radiometric terrain correction (RTC) algorithm'],
@@ -759,29 +860,29 @@ def get_metadata_dict(product_id: str,
              release_version,
              'Version of the OPERA s1-reader used for processing'],
 
-        'metadata/processingInformation/inputs/l1SLCGranules':
-            ['l1_slc_granules',
+        'metadata/processingInformation/inputs/l1SlcGranules':
+            ['inputs_l1_slc_granules',
              ALL_PRODUCTS,
              l1_slc_granules,
              'List of input L1 SLC products used'],
         'metadata/processingInformation/inputs/orbitFiles':
-            ['orbit_files',
+            ['inputs_orbit_files',
              ALL_PRODUCTS,
              orbit_files,
              'List of input orbit files used'],
         'metadata/processingInformation/inputs/annotationFiles':
-            ['annotation_files',
+            ['inputs_annotation_files',
              ALL_PRODUCTS,
              [burst_in.burst_calibration.basename_cads,
               burst_in.burst_noise.basename_nads],
              'List of input annotation files used'],
         'metadata/processingInformation/inputs/configFiles':
-            ['config_files',
+            ['inputs_config_files',
              ALL_PRODUCTS,
              cfg_in.run_config_path,
              'List of input config files used'],
         'metadata/processingInformation/inputs/demSource':
-            ['dem_source',
+            ['inputs_dem_source',
              ALL_PRODUCTS,
              dem_file_description,
              'Description of the input digital elevation model (DEM)']
@@ -799,7 +900,8 @@ def get_metadata_dict(product_id: str,
         noise_removal_algorithm_reference = '(noise removal not applied)'
     metadata_dict['metadata/processingInformation/algorithms/'
                   'noiseCorrectionAlgorithmReference'] =\
-        ['noise_removal_algorithm_reference',
+        ['processing_information'
+         '_noise_removal_algorithm_reference',
          STANDARD_RTC_S1_ONLY,
          noise_removal_algorithm_reference,
          'A reference to the noise removal algorithm applied']
@@ -825,7 +927,8 @@ def get_metadata_dict(product_id: str,
             raise NotImplementedError
     metadata_dict['metadata/processingInformation/algorithms/'
                   'radiometricTerrainCorrectionAlgorithmReference'] =\
-        ['rtc_algorithm_reference',
+        ['processing_information'
+         '_radiometric_terrain_correction_algorithm_reference',
          ALL_PRODUCTS,
          url_rtc_algorithm_document,
          'Reference to the radiometric terrain correction (RTC) algorithm'
@@ -842,14 +945,29 @@ def get_metadata_dict(product_id: str,
                  ' Art no. 5222723, doi: 10.1109/TGRS.2022.3147472.')
         metadata_dict['metadata/processingInformation/algorithms/'
                       'geocodingAlgorithmReference'] =\
-            ['geocoding_algorithm_reference',
+            ['processing_information'
+             '_geocoding_algorithm_reference',
              ALL_PRODUCTS,
              url_geocoding_algorithm_document,
              'Reference to the geocoding algorithm applied']
 
-    if not is_mosaic:
+    if is_mosaic:
+        # Metadata only for the mosaic product
+        metadata_dict['metadata/processingInformation/parameters/geocoding/'
+                      'mosaicGeogridSnapX'] = \
+            ['processing_information_mosaic_geogrid_snap_x',
+             ALL_PRODUCTS,
+             mosaic_snap_x,
+             'mosaic geogrid snap for Coordinate X (W/E)']
+        metadata_dict['metadata/processingInformation/parameters/geocoding/'
+                      'mosaicGeogridSnapY'] = \
+            ['processing_information_mosaic_geogrid_snap_y',
+             ALL_PRODUCTS,
+             mosaic_snap_y,
+             'mosaic geogrid snap for Coordinate Y (S/N)']
 
-        # Metadata only for for burst product
+    else:
+        # Metadata only for the burst product
         # Calculate bounding box
         xmin_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_x
         ymax_geogrid = cfg_in.geogrids[str(burst_in.burst_id)].start_y
@@ -882,14 +1000,14 @@ def get_metadata_dict(product_id: str,
 
         metadata_dict['identification/boundingBox'] = \
             [None,
-             STANDARD_RTC_S1_ONLY,
+             ALL_PRODUCTS,
              np.array(xy_bounding_box),  # 1.7.5
              'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
 
         # Attribute `epsg` for HDF5 dataset /identification/boundingBox
         metadata_dict['identification/boundingBox[epsg]'] = \
             [None,
-             STANDARD_RTC_S1_ONLY,
+             ALL_PRODUCTS,
              str(epsg_geogrid),
              'Bounding box EPSG code']
 
@@ -935,19 +1053,19 @@ def get_metadata_dict(product_id: str,
              ' YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
         metadata_dict['metadata/sourceData/numberOfAzimuthLines'] = \
             ['source_data_number_of_azimuth_lines',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.length,
              'Number of azimuth lines within the source data product']
 
         metadata_dict['metadata/sourceData/numberOfRangeSamples'] = \
             ['source_data_number_of_range_samples',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.width,
              'Number of slant range samples for each azimuth line within the'
              ' source data']
         metadata_dict['metadata/sourceData/slantRangeStart'] = \
             ['source_data_slant_range_start',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              burst_in.starting_range,
              'Source data slant range start distance']
 
@@ -960,7 +1078,7 @@ def get_metadata_dict(product_id: str,
         this_product_metadata_dict[h5_path] = [geotiff_field, data,
                                                description]
 
-    if not is_mosaic:
+    if not is_mosaic and product_type != STATIC_LAYERS_PRODUCT_TYPE:
 
         # Add RFI metadata into `metadata_dict`
         rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
@@ -1223,7 +1341,7 @@ def get_rfi_metadata_dict(burst_in,
              'Azimuth time of the burst that corresponds to the RFI report'
              ' in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'rfiBurstReport/inBandOutBandPowerRatio':
-            ['in_band_out_band_power_ratio',
+            ['rfi_in_band_out_band_power_ratio',
              burst_in.burst_rfi_info.rfi_burst_report[
                  'inBandOutBandPowerRatio'],
              'Ratio between the in-band and out-of-band power of the burst.']

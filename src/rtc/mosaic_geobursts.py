@@ -275,18 +275,17 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         wkt_projection = srs_mosaic.ExportToWkt()
 
     if verbose:
-        print(f'    mosaic geogrid:')
-        print(f'        start X:', xmin_mosaic)
-        print(f'        end X:', xmax_mosaic)
-        print(f'        start Y:', ymax_mosaic)
-        print(f'        end Y:', ymin_mosaic)
-        print(f'        spacing X:', posting_x)
-        print(f'        spacing Y:', posting_y)
-        print(f'        width:', dim_mosaic[1])
-        print(f'        length:', dim_mosaic[0])
-        print(f'        projection:', wkt_projection)
-        print(f'        number of bands: {num_bands}')
-
+        print('    mosaic geogrid:')
+        print('        start X:', xmin_mosaic)
+        print('        end X:', xmax_mosaic)
+        print('        start Y:', ymax_mosaic)
+        print('        end Y:', ymin_mosaic)
+        print('        spacing X:', posting_x)
+        print('        spacing Y:', posting_y)
+        print('        width:', dim_mosaic[1])
+        print('        length:', dim_mosaic[0])
+        print('        projection:', wkt_projection)
+        print('        number of bands:', num_bands)
 
     for i, path_rtc in enumerate(list_rtc_images):
         if i < len(list_nlooks):
@@ -516,7 +515,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
                           offset_imgx: offset_imgx + width] = arr_temp
 
         rtc_image_gdal_ds = None
- 
+
     if mosaic_mode.lower() == 'average':
         # Mode: average
         # `arr_numerator` holds the accumulated sum. Now, we divide it
@@ -616,6 +615,7 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
     band_ds = None
     reference_raster = None
 
+
 def mosaic_multiple_output_files(
         list_rtc_images, list_nlooks, output_file_list, mosaic_mode,
         scratch_dir='', geogrid_in=None, temp_files_list=None,
@@ -651,7 +651,7 @@ def mosaic_multiple_output_files(
     mosaic_dict = compute_mosaic_array(
         list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=scratch_dir,
         geogrid_in=geogrid_in, temp_files_list=temp_files_list,
-        verbose = verbose)
+        verbose=verbose)
 
     arr_numerator = mosaic_dict['mosaic_array']
     length = mosaic_dict['length']
