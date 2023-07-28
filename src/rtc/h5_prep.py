@@ -400,16 +400,16 @@ def get_metadata_dict(product_id: str,
     # burst and mosaic snap values
     burst_snap_x = cfg_in.groups.processing.geocoding.bursts_geogrid.x_snap
     if not burst_snap_x:
-        burst_snap_x = '(SNAP DISABLED FOR COORDINATE X)'
+        burst_snap_x = '(DISABLED)'
     burst_snap_y = cfg_in.groups.processing.geocoding.bursts_geogrid.y_snap
     if not burst_snap_y:
-        burst_snap_y = '(SNAP DISABLED FOR COORDINATE Y)'
+        burst_snap_y = '(DISABLED)'
     mosaic_snap_x = cfg_in.groups.processing.mosaicking.mosaic_geogrid.x_snap
     if not mosaic_snap_x:
-        mosaic_snap_x = '(SNAP DISABLED FOR COORDINATE X)'
+        mosaic_snap_x = '(DISABLED)'
     mosaic_snap_y = cfg_in.groups.processing.mosaicking.mosaic_geogrid.y_snap
     if not mosaic_snap_y:
-        mosaic_snap_y = '(SNAP DISABLED FOR COORDINATE Y)'
+        mosaic_snap_y = '(DISABLED)'
 
     # mission_id = 'Sentinel'
 
