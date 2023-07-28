@@ -285,7 +285,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         print('        width:', dim_mosaic[1])
         print('        length:', dim_mosaic[0])
         print('        projection:', wkt_projection)
-        print('        number of bands: {num_bands}')
+        print('        number of bands:', num_bands)
 
     for i, path_rtc in enumerate(list_rtc_images):
         if i < len(list_nlooks):
