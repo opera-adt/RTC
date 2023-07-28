@@ -268,8 +268,8 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
     # /data/VH
     if (len(val_1.shape) >= 1) and ('shape' in dir(val_1[0])):
         if (isinstance(val_1[0], np.void) or
-        ((len(val_1[0].shape) == 1) and (isinstance(val_1[0][0],
-                                                    h5py.h5r.Reference)))):
+            ((len(val_1[0].shape) == 1) and
+             (isinstance(val_1[0][0], h5py.h5r.Reference)))):
             val_1 = _unpack_array(val_1, hdf5_obj_1)
 
     # Repeat the same process for val_2
