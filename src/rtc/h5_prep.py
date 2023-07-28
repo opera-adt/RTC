@@ -366,6 +366,10 @@ def get_metadata_dict(product_id: str,
     # DEM description
     dem_file_description = cfg_in.dem_file_description
 
+    # Slant range and azimuth resolution of the sensor
+    slant_range_resolution, azimuth_resolution = \
+        get_range_azimuth_resolution(burst_in)
+
     if not dem_file_description:
         # If the DEM description is not provided, use DEM source
         dem_file_description = os.path.basename(cfg_in.dem)
@@ -648,6 +652,16 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.range_pixel_spacing,
              'Slant range spacing of the source data in meters'],
+        'metadata/sourceData/azimuthResolutionInMeters':  # 1.6.7
+            ['source_data_azimuth_resolution_in_meters',
+             ALL_PRODUCTS,
+             azimuth_resolution,
+             'Azimuth resolution of the source data in meters'],
+        'metadata/sourceData/slantRangeResolutionInMeters':  # 1.6.7
+            ['source_data_slant_range_resolution_in_meters',
+             ALL_PRODUCTS,
+             slant_range_resolution,
+             'Slant-range resolution of the source data in meters'],
 
         # 'metadata/sourceData/azimuthResolution':  # 1.6.7
         #    ['source_azimuth_resolution',
@@ -1408,3 +1422,37 @@ def get_rfi_metadata_dict(burst_in,
         rfi_metadata_dict[path_in_rfi_dict] = data
 
     return rfi_metadata_dict
+
+
+def get_range_azimuth_resolution(burst: Sentinel1BurstSlc):
+    '''
+    Get the range and azimuth resolution based on the ESA documentation
+
+    Parameters
+    ----------
+    burst: Sentinel1BurstSlc
+        Burst object to compute the resolution
+
+    Returns
+    -------
+    slant_range_resolution: float
+        Slant-range resolution in meters
+    azimuth_resolution: float
+        Azimuth resolution in meters
+
+    Reference
+    ---------
+    https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-1-sar/
+    products-algorithms/level-1/single-look-complex/interferometric-wide-swath
+    '''
+
+    resolution_subswath_range_azimuth_dict = {
+        'IW1':[2.7, 22.5],
+        'IW2':[3.1, 22.7],
+        'IW3':[3.5, 22.6]
+    }
+
+    slant_range_resolution, azimuth_resolution =\
+        resolution_subswath_range_azimuth_dict[burst.burst_id.subswath]
+
+    return slant_range_resolution, azimuth_resolution
