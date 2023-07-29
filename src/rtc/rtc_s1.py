@@ -954,7 +954,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-            if (save_secondary_layers_as_hdf5):
+            if save_secondary_layers_as_hdf5:
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
