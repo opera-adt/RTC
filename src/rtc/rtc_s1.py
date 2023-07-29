@@ -881,8 +881,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             radar_grid_output_dir = output_dir
         get_radar_grid(cfg.geogrid, dem_interp_method_enum, mosaic_product_id,
                        radar_grid_output_dir, imagery_extension,
-                       save_incidence_angle,
-                       save_local_inc_angle, save_projection_angle,
+                       save_local_inc_angle, save_incidence_angle,
+                       save_projection_angle,
                        save_rtc_anf_projection_angle,
                        save_range_slope, save_dem,
                        dem_raster, radar_grid_file_dict,
