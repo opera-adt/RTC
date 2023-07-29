@@ -17,7 +17,8 @@ from datetime import datetime
 from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    snap_coord,
                                    get_radar_grid,
-                                   save_browse,
+                                   save_browse_imagery,
+                                   save_browse_static,
                                    append_metadata_to_geotiff_file,
                                    populate_product_id,
                                    read_and_validate_rtc_anf_flags)
@@ -885,12 +886,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if flag_save_browse and product_type == STATIC_LAYERS_PRODUCT_TYPE:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
-            save_browse([radar_grid_file_dict_filenames[0]],
-                        browse_image_filename, pol_list,
-                        browse_image_mosaic_height,
-                        browse_image_mosaic_width,
-                        temp_files_list,
-                        scratch_path, logger)
+            save_browse_static(radar_grid_file_dict_filenames[0],
+                               browse_image_filename,
+                               browse_image_mosaic_height,
+                               browse_image_mosaic_width,
+                               temp_files_list,
+                               scratch_path, logger)
             output_file_list.append(browse_image_filename)
             mosaic_output_file_list.append(browse_image_filename)
 
@@ -949,10 +950,10 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if flag_save_browse and product_type != STATIC_LAYERS_PRODUCT_TYPE:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
-            save_browse(output_imagery_filename_list, browse_image_filename,
-                        pol_list, browse_image_mosaic_height,
-                        browse_image_mosaic_width, temp_files_list,
-                        scratch_path, logger)
+            save_browse_imagery(output_imagery_filename_list, browse_image_filename,
+                                pol_list, browse_image_mosaic_height,
+                                browse_image_mosaic_width, temp_files_list,
+                                scratch_path, logger)
             output_file_list.append(browse_image_filename)
             mosaic_output_file_list.append(browse_image_filename)
 

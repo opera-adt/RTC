@@ -68,7 +68,7 @@ def populate_product_id(product_id, burst_in, processing_datetime,
         Product version
     pixel_spacing: scalar
         Pixel spacing
-    product_type: string
+    product_type: str
         Product type
     rtc_s1_static_validity_start_date: int
         Validity start date (only applicable for the RTC-S1-STATIC product)
@@ -242,9 +242,9 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     return rg_lut, az_lut
 
 
-def save_browse(imagery_list, browse_image_filename,
-                pol_list, browse_image_height, browse_image_width,
-                temp_files_list, scratch_dir, logger):
+def save_browse_imagery(imagery_list, browse_image_filename,
+                        pol_list, browse_image_height, browse_image_width,
+                        temp_files_list, scratch_dir, logger):
     """Create and save a browse image for the RTC-S1 product
 
        Parameters
@@ -347,9 +347,11 @@ def save_browse(imagery_list, browse_image_filename,
                     f' {vmax}')
 
         # gamma correction: 0.5
-        is_positive = np.logical_and(is_valid, band_image - vmin > 0)
-        band_image[is_positive] = np.sqrt((band_image[is_positive] - vmin) /
-                                          (vmax - vmin))
+        is_not_negative = np.logical_and(is_valid, band_image - vmin >= 0)
+        is_negative = np.logical_and(is_valid, band_image - vmin < 0)
+        band_image[is_not_negative] = \
+            np.sqrt((band_image[is_not_negative] - vmin) / (vmax - vmin))
+        band_image[is_negative] = 0
         band_image = np.clip(band_image, 0, 1)
         band_list_index = expected_pol_order.index(pol)
         band_list[band_list_index] = band_image
@@ -369,6 +371,102 @@ def save_browse(imagery_list, browse_image_filename,
                            band_list[1],
                            band_list[2],
                            alpha_channel))
+    mpimg.imsave(browse_image_filename, image, format='png')
+    logger.info(f'file saved: {browse_image_filename}')
+
+
+def save_browse_static(filename, browse_image_filename,
+                       browse_image_height, browse_image_width,
+                       temp_files_list, scratch_dir, logger):
+    """Create and save a browse image for the RTC-S1-STATIC product
+
+       Parameters
+       ----------
+       filename : str
+           Static layer filename
+       browse_image_filename : str
+           Output browse file
+       browse_image_height : int
+           Browse image height
+       browse_image_width : int
+           Browse image width
+       scratch_dir : str
+           Directory for temporary files
+       temp_files_list: list (optional)
+           Mutable list of temporary files. If provided,
+           paths to the temporary files generated will be
+           appended to this list.
+       logger : loggin.Logger
+           Logger
+    """
+
+    BROWSE_IMAGE_MIN_PERCENTILE = 3
+    BROWSE_IMAGE_MAX_PERCENTILE = 97
+
+    logger.info(f'creating browse image: {browse_image_filename}')
+
+    alpha_channel = None
+
+    gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
+    image_width = gdal_ds.GetRasterBand(1).XSize
+    image_height = gdal_ds.GetRasterBand(1).YSize
+
+    if (browse_image_height is not None or
+            browse_image_width is not None):
+
+        del gdal_ds
+
+        if browse_image_width is None:
+            browse_image_width = int(np.round(
+                (browse_image_height * float(image_width) / image_height)))
+
+        if browse_image_height is None:
+            browse_image_height = int(np.round(
+                (browse_image_width * float(image_height) / image_width)))
+
+        logger.info(f'        browse length: {browse_image_height}')
+        logger.info(f'        browse width: {browse_image_width}')
+
+        browse_temp_file = tempfile.NamedTemporaryFile(
+            dir=scratch_dir, suffix='.tif').name
+
+        if temp_files_list is not None:
+            temp_files_list.append(browse_temp_file)
+
+        resamp_algorithm = 'CUBIC'
+
+        # Translate the existing geotiff to the .png format
+        gdal.Translate(browse_temp_file,
+                       filename,
+                       # outputSRS="+proj=longlat +ellps=WGS84",
+                       # format='PNG',
+                       height=browse_image_height,
+                       width=browse_image_width,
+                       resampleAlg=resamp_algorithm)
+
+        gdal_ds = gdal.Open(browse_temp_file, gdal.GA_ReadOnly)
+
+    gdal_band = gdal_ds.GetRasterBand(1)
+    band_image = np.asarray(gdal_band.ReadAsArray(), dtype=np.float32)
+    is_valid = np.isfinite(band_image)
+    if alpha_channel is None:
+        alpha_channel = np.asarray(is_valid,
+                                   dtype=np.float32)
+    vmin = np.nanpercentile(band_image, BROWSE_IMAGE_MIN_PERCENTILE)
+    vmax = np.nanpercentile(band_image, BROWSE_IMAGE_MAX_PERCENTILE)
+    logger.info(f'        min ({BROWSE_IMAGE_MIN_PERCENTILE}% percentile):'
+                f' {vmin}')
+    logger.info(f'        max ({BROWSE_IMAGE_MAX_PERCENTILE}% percentile):'
+                f' {vmax}')
+
+    band_image = ((band_image - vmin) / (vmax - vmin))
+    band_image = np.clip(band_image, 0, 1)
+
+    image = np.dstack((band_image,
+                       band_image,
+                       band_image,
+                       alpha_channel))
+  
     mpimg.imsave(browse_image_filename, image, format='png')
     logger.info(f'file saved: {browse_image_filename}')
 
@@ -1740,11 +1838,11 @@ def run_single_job(cfg: RunConfig):
                     product_type == STATIC_LAYERS_PRODUCT_TYPE):
                 browse_image_filename = \
                     os.path.join(output_dir_bursts, f'{burst_product_id}.png')
-                save_browse([radar_grid_file_dict_filenames[0]],
-                            browse_image_filename,
-                            pol_list, browse_image_burst_height,
-                            browse_image_burst_width, temp_files_list,
-                            burst_scratch_path, logger)
+                save_browse_static([radar_grid_file_dict_filenames[0]],
+                                   browse_image_filename,
+                                   browse_image_burst_height,
+                                   browse_image_burst_width, temp_files_list,
+                                   burst_scratch_path, logger)
                 output_file_list.append(browse_image_filename)
 
         # Create burst HDF5
@@ -1770,10 +1868,11 @@ def run_single_job(cfg: RunConfig):
                 product_type != STATIC_LAYERS_PRODUCT_TYPE):
             browse_image_filename = \
                 os.path.join(output_dir_bursts, f'{burst_product_id}.png')
-            save_browse(output_burst_imagery_list, browse_image_filename,
-                        pol_list, browse_image_burst_height,
-                        browse_image_burst_width, temp_files_list,
-                        burst_scratch_path, logger)
+            save_browse_imagery(output_burst_imagery_list,
+                                browse_image_filename,
+                                pol_list, browse_image_burst_height,
+                                browse_image_burst_width, temp_files_list,
+                                burst_scratch_path, logger)
             output_file_list.append(browse_image_filename)
 
         # Append metadata to burst GeoTIFFs
@@ -1843,12 +1942,12 @@ def run_single_job(cfg: RunConfig):
         if flag_save_browse and product_type == STATIC_LAYERS_PRODUCT_TYPE:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
-            save_browse([radar_grid_file_dict_filenames[0]],
-                        browse_image_filename, pol_list,
-                        browse_image_mosaic_height,
-                        browse_image_mosaic_width,
-                        temp_files_list,
-                        scratch_path, logger)
+            save_browse_static(radar_grid_file_dict_filenames[0],
+                               browse_image_filename,
+                               browse_image_mosaic_height,
+                               browse_image_mosaic_width,
+                               temp_files_list,
+                               scratch_path, logger)
             output_file_list.append(browse_image_filename)
             mosaic_output_file_list.append(browse_image_filename)
 
@@ -1907,10 +2006,11 @@ def run_single_job(cfg: RunConfig):
         if flag_save_browse and product_type != STATIC_LAYERS_PRODUCT_TYPE:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
-            save_browse(output_imagery_filename_list, browse_image_filename,
-                        pol_list, browse_image_mosaic_height,
-                        browse_image_mosaic_width, temp_files_list,
-                        scratch_path, logger)
+            save_browse_imagery(output_imagery_filename_list,
+                                browse_image_filename,
+                                pol_list, browse_image_mosaic_height,
+                                browse_image_mosaic_width, temp_files_list,
+                                scratch_path, logger)
             output_file_list.append(browse_image_filename)
             mosaic_output_file_list.append(browse_image_filename)
 

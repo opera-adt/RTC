@@ -1196,23 +1196,23 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
 
     Parameters
     ----------
-    ds_filename: string
+    ds_filename: str
         source raster file
     h5py_obj: h5py object
         h5py object of destination HDF5
-    root_path: string
+    root_path: str
         path of output raster data
     yds: h5py dataset object
         y-axis dataset
     xds: h5py dataset object
         x-axis dataset
-    layer_name: string
+    layer_name: str
         name of dataset to be added to root_path
-    standard_name: string, optional
+    standard_name: str, optional
         Standard name
-    long_name: string, optional
+    long_name: str, optional
         Long name
-    units: string, optional
+    units: str, optional
         Units
     fill_value: float, optional
         Fill value
