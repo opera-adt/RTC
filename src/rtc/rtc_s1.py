@@ -950,7 +950,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if flag_save_browse and product_type != STATIC_LAYERS_PRODUCT_TYPE:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
-            save_browse_imagery(output_imagery_filename_list, browse_image_filename,
+            save_browse_imagery(output_imagery_filename_list,
+                                browse_image_filename,
                                 pol_list, browse_image_mosaic_height,
                                 browse_image_mosaic_width, temp_files_list,
                                 scratch_path, logger)

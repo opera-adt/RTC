@@ -404,6 +404,7 @@ def save_browse_static(filename, browse_image_filename,
     BROWSE_IMAGE_MAX_PERCENTILE = 97
 
     logger.info(f'creating browse image: {browse_image_filename}')
+    logger.info(f'            from file: {filename}')
 
     alpha_channel = None
 
@@ -1838,7 +1839,7 @@ def run_single_job(cfg: RunConfig):
                     product_type == STATIC_LAYERS_PRODUCT_TYPE):
                 browse_image_filename = \
                     os.path.join(output_dir_bursts, f'{burst_product_id}.png')
-                save_browse_static([radar_grid_file_dict_filenames[0]],
+                save_browse_static(radar_grid_file_dict_filenames[0],
                                    browse_image_filename,
                                    browse_image_burst_height,
                                    browse_image_burst_width, temp_files_list,
