@@ -826,6 +826,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 else:
                     output_file_list.append(current_file)
 
+            # Browse image (burst) using static layers
+            if (flag_save_browse and
+                    product_type == STATIC_LAYERS_PRODUCT_TYPE):
+                browse_image_filename = \
+                    os.path.join(output_dir_bursts, f'{burst_product_id}.png')
+                output_file_list.append(browse_image_filename)
+
         # Create burst HDF5
         if (save_hdf5_metadata and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
@@ -841,6 +848,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             hdf5_mosaic_obj = create_hdf5_file(
                 mosaic_product_id, output_hdf5_file, orbit, burst, cfg,
                 processing_datetime, is_mosaic=True)
+
+        # Browse image (burst) using RTC-S1 imagery
+        if (flag_save_browse and
+                product_type != STATIC_LAYERS_PRODUCT_TYPE):
+            browse_image_filename = \
+                os.path.join(output_dir_bursts, f'{burst_product_id}.png')
+            output_file_list.append(browse_image_filename)
 
         # Save mosaic metadata for later use
         if (save_mosaics and burst_index == 0):

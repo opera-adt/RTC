@@ -1835,6 +1835,7 @@ def run_single_job(cfg: RunConfig):
             else:
                 output_file_list += radar_grid_file_dict_filenames
 
+            # Save browse image (burst) using static layers
             if (flag_save_browse and
                     product_type == STATIC_LAYERS_PRODUCT_TYPE):
                 browse_image_filename = \
