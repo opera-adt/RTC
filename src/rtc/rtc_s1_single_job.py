@@ -1726,11 +1726,26 @@ def run_single_job(cfg: RunConfig):
                 dem_raster, radar_grid_file_dict,
                 lookside, wavelength, orbit,
                 verbose=not flag_bursts_secondary_files_are_temporary)
+
+            radar_grid_file_dict_filenames = \
+                list(radar_grid_file_dict.values())
+
             if flag_bursts_secondary_files_are_temporary:
                 # files are temporary
-                temp_files_list += list(radar_grid_file_dict.values())
+                temp_files_list += radar_grid_file_dict_filenames
             else:
-                output_file_list += list(radar_grid_file_dict.values())
+                output_file_list += radar_grid_file_dict_filenames
+
+            if (flag_save_browse and
+                    product_type == STATIC_LAYERS_PRODUCT_TYPE):
+                browse_image_filename = \
+                    os.path.join(output_dir_bursts, f'{burst_product_id}.png')
+                save_browse([radar_grid_file_dict_filenames[0]],
+                            browse_image_filename,
+                            pol_list, browse_image_burst_height,
+                            browse_image_burst_width, temp_files_list,
+                            burst_scratch_path, logger)
+                output_file_list.append(browse_image_filename)
 
         # Create burst HDF5
         if (flag_process and save_hdf5_metadata and save_bursts):
@@ -1751,7 +1766,8 @@ def run_single_job(cfg: RunConfig):
             output_file_list.append(output_hdf5_file_burst)
 
         # Save browse image (burst)
-        if flag_process and flag_save_browse:
+        if (flag_process and flag_save_browse and
+                product_type != STATIC_LAYERS_PRODUCT_TYPE):
             browse_image_filename = \
                 os.path.join(output_dir_bursts, f'{burst_product_id}.png')
             save_browse(output_burst_imagery_list, browse_image_filename,
@@ -1815,12 +1831,26 @@ def run_single_job(cfg: RunConfig):
             dem_raster, radar_grid_file_dict,
             lookside, wavelength, orbit,
             verbose=not flag_bursts_secondary_files_are_temporary)
-        if flag_bursts_secondary_files_are_temporary:
+        radar_grid_file_dict_filenames = list(radar_grid_file_dict.values())
+        if save_secondary_layers_as_hdf5:
             # files are temporary
-            temp_files_list += list(radar_grid_file_dict.values())
+            temp_files_list += radar_grid_file_dict_filenames
         else:
-            output_file_list += list(radar_grid_file_dict.values())
-            mosaic_output_file_list += list(radar_grid_file_dict.values())
+            output_file_list += radar_grid_file_dict_filenames
+            mosaic_output_file_list += radar_grid_file_dict_filenames
+
+        # Save browse image (mosaic) using static layers
+        if flag_save_browse and product_type == STATIC_LAYERS_PRODUCT_TYPE:
+            browse_image_filename = \
+                os.path.join(output_dir, f'{mosaic_product_id}.png')
+            save_browse([radar_grid_file_dict_filenames[0]],
+                        browse_image_filename, pol_list,
+                        browse_image_mosaic_height,
+                        browse_image_mosaic_width,
+                        temp_files_list,
+                        scratch_path, logger)
+            output_file_list.append(browse_image_filename)
+            mosaic_output_file_list.append(browse_image_filename)
 
     if save_mosaics:
 
@@ -1873,8 +1903,8 @@ def run_single_job(cfg: RunConfig):
                 output_file_list.append(output_file)
                 mosaic_output_file_list.append(output_file)
 
-        # Save browse image (mosaic)
-        if flag_save_browse:
+        # Save browse image (mosaic) using RTC-S1 imagery
+        if flag_save_browse and product_type != STATIC_LAYERS_PRODUCT_TYPE:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
             save_browse(output_imagery_filename_list, browse_image_filename,
@@ -2010,15 +2040,15 @@ def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
     layers_nbands = 1
     shape = [layers_nbands, geogrid.length, geogrid.width]
 
-    incidence_angle_raster = _create_raster_obj(
-        output_dir, product_id, LAYER_NAME_INCIDENCE_ANGLE,
-        gdal.GDT_Float32, shape, radar_grid_file_dict,
-        output_obj_list, save_incidence_angle, extension)
     local_incidence_angle_raster = _create_raster_obj(
         output_dir, product_id, LAYER_NAME_LOCAL_INCIDENCE_ANGLE,
         gdal.GDT_Float32, shape,
         radar_grid_file_dict, output_obj_list, save_local_inc_angle,
         extension)
+    incidence_angle_raster = _create_raster_obj(
+        output_dir, product_id, LAYER_NAME_INCIDENCE_ANGLE,
+        gdal.GDT_Float32, shape, radar_grid_file_dict,
+        output_obj_list, save_incidence_angle, extension)
     projection_angle_raster = _create_raster_obj(
         output_dir, product_id, LAYER_NAME_PROJECTION_ANGLE,
         gdal.GDT_Float32, shape, radar_grid_file_dict,

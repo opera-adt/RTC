@@ -873,12 +873,26 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                        dem_raster, radar_grid_file_dict,
                        lookside, wavelength,
                        orbit, verbose=not save_secondary_layers_as_hdf5)
+        radar_grid_file_dict_filenames = list(radar_grid_file_dict.values())
         if save_secondary_layers_as_hdf5:
             # files are temporary
-            temp_files_list += list(radar_grid_file_dict.values())
+            temp_files_list += radar_grid_file_dict_filenames
         else:
-            output_file_list += list(radar_grid_file_dict.values())
-            mosaic_output_file_list += list(radar_grid_file_dict.values())
+            output_file_list += radar_grid_file_dict_filenames
+            mosaic_output_file_list += radar_grid_file_dict_filenames
+
+        # Save browse image (mosaic) using static layers
+        if flag_save_browse and product_type == STATIC_LAYERS_PRODUCT_TYPE:
+            browse_image_filename = \
+                os.path.join(output_dir, f'{mosaic_product_id}.png')
+            save_browse([radar_grid_file_dict_filenames[0]],
+                        browse_image_filename, pol_list,
+                        browse_image_mosaic_height,
+                        browse_image_mosaic_width,
+                        temp_files_list,
+                        scratch_path, logger)
+            output_file_list.append(browse_image_filename)
+            mosaic_output_file_list.append(browse_image_filename)
 
     if save_mosaics:
 
@@ -931,8 +945,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 output_file_list.append(output_file)
                 mosaic_output_file_list.append(output_file)
 
-        # Save browse image (mosaic)
-        if flag_save_browse:
+        # Save browse image (mosaic) using RTC-S1 imagery
+        if flag_save_browse and product_type != STATIC_LAYERS_PRODUCT_TYPE:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
             save_browse(output_imagery_filename_list, browse_image_filename,
