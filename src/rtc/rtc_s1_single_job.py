@@ -456,7 +456,7 @@ def save_browse_static(filename, browse_image_filename,
     logger.info(f'        max ({BROWSE_IMAGE_MAX_PERCENTILE}% percentile):'
                 f' {vmax}')
 
-    band_image = ((band_image - vmin) / (vmax - vmin))
+    band_image = (band_image - vmin) / (vmax - vmin)
     band_image = np.clip(band_image, 0, 1)
 
     image = np.dstack((band_image,
