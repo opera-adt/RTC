@@ -406,8 +406,6 @@ def save_browse_static(filename, browse_image_filename,
     logger.info(f'creating browse image: {browse_image_filename}')
     logger.info(f'            from file: {filename}')
 
-    alpha_channel = None
-
     gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
     image_width = gdal_ds.GetRasterBand(1).XSize
     image_height = gdal_ds.GetRasterBand(1).YSize
@@ -450,9 +448,7 @@ def save_browse_static(filename, browse_image_filename,
     gdal_band = gdal_ds.GetRasterBand(1)
     band_image = np.asarray(gdal_band.ReadAsArray(), dtype=np.float32)
     is_valid = np.isfinite(band_image)
-    if alpha_channel is None:
-        alpha_channel = np.asarray(is_valid,
-                                   dtype=np.float32)
+    alpha_channel = np.asarray(is_valid, dtype=np.float32)
     vmin = np.nanpercentile(band_image, BROWSE_IMAGE_MIN_PERCENTILE)
     vmax = np.nanpercentile(band_image, BROWSE_IMAGE_MAX_PERCENTILE)
     logger.info(f'        min ({BROWSE_IMAGE_MIN_PERCENTILE}% percentile):'
