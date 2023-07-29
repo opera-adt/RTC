@@ -784,6 +784,14 @@ def get_metadata_dict(product_id: str,
              'backscatter_dB = 10*log10(backscatter_linear)',
              'Equation to convert provided backscatter to decibel (dB)'],
 
+        # 1.7.8
+        ('metadata/processingInformation/parameters/geocoding/'
+            '/ceosAnalysisReadyDataPixelCoordinateConvention'):
+            ['ceos_analysis_ready_data_pixel_coordinate_convention',
+             ALL_PRODUCTS,
+             'ULC',
+             'CEOS Analysis Ready Data (CARD) pixel coordinate convention'],
+
         # 4.4
         ('metadata/processingInformation/parameters/geocoding/'
             'burstGeogridSnapX'):
@@ -832,6 +840,12 @@ def get_metadata_dict(product_id: str,
              '_dem_interpolation_algorithm',
              ALL_PRODUCTS,
              cfg_in.groups.processing.dem_interpolation_method,
+             'DEM interpolation method'],
+        'metadata/processingInformation/algorithms/demEgmModel':
+            ['processing_information'
+             '_dem_egm_model',
+             ALL_PRODUCTS,
+             'Earth Gravitational Model EGM08',
              'DEM interpolation method'],
         'metadata/processingInformation/algorithms/geocoding':
             ['processing_information'
@@ -1369,46 +1383,54 @@ def get_rfi_metadata_dict(burst_in,
              rfi_burst_report_time['percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI']
 
-        subpath_data_dict['timeDomainRfiReport/avgPercentageAffectedSamples'] = \
+        subpath_data_dict['timeDomainRfiReport/'
+                          'avgPercentageAffectedSamples'] = \
             ['time_domain_rfi_report_avg_percentage_affected_samples',
              rfi_burst_report_time['avgPercentageAffectedSamples'],
              ('Average percentage of affected level-0 samples '
               'in the lines containing RFI.')]
 
-        subpath_data_dict['timeDomainRfiReport/maxPercentageAffectedSamples'] = \
+        subpath_data_dict['timeDomainRfiReport/'
+                          'maxPercentageAffectedSamples'] = \
             ['time_domain_rfi_report_max_percentage_affected_samples',
              rfi_burst_report_time['maxPercentageAffectedSamples'],
-             'Maximum percentage of level-0 samples affected by RFI in the same line']
+             'Maximum percentage of level-0 samples affected by RFI in the'
+             ' same line']
 
     if ('frequencyDomainRfiBurstReport' in
             burst_in.burst_rfi_info.rfi_burst_report.keys()):
         # populate the frequency domain RFI report
-        subpath_data_dict['frequencyDomainRfiBurstReport/numSubBlocks']=\
+        subpath_data_dict['frequencyDomainRfiBurstReport/numSubBlocks'] = \
             ['frequency_domain_rfi_burst_report_num_sub_blocks',
              rfi_burst_report_freq['numSubBlocks'],
              'Number of sub-blocks in the current burst']
 
-        subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize']=\
+        subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize'] = \
             ['frequency_domain_rfi_burst_report_sub_block_size',
              rfi_burst_report_freq['subBlockSize'],
              'Number of lines in each sub-block']
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
                            'percentageAffectedLines')]=\
-            ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
+            ['frequency_domain_rfi_burst_report_isolated_rfi_report/'
+             'percentage_affected_lines',
              rfi_burst_report_freq['isolatedRfiReport'][
                  'percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI.']
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
                            'maxPercentageAffectedBW')]=\
-            ['frequency_domain_rfi_burst_report_isolated_rfi_report/percentage_affected_lines',
+            ['frequency_domain_rfi_burst_report_isolated_rfi_report/'
+             'percentage_affected_lines',
              rfi_burst_report_freq['isolatedRfiReport'][
                  'maxPercentageAffectedBW'],
-             'Max. percentage of bandwidth affected by isolated RFI in a single line.']
+             'Max. percentage of bandwidth affected by isolated RFI in a'
+             ' single line.']
 
-        subpath_data_dict['frequencyDomainRfiBurstReport/percentageBlocksPersistentRfi']=\
-            ['frequency_domain_rfi_burst_report_percentage_blocks_persistent_rfi',
+        subpath_data_dict['frequencyDomainRfiBurstReport/'
+                          'percentageBlocksPersistentRfi']=\
+            ['frequency_domain_rfi_burst_report_percentage_blocks'
+             '_persistent_rfi',
              rfi_burst_report_freq['percentageBlocksPersistentRfi'],
              ('Percentage of processing blocks affected by persistent RFI. '
               'In this case the RFI detection is performed on the '
@@ -1416,7 +1438,8 @@ def get_rfi_metadata_dict(burst_in,
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/'
                            'maxPercentageBWAffectedPersistentRfi')] = \
-            ['frequency_domain_rfi_burst_report_max_percentage_bw_affected_persistent_rfi',
+            ['frequency_domain_rfi_burst_report_max_percentage_bw_affected'
+             '_persistent_rfi',
              rfi_burst_report_freq['maxPercentageBWAffectedPersistentRfi'],
              ('Max percentage bandwidth affected by '
               'persistent RFI in a single processing block')]
@@ -1444,16 +1467,16 @@ def get_range_azimuth_resolution(burst: Sentinel1BurstSlc):
     azimuth_resolution: float
         Azimuth resolution in meters
 
-    Reference
-    ---------
+    Notes
+    -----
     https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-1-sar/
     products-algorithms/level-1/single-look-complex/interferometric-wide-swath
     '''
 
     resolution_subswath_range_azimuth_dict = {
-        'IW1':[2.7, 22.5],
-        'IW2':[3.1, 22.7],
-        'IW3':[3.5, 22.6]
+        'IW1': [2.7, 22.5],
+        'IW2': [3.1, 22.7],
+        'IW3': [3.5, 22.6]
     }
 
     slant_range_resolution, azimuth_resolution =\
