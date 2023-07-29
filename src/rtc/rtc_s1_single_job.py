@@ -463,7 +463,7 @@ def save_browse_static(filename, browse_image_filename,
                        band_image,
                        band_image,
                        alpha_channel))
-  
+
     mpimg.imsave(browse_image_filename, image, format='png')
     logger.info(f'file saved: {browse_image_filename}')
 
