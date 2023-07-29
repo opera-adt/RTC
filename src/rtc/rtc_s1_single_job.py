@@ -1814,8 +1814,10 @@ def run_single_job(cfg: RunConfig):
         if flag_process and flag_call_radar_grid and save_bursts:
             get_radar_grid(
                 geogrid, dem_interp_method_enum, burst_product_id,
-                output_dir_sec_bursts, imagery_extension, save_incidence_angle,
-                save_local_inc_angle, save_projection_angle,
+                output_dir_sec_bursts, imagery_extension,
+                save_local_inc_angle,
+                save_incidence_angle,
+                save_projection_angle,
                 save_rtc_anf_projection_angle,
                 save_range_slope, save_dem,
                 dem_raster, radar_grid_file_dict,
@@ -1919,10 +1921,14 @@ def run_single_job(cfg: RunConfig):
         else:
             radar_grid_output_dir = output_dir
         get_radar_grid(
-            cfg.geogrid, dem_interp_method_enum, mosaic_product_id,
-            radar_grid_output_dir, imagery_extension,
+            cfg.geogrid,
+            dem_interp_method_enum,
+            mosaic_product_id,
+            radar_grid_output_dir,
+            imagery_extension,
+            save_local_inc_angle,
             save_incidence_angle,
-            save_local_inc_angle, save_projection_angle,
+            save_projection_angle,
             save_rtc_anf_projection_angle,
             save_range_slope, save_dem,
             dem_raster, radar_grid_file_dict,
@@ -2128,8 +2134,8 @@ def run_single_job(cfg: RunConfig):
 
 
 def get_radar_grid(geogrid, dem_interp_method_enum, product_id,
-                   output_dir, extension, save_incidence_angle,
-                   save_local_inc_angle, save_projection_angle,
+                   output_dir, extension, save_local_inc_angle,
+                   save_incidence_angle, save_projection_angle,
                    save_rtc_anf_projection_angle,
                    save_range_slope, save_dem, dem_raster,
                    radar_grid_file_dict, lookside, wavelength, orbit,
