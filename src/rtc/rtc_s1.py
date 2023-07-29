@@ -455,6 +455,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 continue
             logger.info(f'    {line}')
 
+    if (product_type == STATIC_LAYERS_PRODUCT_TYPE and
+            flag_save_browse and
+            not save_local_inc_angle):
+        error_msg = ('ERROR the browse image for the RTC-S1-STATIC'
+                     ' product (static layers) can only be generated'
+                     ' if the flag `save_local_inc_angle` is enabled.'
+                     ' Please, update your runconfig file.')
+        raise ValueError(error_msg)
+
     # check ancillary input (DEM)
     metadata_dict = {}
     check_ancillary_inputs(check_ancillary_inputs_coverage,
