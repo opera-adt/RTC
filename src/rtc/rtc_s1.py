@@ -17,7 +17,8 @@ from datetime import datetime
 from rtc.rtc_s1_single_job import (add_output_to_output_metadata_dict,
                                    snap_coord,
                                    get_radar_grid,
-                                   save_browse,
+                                   save_browse_imagery,
+                                   save_browse_static,
                                    append_metadata_to_geotiff_file,
                                    populate_product_id,
                                    read_and_validate_rtc_anf_flags)
@@ -454,6 +455,15 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 continue
             logger.info(f'    {line}')
 
+    if (product_type == STATIC_LAYERS_PRODUCT_TYPE and
+            flag_save_browse and
+            not save_local_inc_angle):
+        error_msg = ('ERROR the browse image for the RTC-S1-STATIC'
+                     ' product (static layers) can only be generated'
+                     ' if the flag `save_local_inc_angle` is enabled.'
+                     ' Please, update your runconfig file.')
+        raise ValueError(error_msg)
+
     # check ancillary input (DEM)
     metadata_dict = {}
     check_ancillary_inputs(check_ancillary_inputs_coverage,
@@ -825,6 +835,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 else:
                     output_file_list.append(current_file)
 
+            # Browse image (burst) using static layers
+            if (flag_save_browse and
+                    product_type == STATIC_LAYERS_PRODUCT_TYPE):
+                browse_image_filename = \
+                    os.path.join(output_dir_bursts, f'{burst_product_id}.png')
+                output_file_list.append(browse_image_filename)
+
         # Create burst HDF5
         if (save_hdf5_metadata and save_bursts):
             hdf5_file_output_dir = os.path.join(output_dir, burst_id)
@@ -840,6 +857,13 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             hdf5_mosaic_obj = create_hdf5_file(
                 mosaic_product_id, output_hdf5_file, orbit, burst, cfg,
                 processing_datetime, is_mosaic=True)
+
+        # Browse image (burst) using RTC-S1 imagery
+        if (flag_save_browse and
+                product_type != STATIC_LAYERS_PRODUCT_TYPE):
+            browse_image_filename = \
+                os.path.join(output_dir_bursts, f'{burst_product_id}.png')
+            output_file_list.append(browse_image_filename)
 
         # Save mosaic metadata for later use
         if (save_mosaics and burst_index == 0):
@@ -866,19 +890,33 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             radar_grid_output_dir = output_dir
         get_radar_grid(cfg.geogrid, dem_interp_method_enum, mosaic_product_id,
                        radar_grid_output_dir, imagery_extension,
-                       save_incidence_angle,
-                       save_local_inc_angle, save_projection_angle,
+                       save_local_inc_angle, save_incidence_angle,
+                       save_projection_angle,
                        save_rtc_anf_projection_angle,
                        save_range_slope, save_dem,
                        dem_raster, radar_grid_file_dict,
                        lookside, wavelength,
                        orbit, verbose=not save_secondary_layers_as_hdf5)
+        radar_grid_file_dict_filenames = list(radar_grid_file_dict.values())
         if save_secondary_layers_as_hdf5:
             # files are temporary
-            temp_files_list += list(radar_grid_file_dict.values())
+            temp_files_list += radar_grid_file_dict_filenames
         else:
-            output_file_list += list(radar_grid_file_dict.values())
-            mosaic_output_file_list += list(radar_grid_file_dict.values())
+            output_file_list += radar_grid_file_dict_filenames
+            mosaic_output_file_list += radar_grid_file_dict_filenames
+
+        # Save browse image (mosaic) using static layers
+        if flag_save_browse and product_type == STATIC_LAYERS_PRODUCT_TYPE:
+            browse_image_filename = \
+                os.path.join(output_dir, f'{mosaic_product_id}.png')
+            save_browse_static(radar_grid_file_dict_filenames[0],
+                               browse_image_filename,
+                               browse_image_mosaic_height,
+                               browse_image_mosaic_width,
+                               temp_files_list,
+                               scratch_path, logger)
+            output_file_list.append(browse_image_filename)
+            mosaic_output_file_list.append(browse_image_filename)
 
     if save_mosaics:
 
@@ -925,20 +963,21 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 temp_files_list=temp_files_list,
                 output_raster_format=output_raster_format)
 
-            if (save_secondary_layers_as_hdf5):
+            if save_secondary_layers_as_hdf5:
                 temp_files_list.append(output_file)
             else:
                 output_file_list.append(output_file)
                 mosaic_output_file_list.append(output_file)
 
-        # Save browse image (mosaic)
-        if flag_save_browse:
+        # Save browse image (mosaic) using RTC-S1 imagery
+        if flag_save_browse and product_type != STATIC_LAYERS_PRODUCT_TYPE:
             browse_image_filename = \
                 os.path.join(output_dir, f'{mosaic_product_id}.png')
-            save_browse(output_imagery_filename_list, browse_image_filename,
-                        pol_list, browse_image_mosaic_height,
-                        browse_image_mosaic_width, temp_files_list,
-                        scratch_path, logger)
+            save_browse_imagery(output_imagery_filename_list,
+                                browse_image_filename,
+                                pol_list, browse_image_mosaic_height,
+                                browse_image_mosaic_width, temp_files_list,
+                                scratch_path, logger)
             output_file_list.append(browse_image_filename)
             mosaic_output_file_list.append(browse_image_filename)
 

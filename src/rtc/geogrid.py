@@ -285,7 +285,7 @@ def _check_pixel_spacing(y_spacing_positive, x_spacing, epsg, product_str):
         X/longitude pixel spacing
     epsg: int
         EPSG code
-    product_str: string
+    product_str: str
         Product type string (e.g., "Mosaic" or "Bursts")
 
     Returns
