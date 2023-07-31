@@ -1069,11 +1069,12 @@ def run_single_job(cfg: RunConfig):
     burst_pol_dict = cfg.bursts[burst_id]
     pol_list = list(burst_pol_dict.keys())
     burst_ref = burst_pol_dict[pol_list[0]]
-    pixel_spacing_avg = int((cfg.geogrid.spacing_x + cfg.geogrid.spacing_y) /
-                            2)
+    pixel_spacing_avg = int((cfg.geogrid.spacing_x +
+                             abs(cfg.geogrid.spacing_y)) / 2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
-        pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date, is_mosaic=True)
+        pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
+        is_mosaic=True)
 
     scratch_path = os.path.join(
         cfg.groups.product_group.scratch_path, f'temp_{time_stamp}')
@@ -1381,7 +1382,8 @@ def run_single_job(cfg: RunConfig):
         burst = burst_pol_dict[pol_list[0]]
 
         # populate burst_product_id
-        pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
+        pixel_spacing_avg = int((geogrid.spacing_x +
+                                 abs(geogrid.spacing_y)) / 2)
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
             pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
