@@ -6,6 +6,7 @@ import argparse
 import itertools
 import h5py
 import numpy as np
+import glob
 
 PASSED_STR = '[PASS] '
 FAILED_STR = '[FAIL]'
@@ -14,7 +15,8 @@ RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE = 1e-03
 RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE = 1e-04
 
 LIST_EXCLUDE_COMPARISON = \
-    ['//metadata/processingInformation/algorithms/isce3Version',
+    ['//identification/productID',
+     '//metadata/processingInformation/algorithms/isce3Version',
      '//metadata/processingInformation/algorithms/s1ReaderVersion',
      '//metadata/processingInformation/inputs/annotationFiles',
      '//metadata/processingInformation/inputs/configFiles',
@@ -30,10 +32,10 @@ def _get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     # Inputs
-    parser.add_argument('input_file',
+    parser.add_argument('input_dirs',
                         type=str,
                         nargs=2,
-                        help='Input RTC products in NETCDF/HDF5 format')
+                        help='Input RTC products` directories')
 
     return parser
 
@@ -554,7 +556,6 @@ def compare_rtc_hdf5_files(file_1: str, file_2: str,
         return final_result
 
 
-
 def _get_prefix_str(flag_same, flag_all_ok):
     '''
     Returns the prefix string for a comparison test, either the contents
@@ -760,49 +761,74 @@ def main():
 
     args = parser.parse_args()
 
-    file_1 = args.input_file[0]
-    file_2 = args.input_file[1]
+    file_list_1 = glob.glob(os.path.join(args.input_dir[0]), '*tif')
+    file_list_1 += glob.glob(os.path.join(args.input_dir[0]), '*h5')
+    file_list_1 += glob.glob(os.path.join(args.input_dir[0]), '*png')
 
-    # compare HDF5 files ('*h5')
-    print('*******************************************************')
-    print('************      TESTING (HDF5 file)      ************')
-    print('*******************************************************')
-    print('*** file 1:', file_1)
-    print('*** file 2:', file_2)
-    print('-------------------------------------------------------')
-    test_1 = compare_rtc_hdf5_files(file_1, file_2, LIST_EXCLUDE_COMPARISON)
+    print('file_list (directory 1):', file_list_1)
 
-    # compare VH images
-    vh_file_1 = file_1.replace('.h5', '_VH.tif')
-    vh_file_2 = file_2.replace('.h5', '_VH.tif')
-    print('*******************************************************')
-    print('************   TESTING (VH polarization)   ************')
-    print('*******************************************************')
-    print('*** file 1:', vh_file_1)
-    print('*** file 2:', vh_file_2)
-    print('-------------------------------------------------------')
-    test_2 = compare_rtc_s1_products(vh_file_1, vh_file_2)
+    file_list_2 = glob.glob(os.path.join(args.input_dir[1]), '*tif')
+    file_list_2 += glob.glob(os.path.join(args.input_dir[1]), '*h5')
+    file_list_2 += glob.glob(os.path.join(args.input_dir[1]), '*png')
 
-    # compare VV images
-    vv_file_1 = file_1.replace('.h5', '_VV.tif')
-    vv_file_2 = file_2.replace('.h5', '_VV.tif')
-    print('*******************************************************')
-    print('************   TESTING (VV polarization)   ************')
-    print('*******************************************************')
-    print('*** file 1:', vv_file_1)
-    print('*** file 2:', vv_file_2)
-    print('-------------------------------------------------------')
-    test_3 = compare_rtc_s1_products(vv_file_1, vv_file_2)
+    print('file_list (directory 2):', file_list_2)
+
+    assert len(file_list_1, file_list_2)
+
+    results_dict = {}
+    for file_1 in file_list_1:
+
+        # If tif, it has layer suffix:
+        if file_1.endswith('.tif'):
+            layer_suffix = file_1.split('_')[-1]
+            print('*** layer_suffix:', layer_suffix)
+            file_2 = glob.glob(os.path.join(args.input_dir[0]),
+                               '*' + layer_suffix)
+        else:
+            file_extension = file_1.split('.')[-1]
+            print('*** file_extension:', file_extension)
+            file_2 = glob.glob(os.path.join(args.input_dir[1]),
+                               '*' + file_extension)
+
+        if not file_2:
+            error_msg = 'ERROR file not found: ' + file_2
+            raise RuntimeError(error_msg)
+
+        if file_1.endswith('.h5'):
+            # compare HDF5 files ('*h5')
+            print('*******************************************************')
+            print('************      TESTING (HDF5 file)      ************')
+            print('*******************************************************')
+            print('*** file 1:', file_1)
+            print('*** file 2:', file_2)
+            print('-------------------------------------------------------')
+            basename_1 = os.path.basename(file_1)
+            results_dict[basename_1] = compare_rtc_hdf5_files(
+                file_1, file_2, LIST_EXCLUDE_COMPARISON)
+            continue
+
+        # compare VH images
+        file_1 = file_1.replace('.h5', '_VH.tif')
+        file_2 = file_2.replace('.h5', '_VH.tif')
+        print('*******************************************************')
+        print('************   TESTING (VH polarization)   ************')
+        print('*******************************************************')
+        print('*** file 1:', file_1)
+        print('*** file 2:', file_2)
+        print('-------------------------------------------------------')
+        basename_2 = os.path.basename(file_1)
+        results_dict[basename_2] = compare_rtc_s1_products(file_1, file_2)
 
     print('*******************************************************')
     print('************         Overall results       ************')
     print('*******************************************************')
     overal_results = [True]
-    print(f'{_get_prefix_str(test_1, overal_results)} HDF5 test')
-    print(f'{_get_prefix_str(test_2, overal_results)} VH polarization test')
-    print(f'{_get_prefix_str(test_3, overal_results)} VV polarization test')
-    print('*******************************************************')
+
+    for filename, test in results_dict.items():
+        print(f'{_get_prefix_str(test, overal_results)} file: {filename}')
+        print('*******************************************************')
     return overal_results[0]
+
 
 if __name__ == '__main__':
     main()
