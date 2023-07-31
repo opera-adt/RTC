@@ -761,19 +761,23 @@ def main():
 
     args = parser.parse_args()
 
-    file_list_1 = glob.glob(os.path.join(args.input_dir[0]), '*tif')
-    file_list_1 += glob.glob(os.path.join(args.input_dir[0]), '*h5')
-    file_list_1 += glob.glob(os.path.join(args.input_dir[0]), '*png')
+    file_list_1 = glob.glob(os.path.join(args.input_dirs[0], '*tif'))
+    file_list_1 += glob.glob(os.path.join(args.input_dirs[0], '*h5'))
+    # file_list_1 += glob.glob(os.path.join(args.input_dirs[0], '*png'))
 
     print('file_list (directory 1):', file_list_1)
 
-    file_list_2 = glob.glob(os.path.join(args.input_dir[1]), '*tif')
-    file_list_2 += glob.glob(os.path.join(args.input_dir[1]), '*h5')
-    file_list_2 += glob.glob(os.path.join(args.input_dir[1]), '*png')
+    file_list_2 = glob.glob(os.path.join(args.input_dirs[1], '*tif'))
+    file_list_2 += glob.glob(os.path.join(args.input_dirs[1], '*h5'))
+    # file_list_2 += glob.glob(os.path.join(args.input_dirs[1], '*png'))
 
     print('file_list (directory 2):', file_list_2)
 
-    assert len(file_list_1, file_list_2)
+    if len(file_list_1) != len(file_list_2):
+        error_msg = 'ERROR the number of files from the two inputs differ:\n'
+        error_msg += 'Directory 1: {file_list_1}\n'
+        error_msg += 'Directory 2: {file_list_2}'
+        raise RuntimeError(error_msg)
 
     results_dict = {}
     for file_1 in file_list_1:
@@ -782,13 +786,13 @@ def main():
         if file_1.endswith('.tif'):
             layer_suffix = file_1.split('_')[-1]
             print('*** layer_suffix:', layer_suffix)
-            file_2 = glob.glob(os.path.join(args.input_dir[0]),
-                               '*' + layer_suffix)
+            file_2 = glob.glob(os.path.join(args.input_dirs[1],
+                               '*' + layer_suffix))[0]
         else:
             file_extension = file_1.split('.')[-1]
             print('*** file_extension:', file_extension)
-            file_2 = glob.glob(os.path.join(args.input_dir[1]),
-                               '*' + file_extension)
+            file_2 = glob.glob(os.path.join(args.input_dirs[1],
+                               '*' + file_extension))[0]
 
         if not file_2:
             error_msg = 'ERROR file not found: ' + file_2
