@@ -807,9 +807,7 @@ def main():
                 file_1, file_2, LIST_EXCLUDE_COMPARISON)
             continue
 
-        # compare VH images
-        file_1 = file_1.replace('.h5', '_VH.tif')
-        file_2 = file_2.replace('.h5', '_VH.tif')
+        # compare .tif and .png files
         print('*******************************************************')
         print('************   TESTING (VH polarization)   ************')
         print('*******************************************************')
