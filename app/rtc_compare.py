@@ -20,17 +20,22 @@ LIST_EXCLUDE_COMPARISON = \
      '//metadata/processingInformation/algorithms/s1ReaderVersion',
      '//metadata/processingInformation/inputs/annotationFiles',
      '//metadata/processingInformation/inputs/configFiles',
-     '//metadata/processingInformation/inputs/demFiles',
+     '//metadata/processingInformation/inputs/demSource',
      '//metadata/processingInformation/inputs/orbitFiles',
-     '//identification/processingDateTime',
-     '//identification/productID'
+     '//identification/processingDateTime'
      ]
 
 
 LIST_EXCLUDE_COMPARISON_PRODUCT = \
     ['FILENAME',
-     'PROCESSING_DATETIME',
-     'PRODUCT_ID'
+     'PRODUCT_ID',
+     'ISCE3_VERSION',
+     'S1_READER_VERSION',
+     'INPUTS_ANNOTATION_FILES',
+     'INPUTS_CONFIG_FILES',
+     'INPUTS_DEM_SOURCE',
+     'INPUTS_ORBIT_FILES',
+     'PROCESSING_DATETIME'
      ]
 
 
