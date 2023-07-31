@@ -21,6 +21,14 @@ LIST_EXCLUDE_COMPARISON = \
      '//metadata/processingInformation/inputs/demFiles',
      '//metadata/processingInformation/inputs/orbitFiles',
      '//identification/processingDateTime',
+     '//identification/productID'
+     ]
+
+
+LIST_EXCLUDE_COMPARISON_PRODUCT = \
+    ['FILENAME',
+     'PROCESSING_DATETIME',
+     'PRODUCT_ID'
      ]
 
 
@@ -695,6 +703,10 @@ def _compare_rtc_s1_metadata(metadata_1, metadata_2):
                                        f' {", ".join(set_2_m_1)}.')
     else:
         for k1, v1, in metadata_1.items():
+            if k1 in LIST_EXCLUDE_COMPARISON_PRODUCT:
+                # skip the comparison if the key is in the exclusion list
+                continue
+
             if k1 not in metadata_2.keys():
                 flag_same_metadata = False
                 metadata_error_message = (
