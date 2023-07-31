@@ -803,11 +803,11 @@ def main():
         if file_1.endswith('.tif'):
             layer_suffix = file_1.split('_v')[-1]
             file_2 = [s for s in file_list_2
-                      if s.endswith(layer_suffix) in s][0]
+                      if s.endswith(layer_suffix)][0]
         else:
             file_extension = file_1.split('.')[-1]
             file_2 = [s for s in file_list_2
-                      if s.endswith(file_extension) in s][0]
+                      if s.endswith(file_extension)][0]
 
         if not file_2:
             error_msg = 'ERROR file not found: ' + file_2
