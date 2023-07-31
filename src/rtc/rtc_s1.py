@@ -380,7 +380,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_nlooks = geocode_namespace.save_nlooks
 
     save_dem = geocode_namespace.save_dem
-    save_layover_shadow_mask = geocode_namespace.save_layover_shadow_mask
+    save_mask = geocode_namespace.save_mask
 
     # unpack mosaicking run parameters
     mosaicking_namespace = cfg.groups.processing.mosaicking
@@ -494,7 +494,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     # configure mosaic secondary layers
     # e.g. layover shadow mask, nlooks, area normalization factor
     add_output_to_output_metadata_dict(
-        save_layover_shadow_mask, LAYER_NAME_LAYOVER_SHADOW_MASK,
+        save_mask, LAYER_NAME_LAYOVER_SHADOW_MASK,
         output_dir_sec_mosaic_raster,
         output_metadata_dict, mosaic_product_id, imagery_extension)
     add_output_to_output_metadata_dict(
@@ -726,10 +726,10 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             rtc_anf_gamma0_to_sigma0_file = None
 
         # Calculate layover/shadow mask when requested
-        if save_layover_shadow_mask or apply_shadow_masking:
+        if save_mask or apply_shadow_masking:
             flag_layover_shadow_mask_is_temporary = \
                 (flag_bursts_secondary_files_are_temporary or
-                    (apply_shadow_masking and not save_layover_shadow_mask))
+                    (apply_shadow_masking and not save_mask))
 
             if flag_layover_shadow_mask_is_temporary:
                 # layover/shadow mask is temporary
@@ -756,12 +756,12 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                         f'{DATA_BASE_GROUP}/'
                         f'{layer_hdf5_dict[LAYER_NAME_LAYOVER_SHADOW_MASK]}')
 
-                if save_layover_shadow_mask:
+                if save_mask:
                     output_metadata_dict[
                         LAYER_NAME_LAYOVER_SHADOW_MASK][1].append(
                             layover_shadow_mask_file)
 
-            if not save_layover_shadow_mask:
+            if not save_mask:
                 layover_shadow_mask_file = None
 
         else:
@@ -998,7 +998,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                     LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0][0]
             else:
                 rtc_anf_gamma0_to_sigma0_mosaic_file = None
-            if save_layover_shadow_mask:
+            if save_mask:
                 layover_shadow_mask_file = output_metadata_dict[
                     LAYER_NAME_LAYOVER_SHADOW_MASK][0]
             else:

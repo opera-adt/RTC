@@ -202,7 +202,7 @@ def test_workflow():
         # output files. We also assert that layers not set to be created,
         # such as `incidenceAngle`, are indeed not created
 
-        cfg.groups.processing.geocoding.save_layover_shadow_mask = True
+        cfg.groups.processing.geocoding.save_mask = True
         cfg.groups.processing.geocoding.save_local_inc_angle = True
 
         # Run geocode burst workflow (single job)

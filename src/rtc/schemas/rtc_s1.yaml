@@ -255,7 +255,7 @@ geocoding_options:
     save_dem: bool(required=False)
 
     # Save layover/shadow mask
-    save_layover_shadow_mask: bool(required=False)
+    save_mask: bool(required=False)
 
     # Layover/shadow mask dilation size of shadow pixels
     shadow_dilation_size: int(min=0, required=False)
