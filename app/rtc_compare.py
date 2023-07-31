@@ -363,8 +363,8 @@ def compare_hdf5_elements(hdf5_obj_1, hdf5_obj_2, str_key, is_attr=False,
             else:
                 print(f'{FAILED_STR} ', str_message_data_location)
                 print('    - Numerical 1D array. Failed to pass the test. '
-                     f'Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
-                     f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
+                      f'Relative tolerance = {RTC_S1_PRODUCTS_ERROR_REL_TOLERANCE}, '
+                      f'Absolute tolerance = {RTC_S1_PRODUCTS_ERROR_ABS_TOLERANCE}')
                 print_data_difference(val_1, val_2)
             return return_val
 
@@ -792,8 +792,8 @@ def main():
 
     if len(file_list_1) != len(file_list_2):
         error_msg = 'ERROR the number of files from the two inputs differ:\n'
-        error_msg += 'Directory 1: {file_list_1}\n'
-        error_msg += 'Directory 2: {file_list_2}'
+        error_msg += f'Directory 1: {file_list_1}\n'
+        error_msg += f'Directory 2: {file_list_2}'
         raise RuntimeError(error_msg)
 
     results_dict = {}
@@ -801,7 +801,7 @@ def main():
 
         # If tif, it has layer suffix:
         if file_1.endswith('.tif'):
-            layer_suffix = file_1.split('_')[-1]
+            layer_suffix = file_1.split('_v')[-1]
             print('*** layer_suffix:', layer_suffix)
             file_2 = glob.glob(os.path.join(args.input_dirs[1],
                                '*' + layer_suffix))[0]
@@ -830,7 +830,7 @@ def main():
 
         # compare .tif and .png files
         print('*******************************************************')
-        print('************   TESTING (VH polarization)   ************')
+        print('*************   TESTING (GeoTIFF file)   **************')
         print('*******************************************************')
         print('*** file 1:', file_1)
         print('*** file 2:', file_2)
