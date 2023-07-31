@@ -297,8 +297,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     burst_pol_dict = cfg.bursts[burst_id]
     pol_list = list(burst_pol_dict.keys())
     burst_ref = burst_pol_dict[pol_list[0]]
-    pixel_spacing_avg = int((cfg.geogrid.spacing_x + cfg.geogrid.spacing_y) /
-                            2)
+    pixel_spacing_avg = int((cfg.geogrid.spacing_x +
+                             abs(cfg.geogrid.spacing_y)) / 2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
         rtc_s1_static_validity_start_date, pixel_spacing_avg, product_type,
@@ -540,7 +540,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
         geogrid = cfg.geogrids[burst_id]
-        pixel_spacing_avg = int((geogrid.spacing_x + geogrid.spacing_y) / 2)
+        pixel_spacing_avg = int((geogrid.spacing_x +
+                                 abs(geogrid.spacing_y)) / 2)
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
             pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
