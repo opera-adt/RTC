@@ -802,14 +802,12 @@ def main():
         # If tif, it has layer suffix:
         if file_1.endswith('.tif'):
             layer_suffix = file_1.split('_v')[-1]
-            print('*** layer_suffix:', layer_suffix)
-            file_2 = glob.glob(os.path.join(args.input_dirs[1],
-                               '*' + layer_suffix))[0]
+            file_2 = [s for s in file_list_2
+                      if s.endswith(layer_suffix) in s][0]
         else:
             file_extension = file_1.split('.')[-1]
-            print('*** file_extension:', file_extension)
-            file_2 = glob.glob(os.path.join(args.input_dirs[1],
-                               '*' + file_extension))[0]
+            file_2 = [s for s in file_list_2
+                      if s.endswith(file_extension) in s][0]
 
         if not file_2:
             error_msg = 'ERROR file not found: ' + file_2
