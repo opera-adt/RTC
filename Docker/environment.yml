@@ -25,4 +25,4 @@ dependencies:
   - shapely
   - yamale
   - backoff
-  - isce3>=0.13.0
+  - isce3>=0.14.0
