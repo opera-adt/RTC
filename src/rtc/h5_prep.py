@@ -151,7 +151,6 @@ def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
     _ : str
         "POLYGON" or "MULTIPOLYGON" in WKT
         as the bounding polygon of the input burst
-        
     '''
 
     if len(burst_in.border) == 1:
@@ -676,12 +675,12 @@ def get_metadata_dict(product_id: str,
             [None,
              STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.inc_angle_near_range,
-             'Near range incidence angle in meters'],
+             'Near range incidence angle in degrees'],
         'metadata/sourceData/farRangeIncidenceAngle':  # 1.6.7
             [None,
              STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.inc_angle_far_range,
-             'Far range incidence angle in meters'],
+             'Far range incidence angle in degrees'],
         # Source for the max. NESZ:
         # (https://sentinels.copernicus.eu/web/sentinel/user-guides/
         #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
@@ -996,7 +995,7 @@ def get_metadata_dict(product_id: str,
              STANDARD_RTC_S1_ONLY,
              get_polygon_wkt(burst_in),
              'OGR compatible WKT representation of the product'
-             ' bounding polygon']
+             ' bounding polygon, in WGS84']
 
         # Attribute `epsg` for HDF5 dataset /identification/boundingPolygon
         metadata_dict['identification/boundingPolygon[epsg]'] = \
@@ -1081,7 +1080,7 @@ def get_metadata_dict(product_id: str,
             ['source_data_slant_range_start',
              STANDARD_RTC_S1_ONLY,
              burst_in.starting_range,
-             'Source data slant range start distance']
+             'Start distance of source data slant range']
 
     this_product_metadata_dict = {}
     for h5_path, (geotiff_field, flag_all_products, data, description) in \
@@ -1110,12 +1109,13 @@ def all_metadata_dict_to_geotiff_metadata_dict(metadata_dict):
     metadata_dict : dict
         Metadata dict organized as follows:
         - Dictionary item key: HDF5 dataset key;
-        - Dictionary item value: list of 
+        - Dictionary item value: list of
             [GeoTIFF metadata key,
              metadata value,
              metadata description]
         The value `None` for the GeoTIFF metadata key indicates that
         the field is not saved on the GeoTIFF file
+
     Returns
     -------
     geotiff_metadata_dict : dict
@@ -1222,6 +1222,8 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         Maximum value
     '''
     if not os.path.isfile(ds_filename):
+        # TODO: Replace the logger into something more suitable to warning message.
+        logger.info(f'Cannot file source raster file: {ds_filename}')
         return
 
     ds_name = layer_hdf5_dict[layer_name]
@@ -1289,7 +1291,6 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
                               data=stats_obj.sample_stddev)
 
         elif stats_real_imag_vector is not None:
-
             stats_obj = stats_real_imag_vector[band]
             dset.attrs.create('min_real_value', data=stats_obj.min_real)
             dset.attrs.create('mean_real_value', data=stats_obj.mean_real)
@@ -1320,7 +1321,9 @@ def get_rfi_metadata_dict(burst_in,
     Parameters
     ----------
     burst_in: Sentinel1BurstSlc
+        Sentinel-1 Burst SLC object with RFI information inside
     rfi_root_path: str
+        Root path to the RFI information in the metadata HDF5 file
 
     '''
     rfi_metadata_dict = {}
