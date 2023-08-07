@@ -105,7 +105,7 @@ def intersect_geogrid(geogrid, xmin=None, ymax=None,
         geogrid.length = int(np.ceil((current_end_y - ymax) /
                                       geogrid.spacing_y))
 
-    if (ymin is not None and 
+    if (ymin is not None and
             (ymin > geogrid.start_y + geogrid.length * geogrid.spacing_y)):
         geogrid.length = int(np.ceil((ymin - geogrid.start_y) /
                                       geogrid.spacing_y))
@@ -406,14 +406,9 @@ def generate_geogrids_from_db(bursts, geo_dict, mosaic_dict, burst_db_file):
         epsg_mosaic, product_mosaic_str)
 
 
-    for burst_id, burst_pol in bursts.items():
-        pol_list = list(burst_pol.keys())
-        burst = burst_pol[pol_list[0]]
+    for burst_id, _ in bursts.items():
         if burst_id in geogrids_dict.keys():
             continue
-
-        radar_grid = burst.as_isce3_radargrid()
-        orbit = burst.orbit
 
         # extract EPSG and bbox for current burst from dict
         # bottom right = (xmax, ymin) and top left = (xmin, ymax)
