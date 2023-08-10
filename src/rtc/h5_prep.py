@@ -136,7 +136,7 @@ layer_description_dict = {
 
 def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
     '''
-    Get WKT for burst's bounding polygon
+    Get the WKT representation of the burst's bounding polygon
     It returns "POLYGON" when
     there is only one polygon that defines the burst's border
     It returns "MULTIPOLYGON" when
@@ -1080,7 +1080,7 @@ def get_metadata_dict(product_id: str,
             ['source_data_slant_range_start',
              STANDARD_RTC_S1_ONLY,
              burst_in.starting_range,
-             'Start distance of source data slant range']
+             'Slant-range start distance of the source data']
 
     this_product_metadata_dict = {}
     for h5_path, (geotiff_field, flag_all_products, data, description) in \
@@ -1222,8 +1222,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         Maximum value
     '''
     if not os.path.isfile(ds_filename):
-        # TODO: Replace the logger into something more suitable to warning message.
-        logger.info(f'Cannot file source raster file: {ds_filename}')
+        logger.warning(f'WARNING Cannot open raster file: {ds_filename}')
         return
 
     ds_name = layer_hdf5_dict[layer_name]
@@ -1321,7 +1320,7 @@ def get_rfi_metadata_dict(burst_in,
     Parameters
     ----------
     burst_in: Sentinel1BurstSlc
-        Sentinel-1 Burst SLC object with RFI information inside
+        Sentinel-1 Burst SLC object with RFI information
     rfi_root_path: str
         Root path to the RFI information in the metadata HDF5 file
 
@@ -1437,7 +1436,7 @@ def get_rfi_metadata_dict(burst_in,
              rfi_burst_report_freq['percentageBlocksPersistentRfi'],
              ('Percentage of processing blocks affected by persistent RFI. '
               'In this case the RFI detection is performed on the '
-              'mean Power Spectrum Density (PSD) of each processing block.')]
+              'mean power spectrum density (PSD) of each processing block.')]
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/'
                            'maxPercentageBWAffectedPersistentRfi')] = \
