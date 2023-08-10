@@ -995,7 +995,7 @@ def get_metadata_dict(product_id: str,
              STANDARD_RTC_S1_ONLY,
              get_polygon_wkt(burst_in),
              'OGR compatible WKT representation of the product'
-             ' bounding polygon, in WGS84']
+             ' bounding polygon']
 
         # Attribute `epsg` for HDF5 dataset /identification/boundingPolygon
         metadata_dict['identification/boundingPolygon[epsg]'] = \
