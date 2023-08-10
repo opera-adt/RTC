@@ -621,18 +621,21 @@ def get_metadata_dict(product_id: str,
             [None,
              STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.azimuth_looks,
-             'Azimuth number of looks'],
+             'Number of looks in azimuth used to generate source data'],
         'metadata/sourceData/slantRangeLooks':  # 1.6.6
             [None,
              STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.slant_range_looks,
-             'Slant range number of looks'],
+             'Number of looks in slant range used to generate source data'],
 
         'metadata/sourceData/productLevel':  # 1.6.6
             ['source_data_product_level',
              ALL_PRODUCTS,
              'L1',
-             'Product level of the source data'],
+             'Product level of the source data. L0A: Unprocessed instrument'
+             ' data; L0B: Reformatted, unprocessed instrument data; L1:'
+             ' Processed instrument data in radar coordinates system; and L2:'
+             ' Processed instrument data in geocoded coordinates system'],
         'metadata/sourceData/centerFrequency':
             ['center_frequency',
              STANDARD_RTC_S1_ONLY,
@@ -646,12 +649,13 @@ def get_metadata_dict(product_id: str,
             ['source_data_zero_doppler_time_spacing',
              ALL_PRODUCTS,
              burst_in.azimuth_time_interval,
-             'Azimuth spacing of the source data in seconds'],
+             'Time interval in the along-track direction of the source data'],
         'metadata/sourceData/slantRangeSpacing':  # 1.6.7
             ['source_data_slant_range_spacing',
              ALL_PRODUCTS,
              burst_in.range_pixel_spacing,
-             'Slant range spacing of the source data in meters'],
+             'Distance in meters between consecutive range samples'
+             ' of the source data'],
         'metadata/sourceData/azimuthResolutionInMeters':  # 1.6.7
             ['source_data_azimuth_resolution_in_meters',
              ALL_PRODUCTS,
@@ -764,7 +768,8 @@ def get_metadata_dict(product_id: str,
              '_output_backscatter_normalization_convention',
              ALL_PRODUCTS,
              cfg_in.groups.processing.rtc.output_type,
-             'Backscatter normalization convention of this product (RTC-S1)'],
+             'Backscatter normalization convention of the radar imagery'
+             ' associated with this product'],
 
         # 3.1
         ('metadata/processingInformation/parameters/'
@@ -846,7 +851,7 @@ def get_metadata_dict(product_id: str,
              '_dem_egm_model',
              ALL_PRODUCTS,
              'Earth Gravitational Model EGM08',
-             'DEM interpolation method'],
+             'Earth Gravitational Model associated with the DEM'],
         'metadata/processingInformation/algorithms/geocoding':
             ['processing_information'
              '_geocoding_algorithm',
@@ -875,28 +880,28 @@ def get_metadata_dict(product_id: str,
              'Version of the OPERA s1-reader used for processing'],
 
         'metadata/processingInformation/inputs/l1SlcGranules':
-            ['inputs_l1_slc_granules',
+            ['input_l1_slc_granules',
              ALL_PRODUCTS,
              l1_slc_granules,
              'List of input L1 SLC products used'],
         'metadata/processingInformation/inputs/orbitFiles':
-            ['inputs_orbit_files',
+            ['input_orbit_files',
              ALL_PRODUCTS,
              orbit_files,
              'List of input orbit files used'],
         'metadata/processingInformation/inputs/annotationFiles':
-            ['inputs_annotation_files',
+            ['input_annotation_files',
              ALL_PRODUCTS,
              [burst_in.burst_calibration.basename_cads,
               burst_in.burst_noise.basename_nads],
              'List of input annotation files used'],
         'metadata/processingInformation/inputs/configFiles':
-            ['inputs_config_files',
+            ['input_config_files',
              ALL_PRODUCTS,
              cfg_in.run_config_path,
              'List of input config files used'],
         'metadata/processingInformation/inputs/demSource':
-            ['inputs_dem_source',
+            ['input_dem_source',
              ALL_PRODUCTS,
              dem_file_description,
              'Description of the input digital elevation model (DEM)']
@@ -945,7 +950,7 @@ def get_metadata_dict(product_id: str,
          '_radiometric_terrain_correction_algorithm_reference',
          ALL_PRODUCTS,
          url_rtc_algorithm_document,
-         'Reference to the radiometric terrain correction (RTC) algorithm'
+         'A reference to the radiometric terrain correction (RTC) algorithm'
          ' applied']
 
     # Add geocoding algorithm reference depending on the algorithm applied
@@ -963,7 +968,7 @@ def get_metadata_dict(product_id: str,
              '_geocoding_algorithm_reference',
              ALL_PRODUCTS,
              url_geocoding_algorithm_document,
-             'Reference to the geocoding algorithm applied']
+             'A reference to the geocoding algorithm applied']
 
     if is_mosaic:
         # Metadata only for the mosaic product
@@ -1081,7 +1086,7 @@ def get_metadata_dict(product_id: str,
             ['source_data_slant_range_start',
              STANDARD_RTC_S1_ONLY,
              burst_in.starting_range,
-             'Source data slant range start distance']
+             'Slant-range start distance of the source data']
 
     this_product_metadata_dict = {}
     for h5_path, (geotiff_field, flag_all_products, data, description) in \
@@ -1379,20 +1384,20 @@ def get_rfi_metadata_dict(burst_in,
             burst_in.burst_rfi_info.rfi_burst_report.keys()):
         # populate the time domain RFI report
         subpath_data_dict['timeDomainRfiReport/percentageAffectedLines'] = \
-            ['time_domain_rfi_report_percentage_affected_lines',
+            ['rfi_time_domain_report_percentage_affected_lines',
              rfi_burst_report_time['percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI']
 
         subpath_data_dict['timeDomainRfiReport/'
                           'avgPercentageAffectedSamples'] = \
-            ['time_domain_rfi_report_avg_percentage_affected_samples',
+            ['rfi_time_domain_report_avg_percentage_affected_samples',
              rfi_burst_report_time['avgPercentageAffectedSamples'],
              ('Average percentage of affected level-0 samples '
               'in the lines containing RFI.')]
 
         subpath_data_dict['timeDomainRfiReport/'
                           'maxPercentageAffectedSamples'] = \
-            ['time_domain_rfi_report_max_percentage_affected_samples',
+            ['rfi_time_domain_report_max_percentage_affected_samples',
              rfi_burst_report_time['maxPercentageAffectedSamples'],
              'Maximum percentage of level-0 samples affected by RFI in the'
              ' same line']
@@ -1401,35 +1406,35 @@ def get_rfi_metadata_dict(burst_in,
             burst_in.burst_rfi_info.rfi_burst_report.keys()):
         # populate the frequency domain RFI report
         subpath_data_dict['frequencyDomainRfiBurstReport/numSubBlocks'] = \
-            ['frequency_domain_rfi_burst_report_num_sub_blocks',
+            ['rfi_frequency_domain_report_num_sub_blocks',
              rfi_burst_report_freq['numSubBlocks'],
              'Number of sub-blocks in the current burst']
 
         subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize'] = \
-            ['frequency_domain_rfi_burst_report_sub_block_size',
+            ['rfi_frequency_domain_report_sub_block_size',
              rfi_burst_report_freq['subBlockSize'],
              'Number of lines in each sub-block']
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
-                           'percentageAffectedLines')]=\
-            ['frequency_domain_rfi_burst_report_isolated_rfi_report/'
+                           'percentageAffectedLines')] = \
+            ['rfi_frequency_domain_report_isolated_'
              'percentage_affected_lines',
              rfi_burst_report_freq['isolatedRfiReport'][
                  'percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI.']
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
-                           'maxPercentageAffectedBW')]=\
-            ['frequency_domain_rfi_burst_report_isolated_rfi_report/'
-             'percentage_affected_lines',
+                           'maxPercentageAffectedBW')] = \
+            ['rfi_frequency_domain_report_isolated_'
+             'max_bandwidth_percentage_affected_lines',
              rfi_burst_report_freq['isolatedRfiReport'][
                  'maxPercentageAffectedBW'],
              'Max. percentage of bandwidth affected by isolated RFI in a'
              ' single line.']
 
         subpath_data_dict['frequencyDomainRfiBurstReport/'
-                          'percentageBlocksPersistentRfi']=\
-            ['frequency_domain_rfi_burst_report_percentage_blocks'
+                          'percentageBlocksPersistentRfi'] = \
+            ['rfi_frequency_domain_report_percentage_blocks'
              '_persistent_rfi',
              rfi_burst_report_freq['percentageBlocksPersistentRfi'],
              ('Percentage of processing blocks affected by persistent RFI. '
@@ -1438,7 +1443,7 @@ def get_rfi_metadata_dict(burst_in,
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/'
                            'maxPercentageBWAffectedPersistentRfi')] = \
-            ['frequency_domain_rfi_burst_report_max_percentage_bw_affected'
+            ['rfi_frequency_domain_report_max_percentage_bw_affected'
              '_persistent_rfi',
              rfi_burst_report_freq['maxPercentageBWAffectedPersistentRfi'],
              ('Max percentage bandwidth affected by '
