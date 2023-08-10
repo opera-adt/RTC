@@ -49,6 +49,8 @@ STATIC_LAYERS_LAYOVER_SHADOW_MASK_MULTILOOK_FACTOR = 3
 STATIC_LAYERS_AZ_MARGIN = 1.2
 STATIC_LAYERS_RG_MARGIN = 0.2
 
+BROWSE_IMAGE_MIN_PERCENTILE = 3
+BROWSE_IMAGE_MAX_PERCENTILE = 97
 
 def populate_product_id(product_id, burst_in, processing_datetime,
                         product_version, pixel_spacing, product_type,
@@ -232,7 +234,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
                               bistatic_delay.x_spacing,
                               bistatic_delay.y_spacing,
                               -bistatic_delay.data)
-    
+
     rg_lut = isce3.core.LUT2d(bistatic_delay.x_start,
                               bistatic_delay.y_start,
                               bistatic_delay.x_spacing,
@@ -268,9 +270,6 @@ def save_browse_imagery(imagery_list, browse_image_filename,
        logger : loggin.Logger
            Logger
     """
-
-    BROWSE_IMAGE_MIN_PERCENTILE = 3
-    BROWSE_IMAGE_MAX_PERCENTILE = 97
 
     logger.info(f'creating browse image: {browse_image_filename}')
 
@@ -399,9 +398,6 @@ def save_browse_static(filename, browse_image_filename,
        logger : loggin.Logger
            Logger
     """
-
-    BROWSE_IMAGE_MIN_PERCENTILE = 3
-    BROWSE_IMAGE_MAX_PERCENTILE = 97
 
     logger.info(f'creating browse image: {browse_image_filename}')
     logger.info(f'            from file: {filename}')
@@ -541,7 +537,7 @@ def _separate_pol_channels(multi_band_file, output_file_list,
            Output file list
        output_raster_format : str
            Output raster format
-       logger : loggin.Logger
+       logger : logging.Logger
     """
     gdal_ds = gdal.Open(multi_band_file, gdal.GA_ReadOnly)
     projection = gdal_ds.GetProjectionRef()
@@ -717,7 +713,7 @@ def _test_valid_gdal_ref(gdal_ref):
     Returns
     -------
     _ : bool
-        Boolean value indicating if the input string is a valid GDAL reference 
+        Boolean value indicating if the input string is a valid GDAL reference
     '''
     try:
         gdal_ds = gdal.Open(gdal_ref, gdal.GA_ReadOnly)
@@ -1297,7 +1293,7 @@ def run_single_job(cfg: RunConfig):
                      ' if the flag `save_local_inc_angle` is enabled.'
                      ' Please, update your runconfig file.')
         raise ValueError(error_msg)
-        
+
     # check ancillary input (DEM)
     metadata_dict = {}
     check_ancillary_inputs(check_ancillary_inputs_coverage,
@@ -1490,7 +1486,7 @@ def run_single_job(cfg: RunConfig):
                                 radar_grid.width, fill_value)
                 input_burst_filename = temp_slc_path
                 temp_files_list.append(temp_slc_path)
- 
+
             elif (flag_process and (flag_apply_thermal_noise_correction or
                   flag_apply_abs_rad_correction)):
 
@@ -2000,7 +1996,7 @@ def run_single_job(cfg: RunConfig):
                 mosaic_output_file_list += output_imagery_filename_list
 
         # Mosaic other layers
-        for key, (output_file, input_files) in output_metadata_dict.items():
+        for _, (output_file, input_files) in output_metadata_dict.items():
             logger.info(f'mosaicking file: {output_file}')
             if len(input_files) == 0:
                 continue

@@ -85,10 +85,10 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
         # assert that HH image is not present
         geo_hh_file = (f'NETCDF:"{geo_h5_filename}":'
                        f'{DATA_BASE_GROUP}/HH')
-        assert not(_is_valid_gdal_reference(geo_hh_file))
+        assert not _is_valid_gdal_reference(geo_hh_file)
 
     else:
-    
+
         # assert that VV image is present
         geo_vv_filename = os.path.join(
             output_dir, f'{product_prefix}_VV.{imagery_extension}')
@@ -97,8 +97,8 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
         # assert that HH image is not present
         geo_hh_filename = os.path.join(
             output_dir, f'{product_prefix}_HH.{imagery_extension}')
-        assert not(os.path.isfile(geo_hh_filename))
-    
+        assert not os.path.isfile(geo_hh_filename)
+
     # Check RTC-S1 secondary layers
     if save_secondary_layers_as_hdf5:
 
@@ -119,7 +119,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
             current_file = (f'NETCDF:"{geo_h5_filename}":'
                             f'{DATA_BASE_GROUP}/'
                             f'{ds_name}')
-            assert not(_is_valid_gdal_reference(current_file))
+            assert not _is_valid_gdal_reference(current_file)
 
     else:
         # assert that the following secondary layers are present:
@@ -138,7 +138,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
             current_file = os.path.join(
                 output_dir, f'{product_prefix}_'
                 f'{ds_name}.{imagery_extension}')
-            assert not(os.path.isfile(current_file))
+            assert not os.path.isfile(current_file)
 
 
 def test_workflow():
@@ -226,4 +226,3 @@ def test_workflow():
         _check_results(output_dir_parallel, product_prefix,
                        save_imagery_as_hdf5, save_secondary_layers_as_hdf5,
                        save_metadata, hdf5_file_extension, imagery_extension)
-

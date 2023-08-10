@@ -157,7 +157,7 @@ def is_invalid(input_array, no_data_value):
            No data value
     Returns
         is_invalid_array: np.ndarray
-           True where x is NaN, false otherwise. 
+           True where x is NaN, false otherwise.
     '''
     nan_mask = np.isnan(input_array)
     if no_data_value is None or np.isnan(no_data_value):
@@ -222,7 +222,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
         elif num_bands != raster_in.RasterCount:
             raise ValueError(f'ERROR: the file "{os.path.basename(path_rtc)}"'
                              f' has {raster_in.RasterCount} bands. Expected:'
-                             f' {num_bands}.') 
+                             f' {num_bands}.')
 
         if len(description_list) == 0:
             for i_band in range(num_bands):
@@ -388,7 +388,7 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=
             # calculate the burst RTC's offset wrt. the output mosaic in the image coordinate
             offset_imgx = int((list_geo_transform[i, 0] - xmin_mosaic) / posting_x + 0.5)
             offset_imgy = int((list_geo_transform[i, 3] - ymax_mosaic) / posting_y + 0.5)
- 
+
             # If images start before the mosaic, set up crop start coordinates
             if offset_imgx < 0:
                 crop_start_x = abs(offset_imgx)
@@ -646,7 +646,6 @@ def mosaic_multiple_output_files(
             Output raster format
         verbose: bool
             Flag to enable/disable the verbose mode
-            
     '''
     mosaic_dict = compute_mosaic_array(
         list_rtc_images, list_nlooks, mosaic_mode, scratch_dir=scratch_dir,
