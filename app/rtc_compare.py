@@ -60,14 +60,15 @@ def _unpack_array(val_in, hdf5_obj_in):
 
     For internal use in this script.
 
-    Parameter:
-    -----------
+    Parameters
+    ----------
     val_in: np.ndarray
         numpy array to unpack
     hdf5_obj_in:
         Source HDF5 object of `val_in`
 
-    Return:
+    Returns
+    -------
     val_out: np.ndarray
         unpacked array
 
@@ -90,7 +91,7 @@ def print_data_difference(val_1, val_2, indent=4):
     Print out the difference of the data whose dimension is >= 1
 
     Parameters
-    -----------
+    ----------
     val_1, val_2: np.array
         Data that has difference to each other
     indent: int
@@ -159,7 +160,6 @@ def get_list_dataset_attrs_keys(hdf_obj_1: h5py.Group,
                                 key_in: str='/',
                                 list_dataset_so_far: list=None,
                                 list_attrs_so_far: list=None):
-
     '''
     Recursively traverse the datasets and attributes within the input HDF5 group.
     Returns the list of keys for datasets and attributes.

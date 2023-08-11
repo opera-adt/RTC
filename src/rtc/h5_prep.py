@@ -136,7 +136,7 @@ layer_description_dict = {
 
 def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
     '''
-    Get WKT for butst's bounding polygon
+    Get the WKT representation of the burst's bounding polygon
     It returns "POLYGON" when
     there is only one polygon that defines the burst's border
     It returns "MULTIPOLYGON" when
@@ -151,7 +151,6 @@ def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
     _ : str
         "POLYGON" or "MULTIPOLYGON" in WKT
         as the bounding polygon of the input burst
-        
     '''
 
     if len(burst_in.border) == 1:
@@ -680,12 +679,12 @@ def get_metadata_dict(product_id: str,
             [None,
              STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.inc_angle_near_range,
-             'Near range incidence angle in meters'],
+             'Near range incidence angle in degrees'],
         'metadata/sourceData/farRangeIncidenceAngle':  # 1.6.7
             [None,
              STANDARD_RTC_S1_ONLY,
              burst_in.burst_misc_metadata.inc_angle_far_range,
-             'Far range incidence angle in meters'],
+             'Far range incidence angle in degrees'],
         # Source for the max. NESZ:
         # (https://sentinels.copernicus.eu/web/sentinel/user-guides/
         #  sentinel-1-sar/acquisition-modes/interferometric-wide-swath)
@@ -1115,12 +1114,13 @@ def all_metadata_dict_to_geotiff_metadata_dict(metadata_dict):
     metadata_dict : dict
         Metadata dict organized as follows:
         - Dictionary item key: HDF5 dataset key;
-        - Dictionary item value: list of 
+        - Dictionary item value: list of
             [GeoTIFF metadata key,
              metadata value,
              metadata description]
         The value `None` for the GeoTIFF metadata key indicates that
         the field is not saved on the GeoTIFF file
+
     Returns
     -------
     geotiff_metadata_dict : dict
@@ -1227,6 +1227,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         Maximum value
     '''
     if not os.path.isfile(ds_filename):
+        logger.warning(f'WARNING Cannot open raster file: {ds_filename}')
         return
 
     ds_name = layer_hdf5_dict[layer_name]
@@ -1294,7 +1295,6 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
                               data=stats_obj.sample_stddev)
 
         elif stats_real_imag_vector is not None:
-
             stats_obj = stats_real_imag_vector[band]
             dset.attrs.create('min_real_value', data=stats_obj.min_real)
             dset.attrs.create('mean_real_value', data=stats_obj.mean_real)
@@ -1325,7 +1325,9 @@ def get_rfi_metadata_dict(burst_in,
     Parameters
     ----------
     burst_in: Sentinel1BurstSlc
+        Sentinel-1 Burst SLC object with RFI information
     rfi_root_path: str
+        Root path to the RFI information in the metadata HDF5 file
 
     '''
     rfi_metadata_dict = {}
@@ -1334,7 +1336,7 @@ def get_rfi_metadata_dict(burst_in,
     rfi_metadata_dict[f'{rfi_root_path}/isRfiInfoAvailable'] =\
         ['is_rfi_info_available',
          not is_rfi_info_empty,
-         'A flag whether RFI information is available in the source data']
+         'A flag to indicate whether RFI information is available in the source data']
 
     if is_rfi_info_empty:
         return rfi_metadata_dict
@@ -1344,20 +1346,20 @@ def get_rfi_metadata_dict(burst_in,
         'rfiMitigationPerformed':
             ['rfi_mitigation_performed',
              burst_in.burst_rfi_info.rfi_mitigation_performed,
-             'RFI detection and mitigtion strategy'],
+             'RFI detection and mitigation strategy'],
         'rfiMitigationDomain':
             ['rfi_mitigation_domain',
              burst_in.burst_rfi_info.rfi_mitigation_domain,
-             'In which domain(s) the RFI mitigation was performed'],
+             'Domain in which the RFI mitigation was performed'],
         'rfiBurstReport/swath':
             ['rfi_burst_report_swath',
              burst_in.burst_rfi_info.rfi_burst_report['swath'],
-             'Swath of the IW RFI burst repost list'],
+             'Swath associated with the IW RFI burst report list'],
         'rfiBurstReport/azimuthTime':
             ['rfi_burst_report_azimuth_time',
              burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(
                 DATE_TIME_METADATA_FORMAT),
-             'Azimuth time of the burst that corresponds to the RFI report'
+             'Sensing start time of the burst that corresponds to the RFI report'
              ' in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'rfiBurstReport/inBandOutBandPowerRatio':
             ['rfi_in_band_out_band_power_ratio',
@@ -1429,7 +1431,7 @@ def get_rfi_metadata_dict(burst_in,
              'max_bandwidth_percentage_affected_lines',
              rfi_burst_report_freq['isolatedRfiReport'][
                  'maxPercentageAffectedBW'],
-             'Max. percentage of bandwidth affected by isolated RFI in a'
+             'Maximum percentage of bandwidth affected by isolated RFI in a'
              ' single line.']
 
         subpath_data_dict['frequencyDomainRfiBurstReport/'
@@ -1439,14 +1441,14 @@ def get_rfi_metadata_dict(burst_in,
              rfi_burst_report_freq['percentageBlocksPersistentRfi'],
              ('Percentage of processing blocks affected by persistent RFI. '
               'In this case the RFI detection is performed on the '
-              'mean PSD of each processing block.')]
+              'mean power spectrum density (PSD) of each processing block.')]
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/'
                            'maxPercentageBWAffectedPersistentRfi')] = \
             ['rfi_frequency_domain_report_max_percentage_bw_affected'
              '_persistent_rfi',
              rfi_burst_report_freq['maxPercentageBWAffectedPersistentRfi'],
-             ('Max percentage bandwidth affected by '
+             ('Maximum percentage of the bandwidth affected by '
               'persistent RFI in a single processing block')]
 
     for fieldname, data in subpath_data_dict.items():
