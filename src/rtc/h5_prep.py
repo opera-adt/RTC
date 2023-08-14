@@ -849,7 +849,7 @@ def get_metadata_dict(product_id: str,
             ['processing_information'
              '_dem_egm_model',
              ALL_PRODUCTS,
-             'Earth Gravitational Model EGM08',
+             'Earth Gravitational Model 2008 (EGM2008)',
              'Earth Gravitational Model associated with the DEM'],
         'metadata/processingInformation/algorithms/geocoding':
             ['processing_information'
