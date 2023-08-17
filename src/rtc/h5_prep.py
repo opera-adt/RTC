@@ -895,11 +895,6 @@ def get_metadata_dict(product_id: str,
              [burst_in.burst_calibration.basename_cads,
               burst_in.burst_noise.basename_nads],
              'List of input annotation files used'],
-        'metadata/processingInformation/inputs/configFiles':
-            ['input_config_files',
-             ALL_PRODUCTS,
-             cfg_in.run_config_path,
-             'List of input config files used'],
         'metadata/processingInformation/inputs/demSource':
             ['input_dem_source',
              ALL_PRODUCTS,
