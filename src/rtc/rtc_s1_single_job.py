@@ -136,8 +136,8 @@ def populate_product_id(product_id, burst_in, processing_datetime,
 
 
 def compute_correction_lut(burst_in, dem_raster, scratch_path,
-                           rg_step_meters=120,
-                           az_step_meters=120,
+                           rg_step_meters,
+                           az_step_meters,
                            apply_bistatic_delay_correction,
                            apply_dry_tropospheric_delay_correction):
     '''
