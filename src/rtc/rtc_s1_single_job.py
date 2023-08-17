@@ -192,10 +192,10 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
 
     if apply_bistatic_delay_correction:
         az_lut = isce3.core.LUT2d(bistatic_delay.x_start,
-                                bistatic_delay.y_start,
-                                bistatic_delay.x_spacing,
-                                bistatic_delay.y_spacing,
-                                -bistatic_delay.data)
+                                  bistatic_delay.y_start,
+                                  bistatic_delay.x_spacing,
+                                  bistatic_delay.y_spacing,
+                                  -bistatic_delay.data)
 
     if not apply_dry_tropospheric_delay_correction:
         return rg_lut, az_lut
