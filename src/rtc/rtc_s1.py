@@ -545,7 +545,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
             pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
-            is_mosaic=True)
+            is_mosaic=False)
         burst_product_id_list.append(burst_product_id)
 
     # burst files are saved in scratch dir

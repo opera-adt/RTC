@@ -52,6 +52,7 @@ STATIC_LAYERS_RG_MARGIN = 0.2
 BROWSE_IMAGE_MIN_PERCENTILE = 3
 BROWSE_IMAGE_MAX_PERCENTILE = 97
 
+
 def populate_product_id(product_id, burst_in, processing_datetime,
                         product_version, pixel_spacing, product_type,
                         rtc_s1_static_validity_start_date, is_mosaic):
@@ -126,7 +127,7 @@ def populate_product_id(product_id, burst_in, processing_datetime,
     product_id = product_id.replace('{product_version}', f'v{product_version}')
 
     if not is_mosaic:
-        burst_id_file_name = burst_in.burst_id.upper().replace('_', '-')
+        burst_id_file_name = str(burst_in.burst_id).upper().replace('_', '-')
         product_id = product_id.replace('{burst_id}', f'T{burst_id_file_name}')
     else:
         product_id = product_id.replace('_{burst_id}', '')
@@ -1383,7 +1384,7 @@ def run_single_job(cfg: RunConfig):
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
             pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
-            is_mosaic=True)
+            is_mosaic=False)
 
         logger.info(f'    product ID: {burst_product_id}')
 
@@ -1478,9 +1479,7 @@ def run_single_job(cfg: RunConfig):
                 os.path.join(burst_scratch_path,
                              f'slc_{pol}_corrected.{imagery_extension}')
 
-            if (flag_process and (flag_apply_thermal_noise_correction or
-                flag_apply_abs_rad_correction) and 
-                    product_type == STATIC_LAYERS_PRODUCT_TYPE):
+            if (flag_process and product_type == STATIC_LAYERS_PRODUCT_TYPE):
                 fill_value = 1
                 build_empty_vrt(temp_slc_path, radar_grid.length,
                                 radar_grid.width, fill_value)
@@ -1555,7 +1554,7 @@ def run_single_job(cfg: RunConfig):
 
         # get sub_swaths metadata
         if (flag_process and apply_valid_samples_sub_swath_masking and
-                not product_type == STATIC_LAYERS_PRODUCT_TYPE):
+                product_type != STATIC_LAYERS_PRODUCT_TYPE):
             # Extract burst boundaries and create sub_swaths object to mask
             # invalid radar samples
             n_subswaths = 1
