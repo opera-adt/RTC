@@ -791,7 +791,8 @@ def get_metadata_dict(product_id: str,
         # 1.7.8
         ('metadata/processingInformation/parameters/geocoding/'
             '/ceosAnalysisReadyDataPixelCoordinateConvention'):
-            ['ceos_analysis_ready_data_pixel_coordinate_convention',
+            ['processing_information_'
+             'ceos_analysis_ready_data_pixel_coordinate_convention',
              ALL_PRODUCTS,
              'ULC',
              'CEOS Analysis Ready Data (CARD) pixel coordinate convention'],
@@ -1004,7 +1005,7 @@ def get_metadata_dict(product_id: str,
 
         # Attribute `epsg` for HDF5 dataset /identification/boundingPolygon
         metadata_dict['identification/boundingPolygon[epsg]'] = \
-            ['bouding_polygon_epsg_code',
+            ['bounding_polygon_epsg_code',
              STANDARD_RTC_S1_ONLY,
              '4326',
              'Bounding polygon EPSG code']
