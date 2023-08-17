@@ -137,7 +137,9 @@ def populate_product_id(product_id, burst_in, processing_datetime,
 
 def compute_correction_lut(burst_in, dem_raster, scratch_path,
                            rg_step_meters=120,
-                           az_step_meters=120):
+                           az_step_meters=120,
+                           apply_bistatic_delay_correction,
+                           apply_dry_tropospheric_delay_correction):
     '''
     Compute lookup table for geolocation correction.
     Applied corrections are: bistatic delay (azimuth),
@@ -155,12 +157,24 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
         LUT spacing in slant range. Unit: meters
     az_step_meters: float
         LUT spacing in azimth direction. Unit: meters
+    apply_bistatic_delay_correction: bool
+        Flag to indicate whether the bistatic delay correciton should be applied
+    apply_dry_tropospheric_delay_correction: bool
+        Flag to indicate whether the dry tropospheric delay correction should be
+        applied
 
     Returns
     -------
     rg_lut, az_lut: isce3.core.LUT2d
         LUT2d for geolocation correction in slant range and azimuth direction
     '''
+
+    rg_lut = None
+    az_lut = None
+
+    if (not apply_bistatic_delay_correction and
+            not apply_dry_tropospheric_delay_correction):
+        return rg_lut, az_lut
 
     # approximate conversion of az_step_meters from meters to seconds
     numrow_orbit = burst_in.orbit.position.shape[0]
@@ -175,6 +189,16 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     # Bistatic - azimuth direction
     bistatic_delay = burst_in.bistatic_delay(range_step=rg_step_meters,
                                              az_step=az_step_sec)
+
+    if apply_bistatic_delay_correction:
+        az_lut = isce3.core.LUT2d(bistatic_delay.x_start,
+                                bistatic_delay.y_start,
+                                bistatic_delay.x_spacing,
+                                bistatic_delay.y_spacing,
+                                -bistatic_delay.data)
+
+    if not apply_dry_tropospheric_delay_correction:
+        return rg_lut, az_lut
 
     # Calculate rdr2geo rasters
     epsg = dem_raster.get_epsg()
@@ -230,12 +254,6 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
              * np.exp(-1 * height_arr / reference_height))
 
     # Prepare the computation results into LUT2d
-    az_lut = isce3.core.LUT2d(bistatic_delay.x_start,
-                              bistatic_delay.y_start,
-                              bistatic_delay.x_spacing,
-                              bistatic_delay.y_spacing,
-                              -bistatic_delay.data)
-
     rg_lut = isce3.core.LUT2d(bistatic_delay.x_start,
                               bistatic_delay.y_start,
                               bistatic_delay.x_spacing,
@@ -1055,6 +1073,11 @@ def run_single_job(cfg: RunConfig):
     check_ancillary_inputs_coverage = \
         processing_namespace.check_ancillary_inputs_coverage
 
+    apply_bistatic_delay_correction = \
+        cfg.groups.processing.apply_bistatic_delay_correction
+    apply_dry_tropospheric_delay_correction = \
+        cfg.groups.processing.apply_dry_tropospheric_delay_correction
+
     # read product path group / output format
     runconfig_product_id = cfg.groups.product_group.product_id
 
@@ -1236,6 +1259,10 @@ def run_single_job(cfg: RunConfig):
                 f' {apply_valid_samples_sub_swath_masking}')
     logger.info(f'    apply shadow masking:'
                 f' {apply_shadow_masking}')
+    logger.info(f'    apply bistatic delay correction:'
+                f' {apply_bistatic_delay_correction}')
+    logger.info(f'    apply dry tropospheric delay correction:'
+                f' {apply_dry_tropospheric_delay_correction}')
     logger.info(f'    skip if already processed:'
                 f' {skip_if_output_files_exist}')
     logger.info(f'    scratch dir: {scratch_path}')
@@ -1576,19 +1603,26 @@ def run_single_job(cfg: RunConfig):
             layover_shadow_mask_geocode_kwargs['sub_swaths'] = sub_swaths
 
         # Calculate geolocation correction LUT
-        if flag_process and cfg.groups.processing.apply_correction_luts:
+        if (flag_process and (apply_bistatic_delay_correction or
+                              apply_dry_tropospheric_delay_correction)):
 
             # Calculates the LUTs for one polarization in `burst_pol_dict`
             pol_burst_for_lut = next(iter(burst_pol_dict))
             burst_for_lut = burst_pol_dict[pol_burst_for_lut]
-            rg_lut, az_lut = compute_correction_lut(burst_for_lut,
-                                                    dem_raster,
-                                                    burst_scratch_path,
-                                                    rg_step_meters,
-                                                    az_step_meters)
+            rg_lut, az_lut = compute_correction_lut(
+                burst_for_lut,
+                dem_raster,
+                burst_scratch_path,
+                rg_step_meters,
+                az_step_meters,
+                apply_bistatic_delay_correction,
+                apply_dry_tropospheric_delay_correction)
 
-            geocode_kwargs['az_time_correction'] = az_lut
-            geocode_kwargs['slant_range_correction'] = rg_lut
+            if az_lut is not None:
+                geocode_kwargs['az_time_correction'] = az_lut
+
+            if rg_lut is not None:
+                geocode_kwargs['slant_range_correction'] = rg_lut
 
         # Calculate layover/shadow mask when requested
         if save_mask or apply_shadow_masking:
