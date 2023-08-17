@@ -506,7 +506,9 @@ def append_metadata_to_geotiff_file(input_file, metadata_dict, product_id):
     layer_id = input_file_basename.replace(f'{product_id}_', '').split('.')[0]
 
     # Update metadata file name
-    existing_metadata['FILENAME'] = input_file_basename
+    # Note: commenting this line because the OPERA SDS may rename the output files
+    # making this field inconsistent
+    # existing_metadata['FILENAME'] = input_file_basename
 
     # Update metadata layer name (short description)
     if layer_id in layer_names_dict.keys():

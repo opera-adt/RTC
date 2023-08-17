@@ -526,11 +526,11 @@ def get_metadata_dict(product_id: str,
              ' Reformatted, unprocessed instrument data; L1: Processed'
              ' instrument data in radar coordinates system; and L2:'
              ' Processed instrument data in geocoded coordinates system'],
-        'identification/productID':
-            ['product_id',
-             ALL_PRODUCTS,
-             product_id,
-             'Product identifier'],
+        # 'identification/productID':
+        #    ['product_id',
+        #     ALL_PRODUCTS,
+        #     product_id,
+        #     'Product identifier'],
 
         'identification/processingType':
             ['processing_type',
