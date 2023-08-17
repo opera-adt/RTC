@@ -1036,12 +1036,12 @@ def get_metadata_dict(product_id: str,
              str(burst_in.burst_id),
              'Burst identification (burst ID)']
 
-        beam_id = burst_in.swath_name.upper()
-        metadata_dict['identification/beamID'] = \
-            ['beam_id',
+        subswath_id = burst_in.swath_name.upper()
+        metadata_dict['identification/subSwathID'] = \
+            ['sub_swath_id',
              ALL_PRODUCTS,
-             beam_id,
-             'Beam identification (Beam ID)']
+             subswath_id,
+             'Sub-swath identification']
 
         # TODO: Update for static layers!!!
         metadata_dict['identification/zeroDopplerStartTime'] = \
