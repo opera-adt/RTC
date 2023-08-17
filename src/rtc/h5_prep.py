@@ -410,10 +410,9 @@ def get_metadata_dict(product_id: str,
     if not mosaic_snap_y:
         mosaic_snap_y = '(DISABLED)'
 
-    # mission_id = 'Sentinel'
+    subswath_id = burst_in.swath_name.upper()
 
-    # Manifests the field names, corresponding values from RTC workflow, and
-    # the description. To extend this, add the lines with the format below:
+    # `metadata_dict`` is organized as follows:
     # 'field_name': [
     #     GeoTIFF metadata field,
     #     Flag indicating whether the field is present in RTC-S1 Static Layer
@@ -422,7 +421,7 @@ def get_metadata_dict(product_id: str,
     #     Metadata field description
     # ]
 
-    # Constants to represent flag (*1) above
+    # where the constants bellow represent the states for flag (*1)
     ALL_PRODUCTS = True
     STANDARD_RTC_S1_ONLY = False
 
@@ -486,7 +485,7 @@ def get_metadata_dict(product_id: str,
         'identification/acquisitionMode':
             ['acquisition_mode',
              ALL_PRODUCTS,
-             'Interferometric Wide (IW)',
+             subswath_id[0:2],
              'Acquisition mode'],
         'identification/ceosAnalysisReadyDataProductType':  # 1.3
             ['ceos_analysis_ready_data_product_type',
@@ -1031,7 +1030,6 @@ def get_metadata_dict(product_id: str,
              str(burst_in.burst_id),
              'Burst identification (burst ID)']
 
-        subswath_id = burst_in.swath_name.upper()
         metadata_dict['identification/subSwathID'] = \
             ['sub_swath_id',
              ALL_PRODUCTS,
