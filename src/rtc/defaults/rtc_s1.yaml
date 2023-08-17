@@ -138,8 +138,8 @@ runconfig:
             # Apply bistatic delay correction
             apply_bistatic_delay_correction: True
 
-            # Apply dry tropospheric delay correction
-            apply_dry_tropospheric_delay_correction: True
+            # Apply static tropospheric delay correction
+            apply_static_tropospheric_delay_correction: True
  
             # OPTIONAL - to control behavior of RTC module
             # (only applicable if geocode.apply_rtc is True)

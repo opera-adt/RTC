@@ -139,7 +139,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
                            rg_step_meters,
                            az_step_meters,
                            apply_bistatic_delay_correction,
-                           apply_dry_tropospheric_delay_correction):
+                           apply_static_tropospheric_delay_correction):
     '''
     Compute lookup table for geolocation correction.
     Applied corrections are: bistatic delay (azimuth),
@@ -159,8 +159,8 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
         LUT spacing in azimth direction. Unit: meters
     apply_bistatic_delay_correction: bool
         Flag to indicate whether the bistatic delay correciton should be applied
-    apply_dry_tropospheric_delay_correction: bool
-        Flag to indicate whether the dry tropospheric delay correction should be
+    apply_static_tropospheric_delay_correction: bool
+        Flag to indicate whether the static tropospheric delay correction should be
         applied
 
     Returns
@@ -173,7 +173,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     az_lut = None
 
     if (not apply_bistatic_delay_correction and
-            not apply_dry_tropospheric_delay_correction):
+            not apply_static_tropospheric_delay_correction):
         return rg_lut, az_lut
 
     # approximate conversion of az_step_meters from meters to seconds
@@ -197,7 +197,7 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
                                   bistatic_delay.y_spacing,
                                   -bistatic_delay.data)
 
-    if not apply_dry_tropospheric_delay_correction:
+    if not apply_static_tropospheric_delay_correction:
         return rg_lut, az_lut
 
     # Calculate rdr2geo rasters
@@ -1075,8 +1075,8 @@ def run_single_job(cfg: RunConfig):
 
     apply_bistatic_delay_correction = \
         cfg.groups.processing.apply_bistatic_delay_correction
-    apply_dry_tropospheric_delay_correction = \
-        cfg.groups.processing.apply_dry_tropospheric_delay_correction
+    apply_static_tropospheric_delay_correction = \
+        cfg.groups.processing.apply_static_tropospheric_delay_correction
 
     # read product path group / output format
     runconfig_product_id = cfg.groups.product_group.product_id
@@ -1261,8 +1261,8 @@ def run_single_job(cfg: RunConfig):
                 f' {apply_shadow_masking}')
     logger.info(f'    apply bistatic delay correction:'
                 f' {apply_bistatic_delay_correction}')
-    logger.info(f'    apply dry tropospheric delay correction:'
-                f' {apply_dry_tropospheric_delay_correction}')
+    logger.info(f'    apply static tropospheric delay correction:'
+                f' {apply_static_tropospheric_delay_correction}')
     logger.info(f'    skip if already processed:'
                 f' {skip_if_output_files_exist}')
     logger.info(f'    scratch dir: {scratch_path}')
@@ -1604,7 +1604,7 @@ def run_single_job(cfg: RunConfig):
 
         # Calculate geolocation correction LUT
         if (flag_process and (apply_bistatic_delay_correction or
-                              apply_dry_tropospheric_delay_correction)):
+                              apply_static_tropospheric_delay_correction)):
 
             # Calculates the LUTs for one polarization in `burst_pol_dict`
             pol_burst_for_lut = next(iter(burst_pol_dict))
@@ -1616,7 +1616,7 @@ def run_single_job(cfg: RunConfig):
                 rg_step_meters,
                 az_step_meters,
                 apply_bistatic_delay_correction,
-                apply_dry_tropospheric_delay_correction)
+                apply_static_tropospheric_delay_correction)
 
             if az_lut is not None:
                 geocode_kwargs['az_time_correction'] = az_lut

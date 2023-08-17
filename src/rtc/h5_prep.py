@@ -730,12 +730,12 @@ def get_metadata_dict(product_id: str,
              'Flag to indicate if radiometric terrain correction (RTC) has'
              ' been applied'],
         ('metadata/processingInformation/parameters/'
-            'dryTroposphericGeolocationCorrectionApplied'):
+            'staticTroposphericGeolocationCorrectionApplied'):
             ['processing_information'
-             '_dry_tropospheric_geolocation_correction_applied',
+             '_static_tropospheric_geolocation_correction_applied',
              ALL_PRODUCTS,
-             cfg_in.groups.processing.apply_dry_tropospheric_delay_correction,
-             'Flag to indicate if the dry tropospheric correction has been'
+             cfg_in.groups.processing.apply_static_tropospheric_delay_correction,
+             'Flag to indicate if the static tropospheric correction has been'
              ' applied'],
         ('metadata/processingInformation/parameters/'
             'wetTroposphericGeolocationCorrectionApplied'):
