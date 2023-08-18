@@ -421,13 +421,13 @@ def get_metadata_dict(product_id: str,
         cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_stddev_x
 
     if not estimated_geometric_accuracy_bias_y:
-        estimated_geometric_accuracy_bias_y = '(UNDETERMINED)'
+        estimated_geometric_accuracy_bias_y = ''
     if not estimated_geometric_accuracy_bias_x:
-        estimated_geometric_accuracy_bias_x = '(UNDETERMINED)'
+        estimated_geometric_accuracy_bias_x = ''
     if not estimated_geometric_accuracy_stddev_y:
-        estimated_geometric_accuracy_stddev_y = '(UNDETERMINED)'
+        estimated_geometric_accuracy_stddev_y = ''
     if not estimated_geometric_accuracy_stddev_x:
-        estimated_geometric_accuracy_stddev_x = '(UNDETERMINED)'
+        estimated_geometric_accuracy_stddev_x = ''
 
     subswath_id = burst_in.swath_name.upper()
 
@@ -1358,7 +1358,7 @@ def get_rfi_metadata_dict(burst_in, rfi_root_path):
 
     is_rfi_info_empty = burst_in.burst_rfi_info is None
     rfi_metadata_dict[f'{rfi_root_path}/isRfiInfoAvailable'] =\
-        ['is_rfi_info_available',
+        ['qa_rfi_info_available',
          not is_rfi_info_empty,
          'A flag to indicate whether RFI information is available in the source data']
 
