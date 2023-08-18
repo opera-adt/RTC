@@ -421,13 +421,13 @@ def get_metadata_dict(product_id: str,
         cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_stddev_x
 
     if not estimated_geometric_accuracy_bias_y:
-        estimated_geometric_accuracy_bias_y = ''
+        estimated_geometric_accuracy_bias_y = '(UNSPECIFIED)'
     if not estimated_geometric_accuracy_bias_x:
-        estimated_geometric_accuracy_bias_x = ''
+        estimated_geometric_accuracy_bias_x = '(UNSPECIFIED)'
     if not estimated_geometric_accuracy_stddev_y:
-        estimated_geometric_accuracy_stddev_y = ''
+        estimated_geometric_accuracy_stddev_y = '(UNSPECIFIED)'
     if not estimated_geometric_accuracy_stddev_x:
-        estimated_geometric_accuracy_stddev_x = ''
+        estimated_geometric_accuracy_stddev_x = '(UNSPECIFIED)'
 
     subswath_id = burst_in.swath_name.upper()
 
@@ -440,7 +440,7 @@ def get_metadata_dict(product_id: str,
     #     Metadata field description
     # ]
 
-    # where the constants bellow represent the states for flag (*1)
+    # where the constants below represent the states for flag (*1)
     ALL_PRODUCTS = True
     STANDARD_RTC_S1_ONLY = False
 
