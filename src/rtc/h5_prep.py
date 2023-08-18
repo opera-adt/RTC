@@ -245,7 +245,7 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
         HDF5 object into which write the metadata
     orbit: isce3.core.Orbit
         Orbit ISCE3 object
-    burst: Sentinel1BurstCls
+    burst: Sentinel1BurstSlc
         Source burst of the RTC
     cfg: RunConfig
         A class that contains the information defined in runconfig
@@ -320,7 +320,7 @@ def get_metadata_dict(product_id: str,
     -----------
     product_id: str
         Product ID
-    burst_in: Sentinel1BurstCls
+    burst_in: Sentinel1BurstSlc
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
@@ -1177,7 +1177,7 @@ def populate_metadata_group(product_id: str,
         Product ID
     h5py_obj: h5py.File
         HDF5 object into which write the metadata
-    burst_in: Sentinel1BurstCls
+    burst_in: Sentinel1BurstSlc
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
