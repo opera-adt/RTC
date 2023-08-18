@@ -52,6 +52,7 @@ STATIC_LAYERS_RG_MARGIN = 0.2
 BROWSE_IMAGE_MIN_PERCENTILE = 3
 BROWSE_IMAGE_MAX_PERCENTILE = 97
 
+
 def populate_product_id(product_id, burst_in, processing_datetime,
                         product_version, pixel_spacing, product_type,
                         rtc_s1_static_validity_start_date, is_mosaic):
@@ -126,7 +127,7 @@ def populate_product_id(product_id, burst_in, processing_datetime,
     product_id = product_id.replace('{product_version}', f'v{product_version}')
 
     if not is_mosaic:
-        burst_id_file_name = burst_in.burst_id.upper().replace('_', '-')
+        burst_id_file_name = str(burst_in.burst_id).upper().replace('_', '-')
         product_id = product_id.replace('{burst_id}', f'T{burst_id_file_name}')
     else:
         product_id = product_id.replace('_{burst_id}', '')
@@ -135,8 +136,10 @@ def populate_product_id(product_id, burst_in, processing_datetime,
 
 
 def compute_correction_lut(burst_in, dem_raster, scratch_path,
-                           rg_step_meters=120,
-                           az_step_meters=120):
+                           rg_step_meters,
+                           az_step_meters,
+                           apply_bistatic_delay_correction,
+                           apply_static_tropospheric_delay_correction):
     '''
     Compute lookup table for geolocation correction.
     Applied corrections are: bistatic delay (azimuth),
@@ -154,12 +157,24 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
         LUT spacing in slant range. Unit: meters
     az_step_meters: float
         LUT spacing in azimth direction. Unit: meters
+    apply_bistatic_delay_correction: bool
+        Flag to indicate whether the bistatic delay correciton should be applied
+    apply_static_tropospheric_delay_correction: bool
+        Flag to indicate whether the static tropospheric delay correction should be
+        applied
 
     Returns
     -------
     rg_lut, az_lut: isce3.core.LUT2d
         LUT2d for geolocation correction in slant range and azimuth direction
     '''
+
+    rg_lut = None
+    az_lut = None
+
+    if (not apply_bistatic_delay_correction and
+            not apply_static_tropospheric_delay_correction):
+        return rg_lut, az_lut
 
     # approximate conversion of az_step_meters from meters to seconds
     numrow_orbit = burst_in.orbit.position.shape[0]
@@ -174,6 +189,16 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     # Bistatic - azimuth direction
     bistatic_delay = burst_in.bistatic_delay(range_step=rg_step_meters,
                                              az_step=az_step_sec)
+
+    if apply_bistatic_delay_correction:
+        az_lut = isce3.core.LUT2d(bistatic_delay.x_start,
+                                  bistatic_delay.y_start,
+                                  bistatic_delay.x_spacing,
+                                  bistatic_delay.y_spacing,
+                                  -bistatic_delay.data)
+
+    if not apply_static_tropospheric_delay_correction:
+        return rg_lut, az_lut
 
     # Calculate rdr2geo rasters
     epsg = dem_raster.get_epsg()
@@ -229,12 +254,6 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
              * np.exp(-1 * height_arr / reference_height))
 
     # Prepare the computation results into LUT2d
-    az_lut = isce3.core.LUT2d(bistatic_delay.x_start,
-                              bistatic_delay.y_start,
-                              bistatic_delay.x_spacing,
-                              bistatic_delay.y_spacing,
-                              -bistatic_delay.data)
-
     rg_lut = isce3.core.LUT2d(bistatic_delay.x_start,
                               bistatic_delay.y_start,
                               bistatic_delay.x_spacing,
@@ -487,7 +506,9 @@ def append_metadata_to_geotiff_file(input_file, metadata_dict, product_id):
     layer_id = input_file_basename.replace(f'{product_id}_', '').split('.')[0]
 
     # Update metadata file name
-    existing_metadata['FILENAME'] = input_file_basename
+    # Note: commenting this line because the OPERA SDS may rename the output files
+    # making this field inconsistent
+    # existing_metadata['FILENAME'] = input_file_basename
 
     # Update metadata layer name (short description)
     if layer_id in layer_names_dict.keys():
@@ -1054,6 +1075,11 @@ def run_single_job(cfg: RunConfig):
     check_ancillary_inputs_coverage = \
         processing_namespace.check_ancillary_inputs_coverage
 
+    apply_bistatic_delay_correction = \
+        cfg.groups.processing.apply_bistatic_delay_correction
+    apply_static_tropospheric_delay_correction = \
+        cfg.groups.processing.apply_static_tropospheric_delay_correction
+
     # read product path group / output format
     runconfig_product_id = cfg.groups.product_group.product_id
 
@@ -1235,6 +1261,10 @@ def run_single_job(cfg: RunConfig):
                 f' {apply_valid_samples_sub_swath_masking}')
     logger.info(f'    apply shadow masking:'
                 f' {apply_shadow_masking}')
+    logger.info(f'    apply bistatic delay correction:'
+                f' {apply_bistatic_delay_correction}')
+    logger.info(f'    apply static tropospheric delay correction:'
+                f' {apply_static_tropospheric_delay_correction}')
     logger.info(f'    skip if already processed:'
                 f' {skip_if_output_files_exist}')
     logger.info(f'    scratch dir: {scratch_path}')
@@ -1383,7 +1413,7 @@ def run_single_job(cfg: RunConfig):
         burst_product_id = populate_product_id(
             runconfig_product_id, burst, processing_datetime, product_version,
             pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
-            is_mosaic=True)
+            is_mosaic=False)
 
         logger.info(f'    product ID: {burst_product_id}')
 
@@ -1478,9 +1508,7 @@ def run_single_job(cfg: RunConfig):
                 os.path.join(burst_scratch_path,
                              f'slc_{pol}_corrected.{imagery_extension}')
 
-            if (flag_process and (flag_apply_thermal_noise_correction or
-                flag_apply_abs_rad_correction) and 
-                    product_type == STATIC_LAYERS_PRODUCT_TYPE):
+            if (flag_process and product_type == STATIC_LAYERS_PRODUCT_TYPE):
                 fill_value = 1
                 build_empty_vrt(temp_slc_path, radar_grid.length,
                                 radar_grid.width, fill_value)
@@ -1555,7 +1583,7 @@ def run_single_job(cfg: RunConfig):
 
         # get sub_swaths metadata
         if (flag_process and apply_valid_samples_sub_swath_masking and
-                not product_type == STATIC_LAYERS_PRODUCT_TYPE):
+                product_type != STATIC_LAYERS_PRODUCT_TYPE):
             # Extract burst boundaries and create sub_swaths object to mask
             # invalid radar samples
             n_subswaths = 1
@@ -1577,19 +1605,26 @@ def run_single_job(cfg: RunConfig):
             layover_shadow_mask_geocode_kwargs['sub_swaths'] = sub_swaths
 
         # Calculate geolocation correction LUT
-        if flag_process and cfg.groups.processing.apply_correction_luts:
+        if (flag_process and (apply_bistatic_delay_correction or
+                              apply_static_tropospheric_delay_correction)):
 
             # Calculates the LUTs for one polarization in `burst_pol_dict`
             pol_burst_for_lut = next(iter(burst_pol_dict))
             burst_for_lut = burst_pol_dict[pol_burst_for_lut]
-            rg_lut, az_lut = compute_correction_lut(burst_for_lut,
-                                                    dem_raster,
-                                                    burst_scratch_path,
-                                                    rg_step_meters,
-                                                    az_step_meters)
+            rg_lut, az_lut = compute_correction_lut(
+                burst_for_lut,
+                dem_raster,
+                burst_scratch_path,
+                rg_step_meters,
+                az_step_meters,
+                apply_bistatic_delay_correction,
+                apply_static_tropospheric_delay_correction)
 
-            geocode_kwargs['az_time_correction'] = az_lut
-            geocode_kwargs['slant_range_correction'] = rg_lut
+            if az_lut is not None:
+                geocode_kwargs['az_time_correction'] = az_lut
+
+            if rg_lut is not None:
+                geocode_kwargs['slant_range_correction'] = rg_lut
 
         # Calculate layover/shadow mask when requested
         if save_mask or apply_shadow_masking:

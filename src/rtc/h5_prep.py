@@ -245,7 +245,7 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
         HDF5 object into which write the metadata
     orbit: isce3.core.Orbit
         Orbit ISCE3 object
-    burst: Sentinel1BurstCls
+    burst: Sentinel1BurstSlc
         Source burst of the RTC
     cfg: RunConfig
         A class that contains the information defined in runconfig
@@ -320,7 +320,7 @@ def get_metadata_dict(product_id: str,
     -----------
     product_id: str
         Product ID
-    burst_in: Sentinel1BurstCls
+    burst_in: Sentinel1BurstSlc
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
@@ -410,10 +410,28 @@ def get_metadata_dict(product_id: str,
     if not mosaic_snap_y:
         mosaic_snap_y = '(DISABLED)'
 
-    # mission_id = 'Sentinel'
+    # Geometric accuracy
+    estimated_geometric_accuracy_bias_y = \
+        cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_bias_y
+    estimated_geometric_accuracy_bias_x = \
+        cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_bias_x
+    estimated_geometric_accuracy_stddev_y = \
+        cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_stddev_y
+    estimated_geometric_accuracy_stddev_x = \
+        cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_stddev_x
 
-    # Manifests the field names, corresponding values from RTC workflow, and
-    # the description. To extend this, add the lines with the format below:
+    if not estimated_geometric_accuracy_bias_y:
+        estimated_geometric_accuracy_bias_y = '(UNSPECIFIED)'
+    if not estimated_geometric_accuracy_bias_x:
+        estimated_geometric_accuracy_bias_x = '(UNSPECIFIED)'
+    if not estimated_geometric_accuracy_stddev_y:
+        estimated_geometric_accuracy_stddev_y = '(UNSPECIFIED)'
+    if not estimated_geometric_accuracy_stddev_x:
+        estimated_geometric_accuracy_stddev_x = '(UNSPECIFIED)'
+
+    subswath_id = burst_in.swath_name.upper()
+
+    # `metadata_dict`` is organized as follows:
     # 'field_name': [
     #     GeoTIFF metadata field,
     #     Flag indicating whether the field is present in RTC-S1 Static Layer
@@ -422,7 +440,7 @@ def get_metadata_dict(product_id: str,
     #     Metadata field description
     # ]
 
-    # Constants to represent flag (*1) above
+    # where the constants below represent the states for flag (*1)
     ALL_PRODUCTS = True
     STANDARD_RTC_S1_ONLY = False
 
@@ -486,7 +504,7 @@ def get_metadata_dict(product_id: str,
         'identification/acquisitionMode':
             ['acquisition_mode',
              ALL_PRODUCTS,
-             'Interferometric Wide (IW)',
+             subswath_id[0:2],
              'Acquisition mode'],
         'identification/ceosAnalysisReadyDataProductType':  # 1.3
             ['ceos_analysis_ready_data_product_type',
@@ -527,11 +545,11 @@ def get_metadata_dict(product_id: str,
              ' Reformatted, unprocessed instrument data; L1: Processed'
              ' instrument data in radar coordinates system; and L2:'
              ' Processed instrument data in geocoded coordinates system'],
-        'identification/productID':
-            ['product_id',
-             ALL_PRODUCTS,
-             product_id,
-             'Product identifier'],
+        # 'identification/productID':
+        #    ['product_id',
+        #     ALL_PRODUCTS,
+        #     product_id,
+        #     'Product identifier'],
 
         'identification/processingType':
             ['processing_type',
@@ -731,12 +749,12 @@ def get_metadata_dict(product_id: str,
              'Flag to indicate if radiometric terrain correction (RTC) has'
              ' been applied'],
         ('metadata/processingInformation/parameters/'
-            'dryTroposphericGeolocationCorrectionApplied'):
+            'staticTroposphericGeolocationCorrectionApplied'):
             ['processing_information'
-             '_dry_tropospheric_geolocation_correction_applied',
+             '_static_tropospheric_geolocation_correction_applied',
              ALL_PRODUCTS,
-             cfg_in.groups.processing.apply_dry_tropospheric_delay_correction,
-             'Flag to indicate if the dry tropospheric correction has been'
+             cfg_in.groups.processing.apply_static_tropospheric_delay_correction,
+             'Flag to indicate if the static tropospheric correction has been'
              ' applied'],
         ('metadata/processingInformation/parameters/'
             'wetTroposphericGeolocationCorrectionApplied'):
@@ -791,7 +809,8 @@ def get_metadata_dict(product_id: str,
         # 1.7.8
         ('metadata/processingInformation/parameters/geocoding/'
             '/ceosAnalysisReadyDataPixelCoordinateConvention'):
-            ['ceos_analysis_ready_data_pixel_coordinate_convention',
+            ['processing_information_'
+             'ceos_analysis_ready_data_pixel_coordinate_convention',
              ALL_PRODUCTS,
              'ULC',
              'CEOS Analysis Ready Data (CARD) pixel coordinate convention'],
@@ -811,21 +830,34 @@ def get_metadata_dict(product_id: str,
              'Burst geogrid snap for Coordinate Y (S/N)'],
         # 'metadata/processingInformation/geoidReference':  # for 4.2
 
-        # 'data/processingInformation/absoluteAccuracyNorthing':  
-        # placeholder for 4.3
-        #    ['absolute_accuracy_northing',
-        #     [0.0, 0.0],
-        #     ('An estimate of the absolute localisation error in north
-        # direction'
-        #      'provided as bias and standard deviation')],
+        # 4.3
+        'metadata/qa/geometricAccuracy/bias/y':
+            ['qa_geometric_accuracy_bias_y',
+             STANDARD_RTC_S1_ONLY,
+             estimated_geometric_accuracy_bias_y,
+             ('An estimate of the localization error bias in the northing'
+              ' direction')],
 
-        # 'data/processingInformation/absoluteAccuracyEasting':  
-        # placeholder for 4.3
-        #    ['absolute_accuracy_easting',
-        #     [0.0, 0.0],
-        #     ('An estimate of the absolute localisation error in east
-        # direction'
-        #      'provided as bias and standard deviation')],
+        'metadata/qa/geometricAccuracy/stddev/y':
+            ['qa_geometric_accuracy_stddev_y',
+             STANDARD_RTC_S1_ONLY,
+             estimated_geometric_accuracy_stddev_y,
+             ('An estimate of the localization error standard deviation'
+              ' in the northing direction')],
+
+        'metadata/qa/geometricAccuracy/bias/x':
+            ['qa_geometric_accuracy_bias_x',
+             STANDARD_RTC_S1_ONLY,
+             estimated_geometric_accuracy_bias_x,
+             ('An estimate of the localization error bias in the easting'
+              ' direction')],
+
+        'metadata/qa/geometricAccuracy/stddev/x':
+            ['qa_geometric_accuracy_stddev_x',
+             STANDARD_RTC_S1_ONLY,
+             estimated_geometric_accuracy_stddev_x,
+             ('An estimate of the localization error standard deviation'
+              ' in the easting direction')],
 
         # 'identification/frameNumber':  # TBD
         # 'identification/plannedDatatakeId':
@@ -894,11 +926,6 @@ def get_metadata_dict(product_id: str,
              [burst_in.burst_calibration.basename_cads,
               burst_in.burst_noise.basename_nads],
              'List of input annotation files used'],
-        'metadata/processingInformation/inputs/configFiles':
-            ['input_config_files',
-             ALL_PRODUCTS,
-             cfg_in.run_config_path,
-             'List of input config files used'],
         'metadata/processingInformation/inputs/demSource':
             ['input_dem_source',
              ALL_PRODUCTS,
@@ -1004,7 +1031,7 @@ def get_metadata_dict(product_id: str,
 
         # Attribute `epsg` for HDF5 dataset /identification/boundingPolygon
         metadata_dict['identification/boundingPolygon[epsg]'] = \
-            ['bouding_polygon_epsg_code',
+            ['bounding_polygon_epsg_code',
              STANDARD_RTC_S1_ONLY,
              '4326',
              'Bounding polygon EPSG code']
@@ -1035,12 +1062,11 @@ def get_metadata_dict(product_id: str,
              str(burst_in.burst_id),
              'Burst identification (burst ID)']
 
-        beam_id = burst_in.swath_name.upper()
-        metadata_dict['identification/beamID'] = \
-            ['beam_id',
+        metadata_dict['identification/subSwathID'] = \
+            ['sub_swath_id',
              ALL_PRODUCTS,
-             beam_id,
-             'Beam identification (Beam ID)']
+             subswath_id,
+             'Sub-swath identification']
 
         # TODO: Update for static layers!!!
         metadata_dict['identification/zeroDopplerStartTime'] = \
@@ -1099,8 +1125,7 @@ def get_metadata_dict(product_id: str,
     if not is_mosaic and product_type != STATIC_LAYERS_PRODUCT_TYPE:
 
         # Add RFI metadata into `metadata_dict`
-        rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
-                                                  'metadata/QA/rfiInformation')
+        rfi_metadata_dict = get_rfi_metadata_dict(burst_in, 'metadata/qa/rfi')
         this_product_metadata_dict.update(rfi_metadata_dict)
 
     return this_product_metadata_dict
@@ -1152,7 +1177,7 @@ def populate_metadata_group(product_id: str,
         Product ID
     h5py_obj: h5py.File
         HDF5 object into which write the metadata
-    burst_in: Sentinel1BurstCls
+    burst_in: Sentinel1BurstSlc
         Source burst of the RTC
     cfg_in: RunConfig
         A class that contains the information defined in runconfig
@@ -1317,8 +1342,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
     del gdal_ds
 
 
-def get_rfi_metadata_dict(burst_in,
-                          rfi_root_path='metadata/QA/rfiInformation'):
+def get_rfi_metadata_dict(burst_in, rfi_root_path):
     '''
     Populate the RFI information into HDF5 object
 
@@ -1334,7 +1358,7 @@ def get_rfi_metadata_dict(burst_in,
 
     is_rfi_info_empty = burst_in.burst_rfi_info is None
     rfi_metadata_dict[f'{rfi_root_path}/isRfiInfoAvailable'] =\
-        ['is_rfi_info_available',
+        ['qa_rfi_info_available',
          not is_rfi_info_empty,
          'A flag to indicate whether RFI information is available in the source data']
 
@@ -1344,25 +1368,25 @@ def get_rfi_metadata_dict(burst_in,
     # Create group for RFI info
     subpath_data_dict = {
         'rfiMitigationPerformed':
-            ['rfi_mitigation_performed',
+            ['qa_rfi_mitigation_performed',
              burst_in.burst_rfi_info.rfi_mitigation_performed,
              'RFI detection and mitigation strategy'],
         'rfiMitigationDomain':
-            ['rfi_mitigation_domain',
+            ['qa_rfi_mitigation_domain',
              burst_in.burst_rfi_info.rfi_mitigation_domain,
              'Domain in which the RFI mitigation was performed'],
         'rfiBurstReport/swath':
-            ['rfi_burst_report_swath',
+            ['qa_rfi_burst_report_swath',
              burst_in.burst_rfi_info.rfi_burst_report['swath'],
              'Swath associated with the IW RFI burst report list'],
         'rfiBurstReport/azimuthTime':
-            ['rfi_burst_report_azimuth_time',
+            ['qa_rfi_burst_report_azimuth_time',
              burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(
                 DATE_TIME_METADATA_FORMAT),
              'Sensing start time of the burst that corresponds to the RFI report'
              ' in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'rfiBurstReport/inBandOutBandPowerRatio':
-            ['rfi_in_band_out_band_power_ratio',
+            ['qa_rfi_in_band_out_band_power_ratio',
              burst_in.burst_rfi_info.rfi_burst_report[
                  'inBandOutBandPowerRatio'],
              'Ratio between the in-band and out-of-band power of the burst.']
@@ -1386,20 +1410,20 @@ def get_rfi_metadata_dict(burst_in,
             burst_in.burst_rfi_info.rfi_burst_report.keys()):
         # populate the time domain RFI report
         subpath_data_dict['timeDomainRfiReport/percentageAffectedLines'] = \
-            ['rfi_time_domain_report_percentage_affected_lines',
+            ['qa_rfi_time_domain_report_percentage_affected_lines',
              rfi_burst_report_time['percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI']
 
         subpath_data_dict['timeDomainRfiReport/'
                           'avgPercentageAffectedSamples'] = \
-            ['rfi_time_domain_report_avg_percentage_affected_samples',
+            ['qa_rfi_time_domain_report_avg_percentage_affected_samples',
              rfi_burst_report_time['avgPercentageAffectedSamples'],
              ('Average percentage of affected level-0 samples '
               'in the lines containing RFI.')]
 
         subpath_data_dict['timeDomainRfiReport/'
                           'maxPercentageAffectedSamples'] = \
-            ['rfi_time_domain_report_max_percentage_affected_samples',
+            ['qa_rfi_time_domain_report_max_percentage_affected_samples',
              rfi_burst_report_time['maxPercentageAffectedSamples'],
              'Maximum percentage of level-0 samples affected by RFI in the'
              ' same line']
@@ -1408,18 +1432,18 @@ def get_rfi_metadata_dict(burst_in,
             burst_in.burst_rfi_info.rfi_burst_report.keys()):
         # populate the frequency domain RFI report
         subpath_data_dict['frequencyDomainRfiBurstReport/numSubBlocks'] = \
-            ['rfi_frequency_domain_report_num_sub_blocks',
+            ['qa_rfi_frequency_domain_report_num_sub_blocks',
              rfi_burst_report_freq['numSubBlocks'],
              'Number of sub-blocks in the current burst']
 
         subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize'] = \
-            ['rfi_frequency_domain_report_sub_block_size',
+            ['qa_rfi_frequency_domain_report_sub_block_size',
              rfi_burst_report_freq['subBlockSize'],
              'Number of lines in each sub-block']
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
                            'percentageAffectedLines')] = \
-            ['rfi_frequency_domain_report_isolated_'
+            ['qa_rfi_frequency_domain_report_isolated_'
              'percentage_affected_lines',
              rfi_burst_report_freq['isolatedRfiReport'][
                  'percentageAffectedLines'],
@@ -1427,7 +1451,7 @@ def get_rfi_metadata_dict(burst_in,
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
                            'maxPercentageAffectedBW')] = \
-            ['rfi_frequency_domain_report_isolated_'
+            ['qa_rfi_frequency_domain_report_isolated_'
              'max_bandwidth_percentage_affected_lines',
              rfi_burst_report_freq['isolatedRfiReport'][
                  'maxPercentageAffectedBW'],
@@ -1436,7 +1460,7 @@ def get_rfi_metadata_dict(burst_in,
 
         subpath_data_dict['frequencyDomainRfiBurstReport/'
                           'percentageBlocksPersistentRfi'] = \
-            ['rfi_frequency_domain_report_percentage_blocks'
+            ['qa_rfi_frequency_domain_report_percentage_blocks'
              '_persistent_rfi',
              rfi_burst_report_freq['percentageBlocksPersistentRfi'],
              ('Percentage of processing blocks affected by persistent RFI. '
@@ -1445,7 +1469,7 @@ def get_rfi_metadata_dict(burst_in,
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/'
                            'maxPercentageBWAffectedPersistentRfi')] = \
-            ['rfi_frequency_domain_report_max_percentage_bw_affected'
+            ['qa_rfi_frequency_domain_report_max_percentage_bw_affected'
              '_persistent_rfi',
              rfi_burst_report_freq['maxPercentageBWAffectedPersistentRfi'],
              ('Maximum percentage of the bandwidth affected by '
