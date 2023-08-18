@@ -410,6 +410,25 @@ def get_metadata_dict(product_id: str,
     if not mosaic_snap_y:
         mosaic_snap_y = '(DISABLED)'
 
+    # Geometric accuracy
+    estimated_geometric_accuracy_bias_y = \
+        cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_bias_y
+    estimated_geometric_accuracy_bias_x = \
+        cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_bias_x
+    estimated_geometric_accuracy_stddev_y = \
+        cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_stddev_y
+    estimated_geometric_accuracy_stddev_x = \
+        cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_stddev_x
+
+    if not estimated_geometric_accuracy_bias_y:
+        estimated_geometric_accuracy_bias_y = '(UNDETERMINED)'
+    if not estimated_geometric_accuracy_bias_x:
+        estimated_geometric_accuracy_bias_x = '(UNDETERMINED)'
+    if not estimated_geometric_accuracy_stddev_y:
+        estimated_geometric_accuracy_stddev_y = '(UNDETERMINED)'
+    if not estimated_geometric_accuracy_stddev_x:
+        estimated_geometric_accuracy_stddev_x = '(UNDETERMINED)'
+
     subswath_id = burst_in.swath_name.upper()
 
     # `metadata_dict`` is organized as follows:
@@ -811,21 +830,34 @@ def get_metadata_dict(product_id: str,
              'Burst geogrid snap for Coordinate Y (S/N)'],
         # 'metadata/processingInformation/geoidReference':  # for 4.2
 
-        # 'data/processingInformation/absoluteAccuracyNorthing':  
-        # placeholder for 4.3
-        #    ['absolute_accuracy_northing',
-        #     [0.0, 0.0],
-        #     ('An estimate of the absolute localisation error in north
-        # direction'
-        #      'provided as bias and standard deviation')],
+        # 4.3
+        'metadata/qa/geometricAccuracy/bias/y':
+            ['qa_geometric_accuracy_bias_y',
+             STANDARD_RTC_S1_ONLY,
+             estimated_geometric_accuracy_bias_y,
+             ('An estimate of the localization error bias in the northing'
+              ' direction')],
 
-        # 'data/processingInformation/absoluteAccuracyEasting':  
-        # placeholder for 4.3
-        #    ['absolute_accuracy_easting',
-        #     [0.0, 0.0],
-        #     ('An estimate of the absolute localisation error in east
-        # direction'
-        #      'provided as bias and standard deviation')],
+        'metadata/qa/geometricAccuracy/stddev/y':
+            ['qa_geometric_accuracy_stddev_y',
+             STANDARD_RTC_S1_ONLY,
+             estimated_geometric_accuracy_stddev_y,
+             ('An estimate of the localization error standard deviation'
+              ' in the northing direction')],
+
+        'metadata/qa/geometricAccuracy/bias/x':
+            ['qa_geometric_accuracy_bias_x',
+             STANDARD_RTC_S1_ONLY,
+             estimated_geometric_accuracy_bias_x,
+             ('An estimate of the localization error bias in the easting'
+              ' direction')],
+
+        'metadata/qa/geometricAccuracy/stddev/x':
+            ['qa_geometric_accuracy_stddev_x',
+             STANDARD_RTC_S1_ONLY,
+             estimated_geometric_accuracy_stddev_x,
+             ('An estimate of the localization error standard deviation'
+              ' in the easting direction')],
 
         # 'identification/frameNumber':  # TBD
         # 'identification/plannedDatatakeId':
@@ -1093,8 +1125,7 @@ def get_metadata_dict(product_id: str,
     if not is_mosaic and product_type != STATIC_LAYERS_PRODUCT_TYPE:
 
         # Add RFI metadata into `metadata_dict`
-        rfi_metadata_dict = get_rfi_metadata_dict(burst_in,
-                                                  'metadata/QA/rfiInformation')
+        rfi_metadata_dict = get_rfi_metadata_dict(burst_in, 'metadata/qa/rfi')
         this_product_metadata_dict.update(rfi_metadata_dict)
 
     return this_product_metadata_dict
@@ -1311,8 +1342,7 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
     del gdal_ds
 
 
-def get_rfi_metadata_dict(burst_in,
-                          rfi_root_path='metadata/QA/rfiInformation'):
+def get_rfi_metadata_dict(burst_in, rfi_root_path):
     '''
     Populate the RFI information into HDF5 object
 
@@ -1338,25 +1368,25 @@ def get_rfi_metadata_dict(burst_in,
     # Create group for RFI info
     subpath_data_dict = {
         'rfiMitigationPerformed':
-            ['rfi_mitigation_performed',
+            ['qa_rfi_mitigation_performed',
              burst_in.burst_rfi_info.rfi_mitigation_performed,
              'RFI detection and mitigation strategy'],
         'rfiMitigationDomain':
-            ['rfi_mitigation_domain',
+            ['qa_rfi_mitigation_domain',
              burst_in.burst_rfi_info.rfi_mitigation_domain,
              'Domain in which the RFI mitigation was performed'],
         'rfiBurstReport/swath':
-            ['rfi_burst_report_swath',
+            ['qa_rfi_burst_report_swath',
              burst_in.burst_rfi_info.rfi_burst_report['swath'],
              'Swath associated with the IW RFI burst report list'],
         'rfiBurstReport/azimuthTime':
-            ['rfi_burst_report_azimuth_time',
+            ['qa_rfi_burst_report_azimuth_time',
              burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(
                 DATE_TIME_METADATA_FORMAT),
              'Sensing start time of the burst that corresponds to the RFI report'
              ' in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'rfiBurstReport/inBandOutBandPowerRatio':
-            ['rfi_in_band_out_band_power_ratio',
+            ['qa_rfi_in_band_out_band_power_ratio',
              burst_in.burst_rfi_info.rfi_burst_report[
                  'inBandOutBandPowerRatio'],
              'Ratio between the in-band and out-of-band power of the burst.']
@@ -1380,20 +1410,20 @@ def get_rfi_metadata_dict(burst_in,
             burst_in.burst_rfi_info.rfi_burst_report.keys()):
         # populate the time domain RFI report
         subpath_data_dict['timeDomainRfiReport/percentageAffectedLines'] = \
-            ['rfi_time_domain_report_percentage_affected_lines',
+            ['qa_rfi_time_domain_report_percentage_affected_lines',
              rfi_burst_report_time['percentageAffectedLines'],
              'Percentage of level-0 lines affected by RFI']
 
         subpath_data_dict['timeDomainRfiReport/'
                           'avgPercentageAffectedSamples'] = \
-            ['rfi_time_domain_report_avg_percentage_affected_samples',
+            ['qa_rfi_time_domain_report_avg_percentage_affected_samples',
              rfi_burst_report_time['avgPercentageAffectedSamples'],
              ('Average percentage of affected level-0 samples '
               'in the lines containing RFI.')]
 
         subpath_data_dict['timeDomainRfiReport/'
                           'maxPercentageAffectedSamples'] = \
-            ['rfi_time_domain_report_max_percentage_affected_samples',
+            ['qa_rfi_time_domain_report_max_percentage_affected_samples',
              rfi_burst_report_time['maxPercentageAffectedSamples'],
              'Maximum percentage of level-0 samples affected by RFI in the'
              ' same line']
@@ -1402,18 +1432,18 @@ def get_rfi_metadata_dict(burst_in,
             burst_in.burst_rfi_info.rfi_burst_report.keys()):
         # populate the frequency domain RFI report
         subpath_data_dict['frequencyDomainRfiBurstReport/numSubBlocks'] = \
-            ['rfi_frequency_domain_report_num_sub_blocks',
+            ['qa_rfi_frequency_domain_report_num_sub_blocks',
              rfi_burst_report_freq['numSubBlocks'],
              'Number of sub-blocks in the current burst']
 
         subpath_data_dict['frequencyDomainRfiBurstReport/subBlockSize'] = \
-            ['rfi_frequency_domain_report_sub_block_size',
+            ['qa_rfi_frequency_domain_report_sub_block_size',
              rfi_burst_report_freq['subBlockSize'],
              'Number of lines in each sub-block']
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
                            'percentageAffectedLines')] = \
-            ['rfi_frequency_domain_report_isolated_'
+            ['qa_rfi_frequency_domain_report_isolated_'
              'percentage_affected_lines',
              rfi_burst_report_freq['isolatedRfiReport'][
                  'percentageAffectedLines'],
@@ -1421,7 +1451,7 @@ def get_rfi_metadata_dict(burst_in,
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/isolatedRfiReport/'
                            'maxPercentageAffectedBW')] = \
-            ['rfi_frequency_domain_report_isolated_'
+            ['qa_rfi_frequency_domain_report_isolated_'
              'max_bandwidth_percentage_affected_lines',
              rfi_burst_report_freq['isolatedRfiReport'][
                  'maxPercentageAffectedBW'],
@@ -1430,7 +1460,7 @@ def get_rfi_metadata_dict(burst_in,
 
         subpath_data_dict['frequencyDomainRfiBurstReport/'
                           'percentageBlocksPersistentRfi'] = \
-            ['rfi_frequency_domain_report_percentage_blocks'
+            ['qa_rfi_frequency_domain_report_percentage_blocks'
              '_persistent_rfi',
              rfi_burst_report_freq['percentageBlocksPersistentRfi'],
              ('Percentage of processing blocks affected by persistent RFI. '
@@ -1439,7 +1469,7 @@ def get_rfi_metadata_dict(burst_in,
 
         subpath_data_dict[('frequencyDomainRfiBurstReport/'
                            'maxPercentageBWAffectedPersistentRfi')] = \
-            ['rfi_frequency_domain_report_max_percentage_bw_affected'
+            ['qa_rfi_frequency_domain_report_max_percentage_bw_affected'
              '_persistent_rfi',
              rfi_burst_report_freq['maxPercentageBWAffectedPersistentRfi'],
              ('Maximum percentage of the bandwidth affected by '

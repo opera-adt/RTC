@@ -247,6 +247,13 @@ runconfig:
                 # Double SLC sampling in the range direction
                 upsample_radargrid: False
 
+                # Fields to populate the products' metadata required by
+                # CEOS Analysis Ready Data specifications
+                estimated_geometric_accuracy_bias_x:
+                estimated_geometric_accuracy_bias_y:
+                estimated_geometric_accuracy_stddev_x:
+                estimated_geometric_accuracy_stddev_y:
+
                 bursts_geogrid:
 
                     # Bursts' EPSG code. If not provided, `output_epsg` will

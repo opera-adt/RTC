@@ -270,6 +270,13 @@ geocoding_options:
     # Double SLC sampling in the range direction
     upsample_radargrid: bool(required=False)
 
+    # Fields to populate the products' metadata required by
+    # CEOS Analysis Ready Data specifications
+    estimated_geometric_accuracy_bias_x: num(required=False)
+    estimated_geometric_accuracy_bias_y: num(required=False)
+    estimated_geometric_accuracy_stddev_x: num(required=False)
+    estimated_geometric_accuracy_stddev_y: num(required=False)
+
     # Bursts geographic grid
     bursts_geogrid: include('output_grid_options', required=False)
 
