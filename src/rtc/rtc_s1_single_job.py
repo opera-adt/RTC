@@ -128,7 +128,7 @@ def populate_product_id(product_id, burst_in, processing_datetime,
 
     if not is_mosaic:
         burst_id_file_name = str(burst_in.burst_id).upper().replace('_', '-')
-        product_id = product_id.replace('{burst_id}', f'T{burst_id_file_name}')
+        product_id = product_id.replace('{burst_id}', f'{burst_id_file_name}')
     else:
         product_id = product_id.replace('_{burst_id}', '')
 

@@ -795,7 +795,7 @@ def get_metadata_dict(product_id: str,
              '_output_backscatter_expression_convention',
              ALL_PRODUCTS,
              'linear backscatter intensity',
-             'Backscatter expression convension'],
+             'Backscatter expression convention'],
 
         # 3.2
         ('metadata/processingInformation/parameters/'
