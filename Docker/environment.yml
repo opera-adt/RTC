@@ -9,5 +9,5 @@ dependencies:
   - pybind11>=2.5
   - pyre>=1.11.2
   
-- scipy!=1.10.0
+  - scipy!=1.10.0
   - isce3>=0.14.0
