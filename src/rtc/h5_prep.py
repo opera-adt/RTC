@@ -258,14 +258,20 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
 
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
     hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
-    hdf5_obj.attrs["contact"] = np.string_("operaops@jpl.nasa.gov")
+    hdf5_obj.attrs["contact"] = np.string_("operasds@jpl.nasa.gov")
     hdf5_obj.attrs["institution"] = np.string_("NASA JPL")
     hdf5_obj.attrs["project"] = np.string_("OPERA")
     hdf5_obj.attrs["reference_document"] = np.string_(
         "Product Specification Document for the OPERA Radiometric"
         " Terrain-Corrected SAR Backscatter from Sentinel-1,"
-        " JPL D-108758, Rev. Working Version 1, May 31, 2023")
-    hdf5_obj.attrs["title"] = np.string_("OPERA RTC-S1 Product")
+        " JPL D-108758, Rev. Working Version 1, Aug 31, 2023")
+
+    # product type
+    product_type = cfg.groups.primary_executable.product_type
+    if product_type == STATIC_LAYERS_PRODUCT_TYPE:
+        hdf5_obj.attrs["title"] = np.string_("OPERA RTC-S1-STATIC Product")
+    else:
+        hdf5_obj.attrs["title"] = np.string_("OPERA RTC-S1 Product")
 
     populate_metadata_group(product_id, hdf5_obj, burst, cfg,
                             processing_datetime, is_mosaic)
@@ -303,7 +309,7 @@ def save_orbit(orbit, orbit_group, orbit_file_path):
     else:
         orbit_type = 'Undefined'
 
-    d = orbit_group.require_dataset("orbitType", (), "S10",
+    d = orbit_group.require_dataset("orbitType", (),
                                     data=np.string_(orbit_type))
     d.attrs["description"] = np.string_(
         "Type of orbit file used in processing")
@@ -382,6 +388,12 @@ def get_metadata_dict(product_id: str,
     product_data_access = cfg_in.groups.product_group.product_data_access
     if not product_data_access:
         product_data_access = '(NOT PROVIDED)'
+
+    # static layers data access (URL or DOI)
+    static_layers_data_access = \
+        cfg_in.groups.product_group.static_layers_data_access
+    if not static_layers_data_access:
+        static_layers_data_access = '(NOT PROVIDED)'
 
     # platform ID
     if burst_in.platform_id == 'S1A':
@@ -488,6 +500,11 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              'NASA JPL',
              'Institution that created this product'],
+        'identification/contactInformation':
+            ['contact_information',
+             ALL_PRODUCTS,
+             'operasds@jpl.nasa.gov',
+             'Contact information for producer of this product'],
         'identification/productVersion':
             ['product_version',
              ALL_PRODUCTS,
@@ -583,6 +600,12 @@ def get_metadata_dict(product_id: str,
              product_data_access,
              'Location from where this product can be retrieved'
              ' (URL or DOI)'],
+        'identification/staticLayersDataAccess':
+            ['static_layers_data_access',
+             STANDARD_RTC_S1_ONLY,
+             static_layers_data_access,
+             'Location of the static layers product associated with this'
+             ' product (URL or DOI)'],
         'metadata/sourceData/numberOfAcquisitions':  # 1.6.4
             ['source_data_number_of_acquisitions',
              ALL_PRODUCTS,
