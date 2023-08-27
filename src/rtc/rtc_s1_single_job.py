@@ -52,6 +52,8 @@ STATIC_LAYERS_RG_MARGIN = 0.2
 BROWSE_IMAGE_MIN_PERCENTILE = 3
 BROWSE_IMAGE_MAX_PERCENTILE = 97
 
+FLAG_BROWSE_DUAL_POL_REPEAT_COPOL = False
+
 
 def populate_product_id(product_id, burst_in, processing_datetime,
                         product_version, pixel_spacing, product_type,
@@ -263,6 +265,37 @@ def compute_correction_lut(burst_in, dem_raster, scratch_path,
     return rg_lut, az_lut
 
 
+def _normalize_browse_image_band(band_image):
+    """Helper function to normalize a browse image band
+
+       Parameters
+       ----------
+       band_image : np.ndarray
+           Input image to be normalized
+
+       Returns
+       -------
+       band_image : np.ndarray
+           Normalized image
+
+    """
+    vmin = np.nanpercentile(band_image, BROWSE_IMAGE_MIN_PERCENTILE)
+    vmax = np.nanpercentile(band_image, BROWSE_IMAGE_MAX_PERCENTILE)
+    logger.info(f'        min ({BROWSE_IMAGE_MIN_PERCENTILE}% percentile):'
+                f' {vmin}')
+    logger.info(f'        max ({BROWSE_IMAGE_MAX_PERCENTILE}% percentile):'
+                f' {vmax}')
+
+    # gamma correction: 0.5
+    is_not_negative = band_image - vmin >= 0
+    is_negative = band_image - vmin < 0
+    band_image[is_not_negative] = \
+        np.sqrt((band_image[is_not_negative] - vmin) / (vmax - vmin))
+    band_image[is_negative] = 0
+    band_image = np.clip(band_image, 0, 1)
+    return band_image
+
+
 def save_browse_imagery(imagery_list, browse_image_filename,
                         pol_list, browse_image_height, browse_image_width,
                         temp_files_list, scratch_dir, logger):
@@ -310,7 +343,7 @@ def save_browse_imagery(imagery_list, browse_image_filename,
     alpha_channel = None
     band_list = [None] * n_images
 
-    for filename, pol in zip(imagery_list, pol_list):
+    for image_count, (filename, pol) in enumerate(zip(imagery_list, pol_list)):
         logger.info(f'    pol: {pol}')
         gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
         image_width = gdal_ds.GetRasterBand(1).XSize
@@ -353,36 +386,38 @@ def save_browse_imagery(imagery_list, browse_image_filename,
 
         gdal_band = gdal_ds.GetRasterBand(1)
         band_image = np.asarray(gdal_band.ReadAsArray(), dtype=np.float32)
+        if (n_images == 2 and not FLAG_BROWSE_DUAL_POL_REPEAT_COPOL and
+                image_count == 0):
+            co_pol_image = band_image.copy()
+        if (n_images == 2 and not FLAG_BROWSE_DUAL_POL_REPEAT_COPOL and
+                image_count == 1):
+            cross_pol_image = band_image.copy()
+
         is_valid = np.isfinite(band_image)
         if alpha_channel is None:
             alpha_channel = np.asarray(is_valid,
                                        dtype=np.float32)
-        vmin = np.nanpercentile(band_image, BROWSE_IMAGE_MIN_PERCENTILE)
-        vmax = np.nanpercentile(band_image, BROWSE_IMAGE_MAX_PERCENTILE)
-        logger.info(f'        min ({BROWSE_IMAGE_MIN_PERCENTILE}% percentile):'
-                    f' {vmin}')
-        logger.info(f'        max ({BROWSE_IMAGE_MAX_PERCENTILE}% percentile):'
-                    f' {vmax}')
 
-        # gamma correction: 0.5
-        is_not_negative = np.logical_and(is_valid, band_image - vmin >= 0)
-        is_negative = np.logical_and(is_valid, band_image - vmin < 0)
-        band_image[is_not_negative] = \
-            np.sqrt((band_image[is_not_negative] - vmin) / (vmax - vmin))
-        band_image[is_negative] = 0
-        band_image = np.clip(band_image, 0, 1)
         band_list_index = expected_pol_order.index(pol)
-        band_list[band_list_index] = band_image
+        band_list[band_list_index] = \
+            _normalize_browse_image_band(band_image)
 
     if n_images == 1:
         image = np.dstack((band_list[0],
                            band_list[0],
                            band_list[0],
                            alpha_channel))
-    elif n_images == 2:
+    elif n_images == 2 and FLAG_BROWSE_DUAL_POL_REPEAT_COPOL:
         image = np.dstack((band_list[0],
                            band_list[1],
                            band_list[0],
+                           alpha_channel))
+    elif n_images == 2:
+        blue_channel =  \
+            _normalize_browse_image_band(co_pol_image / cross_pol_image)
+        image = np.dstack((band_list[0],
+                           band_list[1],
+                           blue_channel,
                            alpha_channel))
     else:
         image = np.dstack((band_list[0],
