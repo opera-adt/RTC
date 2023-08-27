@@ -461,7 +461,7 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
             if flag_1_ok and flag_2_ok:
                 # print messages to the user
                 logger.info(f'    {coverage_logger_str}:'
-                            ' Full (with antimeridian crossing')
+                            ' Full (with antimeridian crossing)')
 
                 # update RTC-S1 product metadata
                 metadata_dict[coverage_metadata_str] = \
