@@ -309,7 +309,7 @@ def save_orbit(orbit, orbit_group, orbit_file_path):
     else:
         orbit_type = 'Undefined'
 
-    d = orbit_group.require_dataset("orbitType", (),
+    d = orbit_group.require_dataset("orbitType", (), "S10",
                                     data=np.string_(orbit_type))
     d.attrs["description"] = np.string_(
         "Type of orbit file used in processing")
