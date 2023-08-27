@@ -77,6 +77,9 @@ runconfig:
             # Location from where the output product can be retrieved (URL or DOI)
             product_data_access:
 
+            # Location of the static layers product associated with this product (URL or DOI
+            static_layers_data_access:
+
             # Save RTC-S1 bursts
             save_bursts: True
 
