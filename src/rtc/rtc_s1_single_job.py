@@ -343,7 +343,7 @@ def save_browse_imagery(imagery_list, browse_image_filename,
     alpha_channel = None
     band_list = [None] * n_images
 
-    for image_count, (filename, pol) in enumerate(zip(imagery_list, pol_list)):
+    for filename, pol in zip(imagery_list, pol_list):
         logger.info(f'    pol: {pol}')
         gdal_ds = gdal.Open(filename, gdal.GA_ReadOnly)
         image_width = gdal_ds.GetRasterBand(1).XSize
