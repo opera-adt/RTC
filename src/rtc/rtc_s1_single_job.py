@@ -52,7 +52,7 @@ STATIC_LAYERS_RG_MARGIN = 0.2
 BROWSE_IMAGE_MIN_PERCENTILE = 3
 BROWSE_IMAGE_MAX_PERCENTILE = 97
 
-FLAG_BROWSE_DUAL_POL_REPEAT_COPOL = False
+FLAG_BROWSE_DUAL_POL_REPEAT_COPOL = True
 
 
 def populate_product_id(product_id, burst_in, processing_datetime,
@@ -386,11 +386,14 @@ def save_browse_imagery(imagery_list, browse_image_filename,
 
         gdal_band = gdal_ds.GetRasterBand(1)
         band_image = np.asarray(gdal_band.ReadAsArray(), dtype=np.float32)
+
+        band_list_index = expected_pol_order.index(pol)
+
         if (n_images == 2 and not FLAG_BROWSE_DUAL_POL_REPEAT_COPOL and
-                image_count == 0):
+                band_list_index == 0):
             co_pol_image = band_image.copy()
         if (n_images == 2 and not FLAG_BROWSE_DUAL_POL_REPEAT_COPOL and
-                image_count == 1):
+                band_list_index == 1):
             cross_pol_image = band_image.copy()
 
         is_valid = np.isfinite(band_image)
@@ -398,7 +401,6 @@ def save_browse_imagery(imagery_list, browse_image_filename,
             alpha_channel = np.asarray(is_valid,
                                        dtype=np.float32)
 
-        band_list_index = expected_pol_order.index(pol)
         band_list[band_list_index] = \
             _normalize_browse_image_band(band_image)
 
@@ -413,6 +415,9 @@ def save_browse_imagery(imagery_list, browse_image_filename,
                            band_list[0],
                            alpha_channel))
     elif n_images == 2:
+
+        logger.info(f'    pol ratio: {expected_pol_order[0]}/'
+                    f'{expected_pol_order[1]}')
         blue_channel =  \
             _normalize_browse_image_band(co_pol_image / cross_pol_image)
         image = np.dstack((band_list[0],
