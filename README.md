@@ -2,7 +2,6 @@
 NASA's Observational Products for End-Users from Remote Sensing Analysis (OPERA) Radiometric Terrain-Corrected (RTC) SAR backscatter from Sentinel-1 (RTC-S1) Science Application Software developed by the OPERA Algoritm Development Team at NASA's Jet Propulsion Laboratory (JPL).
 
 
-🚨 This toolbox is undergoing **rapid development**. 🚨
 
 ### Install
 

@@ -309,7 +309,7 @@ def save_orbit(orbit, orbit_group, orbit_file_path):
     else:
         orbit_type = 'Undefined'
 
-    d = orbit_group.require_dataset("orbitType", (), "S10",
+    d = orbit_group.require_dataset("orbitType", (), "S25",
                                     data=np.string_(orbit_type))
     d.attrs["description"] = np.string_(
         "Type of orbit file used in processing")
@@ -591,8 +591,8 @@ def get_metadata_dict(product_id: str,
         #      'Data processing center'],
         'identification/ceosAnalysisReadyDataDocumentIdentifier':
             ['ceos_analysis_ready_data_document_identifier',
-             'https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf',
              ALL_PRODUCTS,
+             'https://ceos.org/ard/files/PFS/NRB/v5.5/CARD4L-PFS_NRB_v5.5.pdf',
              'CEOS Analysis Ready Data (CARD) document identifier'],
         'identification/dataAccess':
             ['product_data_access',
