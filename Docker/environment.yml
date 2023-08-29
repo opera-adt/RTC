@@ -1,4 +1,4 @@
-name: rtc_sas_final
+name: rtc_s1_sas_final
 channels:
   - conda-forge
 dependencies:
