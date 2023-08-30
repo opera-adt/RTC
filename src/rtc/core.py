@@ -248,9 +248,12 @@ def get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
     tile_max_x = np.max(tile_x_array)
 
     # handles antimeridian: tile_max_x around +180 and tile_min_x around -180
-    # add 360 to tile_min_x, so it becomes a little greater than +180
-    if tile_max_x > tile_min_x + 340:
-        tile_min_x, tile_max_x = tile_max_x, tile_min_x + 360
+    if polygon_srs.IsGeographic() and tile_max_x - tile_min_x > 180:
+        # unwrap negative longitude values
+        # move longitude range from [-180, 180] to [0, 360]
+        new_tile_x_array = [x + (x < 0) * 360 for x in tile_x_array]
+        tile_min_x = np.min(new_tile_x_array)
+        tile_max_x = np.max(new_tile_x_array)
 
     tile_ring = ogr.Geometry(ogr.wkbLinearRing)
     tile_ring.AddPoint(tile_min_x, tile_max_y)
@@ -265,7 +268,7 @@ def get_tile_srs_bbox(tile_min_y_projected, tile_max_y_projected,
 
 
 def _antimeridian_crossing_requires_special_handling(
-        file_srs, file_min_x, tile_min_x, tile_max_x):
+        file_srs, ancillary_min_x, ancillary_max_x, tile_min_x, tile_max_x):
     '''
     Check if ancillary input requires special handling due to
     the antimeridian crossing
@@ -274,8 +277,10 @@ def _antimeridian_crossing_requires_special_handling(
     ----------
     file_srs: osr.SpatialReference
         Ancillary file spatial reference system (SRS)
-    file_min_x: float
+    ancillary_min_x: float
         Ancillary file min longitude value in degrees
+    ancillary_max_x: float
+        Ancillary file max longitude value in degrees
     tile_min_x: float
         Tile min longitude value in degrees
     tile_max_x: float
@@ -287,24 +292,26 @@ def _antimeridian_crossing_requires_special_handling(
         Flag that indicate if the ancillary input requires special handling
     '''
 
-    # Flag to indicate if the if the tile crosses the antimeridian.
-    flag_tile_crosses_antimeridian = tile_min_x < 180 and tile_max_x >= 180
+    if not file_srs.IsGeographic():
+        flag_requires_special_handling = False
+        return flag_requires_special_handling
 
-    # Flag to test if the ancillary input file is in geographic
-    # coordinates and if its longitude domain is represented
-    # within the [-180, +180] range, rather than, for example, inside
-    # the [0, +360] interval.
-    # This is verified by the test `min_x < -165`. There's no specific reason
-    # why -165 is used. It could be -160, or even 0. However, testing for
-    # -165 is more general than -160 or 0, but still not too close to -180.
-    flag_input_geographic_and_longitude_lt_m165 = \
-        file_srs.IsGeographic() and file_min_x < -165
+    # Check whether the ancillary file covers the entire longitude range
+    # use 359 instead of 360 degrees to have some buffer
+    flag_ancillary_covers_entire_longitude_range = \
+        (ancillary_max_x - ancillary_min_x) > 359
 
-    # If both are true, tile requires special handling due to the
-    # antimeridian crossing
-    flag_requires_special_handling = (
-        flag_tile_crosses_antimeridian and
-        flag_input_geographic_and_longitude_lt_m165)
+    if not flag_ancillary_covers_entire_longitude_range:
+        flag_requires_special_handling = False
+        return flag_requires_special_handling
+
+    # Flag to indicate if the tile crosses the ancillary file
+    # discontinuity (ancillary_max_x).
+    flag_tile_crosses_discontinuity = \
+        tile_min_x < ancillary_max_x < tile_max_x
+
+    flag_requires_special_handling = \
+        flag_tile_crosses_discontinuity
 
     return flag_requires_special_handling
 
@@ -430,7 +437,8 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
 
         # If needed, test for antimeridian ("dateline") crossing
         if _antimeridian_crossing_requires_special_handling(
-                ancillary_srs, ancillary_x0, geogrid_x0, geogrid_xf):
+                ancillary_srs, ancillary_x0, ancillary_xf,
+                geogrid_x0, geogrid_xf):
 
             logger.info(f'The input RTC-S1 product crosses the antimeridian'
                         ' (dateline). Verifying the'
