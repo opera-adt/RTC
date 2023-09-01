@@ -454,15 +454,28 @@ def check_ancillary_inputs(check_ancillary_inputs_coverage,
             logger.info(f'    left side (-180 -> +180): {check_1_str}')
 
             # Right side of the antimeridian crossing: +180 -> +360
-            ancillary_polygon_2 = _get_ogr_polygon(
+            #
+            # Get the intersection between the geogrid and the right side
+            # of the antimeridian (with a litter buffer represented by 
+            # ANTIMERIDIAN_CROSSING_RIGHT_SIDE_TEST_BUFFER)
+            antimeridian_right_side_polygon = _get_ogr_polygon(
                 ancillary_xf + ANTIMERIDIAN_CROSSING_RIGHT_SIDE_TEST_BUFFER,
                 90, ancillary_xf + 360, -90, ancillary_srs)
-            intersection_2 = geogrid_polygon.Intersection(ancillary_polygon_2)
+
+            intersection_2 = geogrid_polygon.Intersection(
+                antimeridian_right_side_polygon)
+
+            # Create a polygon representing the ancillary dataset
+            # at the right side of the antimeridian
             ancillary_polygon_2 = _get_ogr_polygon(
                 ancillary_x0 + 360, ancillary_y0,
                 ancillary_xf + 360, ancillary_yf,
                 ancillary_srs)
-            flag_2_ok = intersection_2.Within(ancillary_polygon_2)
+
+            # Check if the geogrid-intersected area (if valid) is within
+            # the ancillary polygon
+            flag_2_ok = (intersection_2.IsEmpty() or
+                         intersection_2.Within(ancillary_polygon_2))
             check_2_str = 'ok' if flag_2_ok else 'fail'
             logger.info(f'    right side (+180 -> +360): {check_2_str}')
 
