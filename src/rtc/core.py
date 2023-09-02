@@ -292,12 +292,18 @@ def _antimeridian_crossing_requires_special_handling(
         Flag that indicate if the ancillary input requires special handling
     '''
 
+    # The coordinate wrapping around the ancillary file
+    # discontinuities such as the antimeridian only happens
+    # if the DEM is provided in geographic coordinates
     if not file_srs.IsGeographic():
         flag_requires_special_handling = False
         return flag_requires_special_handling
 
     # Check whether the ancillary file covers the entire longitude range
-    # use 359 instead of 360 degrees to have some buffer
+    # Mark flag as True if the longitude coordinates span completes
+    # or is close to complete the circle (360 degrees).
+    # We use 359 instead of 360 degrees to have some buffer
+    # for incomplete ancillary files
     flag_ancillary_covers_entire_longitude_range = \
         (ancillary_max_x - ancillary_min_x) > 359
 
@@ -307,6 +313,10 @@ def _antimeridian_crossing_requires_special_handling(
 
     # Flag to indicate if the tile crosses the ancillary file
     # discontinuity (ancillary_max_x).
+    # Notice that`ancillary_max_x` refers to the eastern edge
+    # of the ancillary file, which, for the antimeridian case,
+    # may not lay exactly on +/- 180. For example, it may be
+    # 179.9998611111111
     flag_tile_crosses_discontinuity = \
         tile_min_x < ancillary_max_x < tile_max_x
 
