@@ -184,9 +184,8 @@ def compute_mosaic_array(list_rtc_images, list_nlooks, mosaic_mode,
             Directory for temporary files
        geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and
-            projection
-            The geogrid of the output mosaic will automatically determined
-            when it is None
+            projection. If empty, the geogrid of the output mosaic will
+            determined automatically
        temp_files_list: list (optional)
             Mutable list of temporary files. If provided,
             paths to the temporary files generated will be
@@ -579,9 +578,8 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
             Directory for temporary files
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and
-            projection
-            The geogrid of the output mosaic will automatically determined
-            when it is None
+            projection. If empty, the geogrid of the output mosaic will
+            determined automatically
         temp_files_list: list (optional)
             Mutable list of temporary files. If provided,
             paths to the temporary files generated will be
@@ -658,9 +656,8 @@ def mosaic_multiple_output_files(
             Directory for temporary files
         geogrid_in: isce3.product.GeoGridParameters, default: None
             Geogrid information to determine the output mosaic's shape and
-            projection
-            The geogrid of the output mosaic will automatically determined
-            when it is None
+            projection. If empty, the geogrid of the output mosaic will
+            determined automatically
         temp_files_list: list (optional)
             Mutable list of temporary files. If provided,
             paths to the temporary files generated will be
