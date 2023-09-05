@@ -612,7 +612,7 @@ def build_empty_vrt(filename, length, width, fill_value, dtype='Float32',
         f'  </VRTRasterBand> \n'
         f'</VRTDataset> \n')
 
-    with open(filename, 'a') as out:
+    with open(filename, 'w') as out:
         out.write(vrt_contents)
 
     if os.path.isfile(filename):
