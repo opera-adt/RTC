@@ -1014,6 +1014,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
 
     # flush data to the disk
     geocoded_layover_shadow_mask_raster.close_dataset()
+    del geocoded_layover_shadow_mask_raster
 
     return slantrange_layover_shadow_mask_raster
 
