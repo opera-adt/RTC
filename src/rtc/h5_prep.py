@@ -302,14 +302,13 @@ def save_orbit(orbit, orbit_group, orbit_file_path):
         data=np.string_(orbit.reference_epoch.isoformat()))
 
     # Orbit source/type
+    orbit_type = 'Undefined'
     if isinstance(orbit_file_path, str):
         orbit_file_basename = os.path.basename(orbit_file_path)
         if 'RESORB' in orbit_file_basename:
             orbit_type = 'RES restituted orbit'
         elif 'POEORB' in orbit_file_basename:
             orbit_type = 'POE precise orbit'
-        else:
-            orbit_type = 'Undefined'
 
     elif isinstance(orbit_file_path, list):
         orbit_type_list = []
