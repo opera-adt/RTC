@@ -375,7 +375,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
-    save_rtc_anf_projection_angle = geocode_namespace.save_rtc_anf_projection_angle
+    save_rtc_anf_projection_angle = \
+        geocode_namespace.save_rtc_anf_projection_angle
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
@@ -811,7 +812,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if save_rtc_anf_gamma0_to_sigma0:
             output_metadata_dict[
                 LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0][1].append(
-                rtc_anf_file)
+                rtc_anf_gamma0_to_sigma0_file)
 
         radar_grid_file_dict = {}
 
@@ -821,7 +822,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 LAYER_NAME_INCIDENCE_ANGLE: save_incidence_angle,
                 LAYER_NAME_LOCAL_INCIDENCE_ANGLE: save_local_inc_angle,
                 LAYER_NAME_PROJECTION_ANGLE: save_projection_angle,
-                LAYER_NAME_RTC_ANF_PROJECTION_ANGLE: save_rtc_anf_projection_angle,
+                LAYER_NAME_RTC_ANF_PROJECTION_ANGLE:
+                    save_rtc_anf_projection_angle,
                 LAYER_NAME_RANGE_SLOPE: save_range_slope,
                 LAYER_NAME_DEM: save_dem}
 
