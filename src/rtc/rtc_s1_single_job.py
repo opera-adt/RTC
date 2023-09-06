@@ -98,7 +98,7 @@ def populate_product_id(product_id, burst_in, processing_datetime,
         product_id = ('OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}'
                       '_{processing_datetime}_{sensor}_{pixel_spacing}'
                       '_{product_version}')
-    if '{product_id}' in product_id:
+    elif '{product_id}' in product_id:
         if not rtc_s1_static_validity_start_date:
             error_msg = ('ERROR please provide a' +
                          ' `rtc_s1_static_validity_start_date`')

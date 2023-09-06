@@ -299,7 +299,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                              abs(cfg.geogrid.spacing_y)) / 2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
-        rtc_s1_static_validity_start_date, pixel_spacing_avg, product_type,
+        pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
         is_mosaic=True)
 
     # set scratch directory and output_dir
