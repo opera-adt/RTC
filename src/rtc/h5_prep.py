@@ -248,15 +248,9 @@ def get_product_version(product_version_runconfig):
     product_version: scalar
         Product version
     '''
-    if product_version_runconfig is None:
-        product_version = SOFTWARE_VERSION
-        return product_version
-    try:
-        product_version_float = float(product_version_runconfig)
-        product_version = f'{product_version_float:.1f}'
-    except ValueError:
-        product_version = product_version_runconfig
-    return product_version
+    if product_version_runconfig:
+        return product_version_runconfig
+    return SOFTWARE_VERSION
 
 
 def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
