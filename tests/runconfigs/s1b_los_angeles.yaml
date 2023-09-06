@@ -34,8 +34,6 @@ runconfig:
       product_group:
           processing_type: 'CUSTOM'
 
-          # product_version: 3.1
-
           # Directory where PGE will place results
           product_path: .
 

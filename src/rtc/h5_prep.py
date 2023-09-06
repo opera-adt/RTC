@@ -233,6 +233,32 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, clip_max,
     logger.info(f'file saved: {output_hdf5_file}')
 
 
+def get_product_version(product_version_runconfig):
+    '''
+    Returns the product version from the product
+    version defined by the user in the runconfig.
+
+    Parameters
+    ---------
+    product_version_runconfig: scalar
+        RunConfig product version
+
+    Returns
+    -------
+    product_version: scalar
+        Product version
+    '''
+    if product_version_runconfig is None:
+        product_version = SOFTWARE_VERSION
+        return product_version
+    try:
+        product_version_float = float(product_version_runconfig)
+        product_version = f'{product_version_float:.1f}'
+    except ValueError:
+        product_version = product_version_runconfig
+    return product_version
+
+
 def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
                      processing_datetime, is_mosaic):
     '''Create HDF5 file
@@ -362,11 +388,9 @@ def get_metadata_dict(product_id: str,
     product_type = cfg_in.groups.primary_executable.product_type
 
     # product version
-    product_version_float = cfg_in.groups.product_group.product_version
-    if product_version_float is None:
-        product_version = SOFTWARE_VERSION
-    else:
-        product_version = f'{product_version_float:.1f}'
+    product_version_runconfig = cfg_in.groups.product_group.product_version
+    product_version_runconfig = cfg.groups.product_group.product_version
+    product_version = get_product_version(product_version_runconfig)
 
     # DEM description
     dem_file_description = cfg_in.dem_file_description
