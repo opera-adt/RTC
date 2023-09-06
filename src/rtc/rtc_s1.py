@@ -267,7 +267,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     # primary executable
     product_type = cfg.groups.primary_executable.product_type
-    product_version_runconfig = cfg.groups.product_group.product_version
     rtc_s1_static_validity_start_date = \
         cfg.groups.product_group.rtc_s1_static_validity_start_date
     product_version_runconfig = cfg.groups.product_group.product_version

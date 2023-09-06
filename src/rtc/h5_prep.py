@@ -389,7 +389,7 @@ def get_metadata_dict(product_id: str,
 
     # product version
     product_version_runconfig = cfg_in.groups.product_group.product_version
-    product_version_runconfig = cfg.groups.product_group.product_version
+    product_version_runconfig = cfg_in.groups.product_group.product_version
     product_version = get_product_version(product_version_runconfig)
 
     # DEM description
