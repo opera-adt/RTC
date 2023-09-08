@@ -298,7 +298,7 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
 
     # save orbit
     orbit_group = hdf5_obj.require_group('/metadata/orbit')
-    save_orbit(orbit, orbit_group, os.path.basename(cfg.orbit_file_path))
+    save_orbit(orbit, orbit_group, cfg.orbit_file_path)
     return hdf5_obj
 
 
@@ -321,15 +321,28 @@ def save_orbit(orbit, orbit_group, orbit_file_path):
         'referenceEpoch',
         data=np.string_(orbit.reference_epoch.isoformat()))
 
-    # Orbit source/type    
-    if 'RESORB' in orbit_file_path:
-        orbit_type = 'RES restituted orbit'
-    elif 'POEORB' in orbit_file_path:
-        orbit_type = 'POE precise orbit'
-    else:
-        orbit_type = 'Undefined'
+    # Orbit source/type
+    orbit_type = 'Undefined'
+    if isinstance(orbit_file_path, str):
+        orbit_file_basename = os.path.basename(orbit_file_path)
+        if 'RESORB' in orbit_file_basename:
+            orbit_type = 'RES restituted orbit'
+        elif 'POEORB' in orbit_file_basename:
+            orbit_type = 'POE precise orbit'
 
-    d = orbit_group.require_dataset("orbitType", (), "S25",
+    elif isinstance(orbit_file_path, list):
+        orbit_type_list = []
+        for individual_orbit_file in orbit_file_path:
+            if 'RESORB' in individual_orbit_file:
+                orbit_type_individual = 'RES restituted orbit'
+            elif 'POEORB' in individual_orbit_file:
+                orbit_type_individual = 'POE precise orbit'
+            else:
+                orbit_type_individual = 'Undefined'
+            orbit_type_list.append(orbit_type_individual)
+        orbit_type = '; '.join(orbit_type_list)
+
+    d = orbit_group.require_dataset("orbitType", (), "S64",
                                     data=np.string_(orbit_type))
     d.attrs["description"] = np.string_(
         "Type of orbit file used in processing")
