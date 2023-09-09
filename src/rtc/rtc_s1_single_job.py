@@ -25,6 +25,7 @@ from rtc.mosaic_geobursts import (mosaic_single_output_file,
 from rtc.core import (save_as_cog, check_ancillary_inputs,
                       build_empty_vrt)
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
+                         get_product_version,
                          get_metadata_dict,
                          all_metadata_dict_to_geotiff_metadata_dict,
                          layer_names_dict,
@@ -97,7 +98,7 @@ def populate_product_id(product_id, burst_in, processing_datetime,
         product_id = ('OPERA_L2_RTC-S1_{burst_id}_{sensing_start_datetime}'
                       '_{processing_datetime}_{sensor}_{pixel_spacing}'
                       '_{product_version}')
-    if '{product_id}' in product_id:
+    elif '{product_id}' in product_id:
         if not rtc_s1_static_validity_start_date:
             error_msg = ('ERROR please provide a' +
                          ' `rtc_s1_static_validity_start_date`')
@@ -1014,6 +1015,7 @@ def compute_layover_shadow_mask(radar_grid: isce3.product.RadarGridParameters,
 
     # flush data to the disk
     geocoded_layover_shadow_mask_raster.close_dataset()
+    del geocoded_layover_shadow_mask_raster
 
     return slantrange_layover_shadow_mask_raster
 
@@ -1095,13 +1097,11 @@ def run_single_job(cfg: RunConfig):
 
     # primary executable
     product_type = cfg.groups.primary_executable.product_type
-    product_version_float = cfg.groups.product_group.product_version
     rtc_s1_static_validity_start_date = \
         cfg.groups.product_group.rtc_s1_static_validity_start_date
-    if product_version_float is None:
-        product_version = SOFTWARE_VERSION
-    else:
-        product_version = f'{product_version_float:.1f}'
+
+    product_version_runconfig = cfg.groups.product_group.product_version
+    product_version = get_product_version(product_version_runconfig)
 
     # unpack processing parameters
     processing_namespace = cfg.groups.processing

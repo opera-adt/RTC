@@ -28,6 +28,7 @@ from rtc.core import save_as_cog, check_ancillary_inputs
 from rtc.version import VERSION as SOFTWARE_VERSION
 from rtc.h5_prep import (save_hdf5_file, create_hdf5_file,
                          get_metadata_dict,
+                         get_product_version,
                          all_metadata_dict_to_geotiff_metadata_dict,
                          layer_hdf5_dict,
                          DATA_BASE_GROUP,
@@ -266,13 +267,10 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
     # primary executable
     product_type = cfg.groups.primary_executable.product_type
-    product_version_float = cfg.groups.product_group.product_version
     rtc_s1_static_validity_start_date = \
         cfg.groups.product_group.rtc_s1_static_validity_start_date
-    if product_version_float is None:
-        product_version = SOFTWARE_VERSION
-    else:
-        product_version = f'{product_version_float:.1f}'
+    product_version_runconfig = cfg.groups.product_group.product_version
+    product_version = get_product_version(product_version_runconfig)
 
     # unpack processing parameters
     processing_namespace = cfg.groups.processing
@@ -301,7 +299,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                              abs(cfg.geogrid.spacing_y)) / 2)
     mosaic_product_id = populate_product_id(
         runconfig_product_id, burst_ref, processing_datetime, product_version,
-        rtc_s1_static_validity_start_date, pixel_spacing_avg, product_type,
+        pixel_spacing_avg, product_type, rtc_s1_static_validity_start_date,
         is_mosaic=True)
 
     # set scratch directory and output_dir
@@ -375,7 +373,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
     save_incidence_angle = geocode_namespace.save_incidence_angle
     save_local_inc_angle = geocode_namespace.save_local_inc_angle
     save_projection_angle = geocode_namespace.save_projection_angle
-    save_rtc_anf_projection_angle = geocode_namespace.save_rtc_anf_projection_angle
+    save_rtc_anf_projection_angle = \
+        geocode_namespace.save_rtc_anf_projection_angle
     save_range_slope = geocode_namespace.save_range_slope
     save_nlooks = geocode_namespace.save_nlooks
 
@@ -811,7 +810,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         if save_rtc_anf_gamma0_to_sigma0:
             output_metadata_dict[
                 LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0][1].append(
-                rtc_anf_file)
+                rtc_anf_gamma0_to_sigma0_file)
 
         radar_grid_file_dict = {}
 
@@ -821,7 +820,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 LAYER_NAME_INCIDENCE_ANGLE: save_incidence_angle,
                 LAYER_NAME_LOCAL_INCIDENCE_ANGLE: save_local_inc_angle,
                 LAYER_NAME_PROJECTION_ANGLE: save_projection_angle,
-                LAYER_NAME_RTC_ANF_PROJECTION_ANGLE: save_rtc_anf_projection_angle,
+                LAYER_NAME_RTC_ANF_PROJECTION_ANGLE:
+                    save_rtc_anf_projection_angle,
                 LAYER_NAME_RANGE_SLOPE: save_range_slope,
                 LAYER_NAME_DEM: save_dem}
 
