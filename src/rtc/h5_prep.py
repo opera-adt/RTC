@@ -237,6 +237,8 @@ def get_product_version(product_version_runconfig):
     '''
     Returns the product version from the product
     version defined by the user in the runconfig.
+    If the runconfig product version is not set, use
+    the SOFTWARE_VERSION instead
 
     Parameters
     ---------
