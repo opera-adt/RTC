@@ -617,8 +617,8 @@ def mosaic_single_output_file(list_rtc_images, list_nlooks, mosaic_filename,
     raster_out = drv_out.Create(mosaic_filename, width, length, num_bands,
                                 datatype_mosaic)
 
-    raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0,
-                                posting_y))
+    raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0,
+                                ymax_mosaic, 0, posting_y))
     raster_out.SetProjection(wkt_projection)
 
     for i_band in range(num_bands):
@@ -703,8 +703,8 @@ def mosaic_multiple_output_files(
         raster_out = drv_out.Create(output_file, width, length, nbands,
                                     datatype_mosaic)
 
-        raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0, ymax_mosaic, 0,
-                                    posting_y))
+        raster_out.SetGeoTransform((xmin_mosaic, posting_x, 0,
+                                    ymax_mosaic, 0, posting_y))
 
         raster_out.SetProjection(wkt_projection)
 
