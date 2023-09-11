@@ -454,7 +454,8 @@ def get_metadata_dict(product_id: str,
     # RTC algorithm
     rtc_algorithm = cfg_in.groups.processing.rtc.algorithm_type
     if rtc_algorithm == 'area_projection':
-        rtc_algorithm = 'Area-Based SAR Radiometric Terrain Correction (RTC-AP)'
+        rtc_algorithm = ('Area-Based SAR Radiometric Terrain Correction'
+                         ' (RTC-AP)')
 
     # burst and mosaic snap values
     burst_snap_x = cfg_in.groups.processing.geocoding.bursts_geogrid.x_snap
@@ -879,15 +880,6 @@ def get_metadata_dict(product_id: str,
              'backscatter_dB = 10*log10(backscatter_linear)',
              'Equation to convert provided backscatter to decibel (dB)'],
 
-        # 1.7.8
-        ('metadata/processingInformation/parameters/geocoding/'
-            '/ceosAnalysisReadyDataPixelCoordinateConvention'):
-            ['processing_information_'
-             'ceos_analysis_ready_data_pixel_coordinate_convention',
-             ALL_PRODUCTS,
-             'ULC',
-             'CEOS Analysis Ready Data (CARD) pixel coordinate convention'],
-
         # 4.4
         ('metadata/processingInformation/parameters/geocoding/'
             'burstGeogridSnapX'):
@@ -1117,17 +1109,25 @@ def get_metadata_dict(product_id: str,
         ]
 
         metadata_dict['identification/boundingBox'] = \
-            [None,
+            ['bounding_box',
              ALL_PRODUCTS,
              np.array(xy_bounding_box),  # 1.7.5
              'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
 
         # Attribute `epsg` for HDF5 dataset /identification/boundingBox
         metadata_dict['identification/boundingBox[epsg]'] = \
-            [None,
+            ['bounding_box_epsg_code',
              ALL_PRODUCTS,
              str(epsg_geogrid),
              'Bounding box EPSG code']
+
+        # 1.7.8
+        metadata_dict['identification/boundingBox'
+                      '[pixel_coordinate_convention]'] = \
+            ['bounding_box_pixel_coordinate_convention',
+             ALL_PRODUCTS,
+             'Upper left corner (ULC)',
+             'Bounding box pixel coordinate convention']
 
         metadata_dict['identification/burstID'] = \
             ['burst_id',
