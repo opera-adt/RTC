@@ -531,16 +531,11 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.abs_orbit_number,
              'Absolute orbit number'],
-        # NOTE: The field below does not exist on opera_rtc.xml
-        # 'identification/relativeOrbitNumber':
-        #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
             ['track_number',
              ALL_PRODUCTS,
              burst_in.burst_id.track_number,
              'Track number'],
-        # 'identification/missionId':
-        #    [mission_id, 'Mission identifier'],
         'identification/platform':
             ['platform',
              ALL_PRODUCTS,
@@ -607,10 +602,6 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.orbit_direction.lower(),
              'Orbit direction can be ascending or descending'],
-        # 'identification/isUrgentObservation':
-        #     ['is_urgent_observation', False,
-        #      'List of booleans indicating if datatakes
-        #  are nominal or urgent'],
         'identification/isGeocoded':
             [None,
              ALL_PRODUCTS,
@@ -680,11 +671,7 @@ def get_metadata_dict(product_id: str,
              source_data_access,
              'Location from where the source data can be retrieved'
              ' (URL or DOI)'],
-        # 'metadata/sourceData/radarBand':  # 1.6.4
-        #    ['radar_band', 'C', 'Acquired frequency band'],
 
-        # TODO: review, should it be
-        # burst_in.burst_misc_metadata.processing_info_dict["organisation"]?
         'metadata/sourceData/institution':
             ['source_data_institution',
              ALL_PRODUCTS,
@@ -704,8 +691,6 @@ def get_metadata_dict(product_id: str,
              burst_in.range_bandwidth,
              'Processed range bandwidth in Hz'],
 
-        # populate source data processingDateTime with from processing_info
-        # "stop" (SLC Post processing date time)
         'metadata/sourceData/processingDateTime':  # 1.6.6
             ['source_data_processing_datetime',
              ALL_PRODUCTS,
@@ -744,10 +729,6 @@ def get_metadata_dict(product_id: str,
              STANDARD_RTC_S1_ONLY,
              burst_in.radar_center_frequency,
              'Center frequency of the processed image in Hz'],
-        # 'metadata/sourceData/geometry':  # 1.6.7
-        #     ['source_data_geometry',
-        #     'slant range',
-        #     'Geometry of the source data'],
         'metadata/sourceData/zeroDopplerTimeSpacing':  # 1.6.7
             ['source_data_zero_doppler_time_spacing',
              ALL_PRODUCTS,
@@ -769,15 +750,6 @@ def get_metadata_dict(product_id: str,
              STANDARD_RTC_S1_ONLY,
              slant_range_resolution,
              'Slant-range resolution of the source data in meters'],
-
-        # 'metadata/sourceData/azimuthResolution':  # 1.6.7
-        #    ['source_azimuth_resolution',
-        #     burst_in.azimuth_time_interval,
-        #     'Azimuth time resolution of the source data in seconds'],
-        # 'metadata/sourceData/slantRangeResolution':  # 1.6.7
-        #    ['source_slant_range_resolution',
-        #     burst_in.range_pixel_spacing,
-        #     'Slant range resolution of the source data in meters'],
 
         'metadata/sourceData/nearRangeIncidenceAngle':  # 1.6.7
             [None,
@@ -936,19 +908,7 @@ def get_metadata_dict(product_id: str,
              ('An estimate of the localization error standard deviation'
               ' in the easting direction')],
 
-        # 'identification/frameNumber':  # TBD
-        # 'identification/plannedDatatakeId':
-        # 'identification/plannedObservationId':
-
-        # f'{FREQ_GRID_DS}/faradayRotationFlag':
-        #    ['faraday_rotation_flag', False,
-        #     'Flag to indicate if Faraday Rotation correction was applied'],
-        # f'{FREQ_GRID_DS}/polarizationOrientationFlag':
-        #    ['polarization_orientation_flag', False,
-        #    'Flag to indicate if Polarization Orientation correction was
-        # applied'],
-
-        'metadata/processingInformation/algorithms/demInterpolation':
+         'metadata/processingInformation/algorithms/demInterpolation':
             ['processing_information'
              '_dem_interpolation_algorithm',
              ALL_PRODUCTS,
@@ -978,9 +938,6 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              isce3.__version__,
              'Version of the ISCE3 framework used for processing'],
-        # 'metadata/processingInformation/algorithms/RTCVersion':
-        #     [str(SOFTWARE_VERSION),
-        # 'RTC-S1 SAS version used for processing'],
         'metadata/processingInformation/algorithms/s1ReaderVersion':
             ['s1_reader_version',
              ALL_PRODUCTS,
