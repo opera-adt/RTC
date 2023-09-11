@@ -440,19 +440,38 @@ def get_metadata_dict(product_id: str,
         error_msg = f'ERROR Not recognized platform ID: {burst_in.platform_id}'
         raise NotImplementedError(error_msg)
 
+    # geocoding algorithm
+    geocoding_algorithm = cfg_in.groups.processing.geocoding.algorithm_type
+    if geocoding_algorithm == 'area_projection':
+        geocoding_algorithm = ('Area-Based SAR Geocoding with Adaptive'
+                               ' Multilooking (GEO-AP)')
+
+    # RTC algorithm
+    rtc_algorithm = cfg_in.groups.processing.rtc.algorithm_type
+    if rtc_algorithm == 'area_projection':
+        rtc_algorithm = 'Area-Based SAR Radiometric Terrain Correction (RTC-AP)'
+
     # burst and mosaic snap values
     burst_snap_x = cfg_in.groups.processing.geocoding.bursts_geogrid.x_snap
     if not burst_snap_x:
         burst_snap_x = '(DISABLED)'
+    else:
+        burst_snap_x = float(burst_snap_x)
     burst_snap_y = cfg_in.groups.processing.geocoding.bursts_geogrid.y_snap
     if not burst_snap_y:
         burst_snap_y = '(DISABLED)'
+    else:
+        burst_snap_y = float(burst_snap_y)
     mosaic_snap_x = cfg_in.groups.processing.mosaicking.mosaic_geogrid.x_snap
     if not mosaic_snap_x:
         mosaic_snap_x = '(DISABLED)'
+    else:
+        mosaic_snap_x = float(mosaic_snap_x)
     mosaic_snap_y = cfg_in.groups.processing.mosaicking.mosaic_geogrid.y_snap
     if not mosaic_snap_y:
         mosaic_snap_y = '(DISABLED)'
+    else:
+        mosaic_snap_y = float(mosaic_snap_y)
 
     # Geometric accuracy
     estimated_geometric_accuracy_bias_y = \
@@ -547,7 +566,7 @@ def get_metadata_dict(product_id: str,
         'identification/productSpecificationVersion':
             ['product_specification_version',
              ALL_PRODUCTS,
-             PRODUCT_SPECIFICATION_VERSION,
+             str(PRODUCT_SPECIFICATION_VERSION),
              'Product specification version which represents the schema of'
              ' this product'],
         'identification/acquisitionMode':
@@ -574,12 +593,6 @@ def get_metadata_dict(product_id: str,
         #     ['is_urgent_observation', False,
         #      'List of booleans indicating if datatakes
         #  are nominal or urgent'],
-        'identification/diagnosticModeFlag':
-            ['diagnostic_mode_flag',
-             STANDARD_RTC_S1_ONLY,
-             False,
-             'Indicates if the radar mode is a diagnostic mode or not: True or'
-             ' False'],
         'identification/isGeocoded':
             [None,
              ALL_PRODUCTS,
@@ -670,7 +683,7 @@ def get_metadata_dict(product_id: str,
         'metadata/sourceData/rangeBandwidth':
             ['source_data_range_bandwidth',
              STANDARD_RTC_S1_ONLY,
-             str(burst_in.range_bandwidth),
+             burst_in.range_bandwidth,
              'Processed range bandwidth in Hz'],
 
         # populate source data processingDateTime with from processing_info
@@ -764,7 +777,7 @@ def get_metadata_dict(product_id: str,
         'metadata/sourceData/maxNoiseEquivalentSigmaZero':  # 1.6.9
             [None,
              STANDARD_RTC_S1_ONLY,
-             -22,
+             -22.0,
              'Maximum Noise equivalent sigma0 in dB'],
 
         'metadata/processingInformation/algorithms/softwareVersion':
@@ -942,14 +955,14 @@ def get_metadata_dict(product_id: str,
             ['processing_information'
              '_geocoding_algorithm',
              ALL_PRODUCTS,
-             cfg_in.groups.processing.geocoding.algorithm_type,
+             geocoding_algorithm,
              'Geocoding algorithm'],
         'metadata/processingInformation/algorithms/' +
         'radiometricTerrainCorrection':
             ['processing_information'
              '_radiometric_terrain_correction_algorithm',
              ALL_PRODUCTS,
-             cfg_in.groups.processing.rtc.algorithm_type,
+             rtc_algorithm,
              'Radiometric terrain correction (RTC) algorithm'],
         'metadata/processingInformation/algorithms/isce3Version':
             ['isce3_version',
