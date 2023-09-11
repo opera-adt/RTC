@@ -1108,10 +1108,11 @@ def get_metadata_dict(product_id: str,
            ymax_geogrid
         ]
 
+        # 1.7.5
         metadata_dict['identification/boundingBox'] = \
             ['bounding_box',
              ALL_PRODUCTS,
-             np.array(xy_bounding_box),  # 1.7.5
+             xy_bounding_box,  
              'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
 
         # Attribute `epsg` for HDF5 dataset /identification/boundingBox
