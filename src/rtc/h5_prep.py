@@ -396,6 +396,10 @@ def get_metadata_dict(product_id: str,
     # product type
     product_type = cfg_in.groups.primary_executable.product_type
 
+    # product type. Update "RTC_S1" and "RTC_S1_STATIC" to
+    # "RTC_S1" and "RTC_S1_STATIC", respectively.
+    product_type_metadata_value = product_type.replace('_', '-')
+
     # product version
     product_version_runconfig = cfg_in.groups.product_group.product_version
     product_version = get_product_version(product_version_runconfig)
@@ -440,19 +444,39 @@ def get_metadata_dict(product_id: str,
         error_msg = f'ERROR Not recognized platform ID: {burst_in.platform_id}'
         raise NotImplementedError(error_msg)
 
+    # geocoding algorithm
+    geocoding_algorithm = cfg_in.groups.processing.geocoding.algorithm_type
+    if geocoding_algorithm == 'area_projection':
+        geocoding_algorithm = ('Area-Based SAR Geocoding with Adaptive'
+                               ' Multilooking (GEO-AP)')
+
+    # RTC algorithm
+    rtc_algorithm = cfg_in.groups.processing.rtc.algorithm_type
+    if rtc_algorithm == 'area_projection':
+        rtc_algorithm = ('Area-Based SAR Radiometric Terrain Correction'
+                         ' (RTC-AP)')
+
     # burst and mosaic snap values
     burst_snap_x = cfg_in.groups.processing.geocoding.bursts_geogrid.x_snap
     if not burst_snap_x:
         burst_snap_x = '(DISABLED)'
+    else:
+        burst_snap_x = float(burst_snap_x)
     burst_snap_y = cfg_in.groups.processing.geocoding.bursts_geogrid.y_snap
     if not burst_snap_y:
         burst_snap_y = '(DISABLED)'
+    else:
+        burst_snap_y = float(burst_snap_y)
     mosaic_snap_x = cfg_in.groups.processing.mosaicking.mosaic_geogrid.x_snap
     if not mosaic_snap_x:
         mosaic_snap_x = '(DISABLED)'
+    else:
+        mosaic_snap_x = float(mosaic_snap_x)
     mosaic_snap_y = cfg_in.groups.processing.mosaicking.mosaic_geogrid.y_snap
     if not mosaic_snap_y:
         mosaic_snap_y = '(DISABLED)'
+    else:
+        mosaic_snap_y = float(mosaic_snap_y)
 
     # Geometric accuracy
     estimated_geometric_accuracy_bias_y = \
@@ -466,12 +490,24 @@ def get_metadata_dict(product_id: str,
 
     if not estimated_geometric_accuracy_bias_y:
         estimated_geometric_accuracy_bias_y = '(UNSPECIFIED)'
+    else:
+        estimated_geometric_accuracy_bias_y = float(
+            estimated_geometric_accuracy_bias_y)
     if not estimated_geometric_accuracy_bias_x:
         estimated_geometric_accuracy_bias_x = '(UNSPECIFIED)'
+    else:
+        estimated_geometric_accuracy_bias_x = float(
+            estimated_geometric_accuracy_bias_x)
     if not estimated_geometric_accuracy_stddev_y:
         estimated_geometric_accuracy_stddev_y = '(UNSPECIFIED)'
+    else:
+        estimated_geometric_accuracy_stddev_y = float(
+            estimated_geometric_accuracy_stddev_y)
     if not estimated_geometric_accuracy_stddev_x:
         estimated_geometric_accuracy_stddev_x = '(UNSPECIFIED)'
+    else:
+        estimated_geometric_accuracy_stddev_x = float(
+            estimated_geometric_accuracy_stddev_x)
 
     subswath_id = burst_in.swath_name.upper()
 
@@ -494,16 +530,11 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.abs_orbit_number,
              'Absolute orbit number'],
-        # NOTE: The field below does not exist on opera_rtc.xml
-        # 'identification/relativeOrbitNumber':
-        #   [int(burst_in.burst_id[1:4]), 'Relative orbit number'],
         'identification/trackNumber':
             ['track_number',
              ALL_PRODUCTS,
              burst_in.burst_id.track_number,
              'Track number'],
-        # 'identification/missionId':
-        #    [mission_id, 'Mission identifier'],
         'identification/platform':
             ['platform',
              ALL_PRODUCTS,
@@ -520,7 +551,7 @@ def get_metadata_dict(product_id: str,
         'identification/productType':
             ['product_type',
              ALL_PRODUCTS,
-             cfg_in.groups.primary_executable.product_type,
+             product_type_metadata_value,
              'Product type'],
         'identification/project':
             ['project',
@@ -547,7 +578,7 @@ def get_metadata_dict(product_id: str,
         'identification/productSpecificationVersion':
             ['product_specification_version',
              ALL_PRODUCTS,
-             PRODUCT_SPECIFICATION_VERSION,
+             str(PRODUCT_SPECIFICATION_VERSION),
              'Product specification version which represents the schema of'
              ' this product'],
         'identification/acquisitionMode':
@@ -570,16 +601,6 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.orbit_direction.lower(),
              'Orbit direction can be ascending or descending'],
-        # 'identification/isUrgentObservation':
-        #     ['is_urgent_observation', False,
-        #      'List of booleans indicating if datatakes
-        #  are nominal or urgent'],
-        'identification/diagnosticModeFlag':
-            ['diagnostic_mode_flag',
-             STANDARD_RTC_S1_ONLY,
-             False,
-             'Indicates if the radar mode is a diagnostic mode or not: True or'
-             ' False'],
         'identification/isGeocoded':
             [None,
              ALL_PRODUCTS,
@@ -649,11 +670,7 @@ def get_metadata_dict(product_id: str,
              source_data_access,
              'Location from where the source data can be retrieved'
              ' (URL or DOI)'],
-        # 'metadata/sourceData/radarBand':  # 1.6.4
-        #    ['radar_band', 'C', 'Acquired frequency band'],
 
-        # TODO: review, should it be
-        # burst_in.burst_misc_metadata.processing_info_dict["organisation"]?
         'metadata/sourceData/institution':
             ['source_data_institution',
              ALL_PRODUCTS,
@@ -670,11 +687,9 @@ def get_metadata_dict(product_id: str,
         'metadata/sourceData/rangeBandwidth':
             ['source_data_range_bandwidth',
              STANDARD_RTC_S1_ONLY,
-             str(burst_in.range_bandwidth),
+             burst_in.range_bandwidth,
              'Processed range bandwidth in Hz'],
 
-        # populate source data processingDateTime with from processing_info
-        # "stop" (SLC Post processing date time)
         'metadata/sourceData/processingDateTime':  # 1.6.6
             ['source_data_processing_datetime',
              ALL_PRODUCTS,
@@ -713,10 +728,6 @@ def get_metadata_dict(product_id: str,
              STANDARD_RTC_S1_ONLY,
              burst_in.radar_center_frequency,
              'Center frequency of the processed image in Hz'],
-        # 'metadata/sourceData/geometry':  # 1.6.7
-        #     ['source_data_geometry',
-        #     'slant range',
-        #     'Geometry of the source data'],
         'metadata/sourceData/zeroDopplerTimeSpacing':  # 1.6.7
             ['source_data_zero_doppler_time_spacing',
              ALL_PRODUCTS,
@@ -730,23 +741,14 @@ def get_metadata_dict(product_id: str,
              ' of the source data'],
         'metadata/sourceData/azimuthResolutionInMeters':  # 1.6.7
             ['source_data_azimuth_resolution_in_meters',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              azimuth_resolution,
              'Azimuth resolution of the source data in meters'],
         'metadata/sourceData/slantRangeResolutionInMeters':  # 1.6.7
             ['source_data_slant_range_resolution_in_meters',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              slant_range_resolution,
              'Slant-range resolution of the source data in meters'],
-
-        # 'metadata/sourceData/azimuthResolution':  # 1.6.7
-        #    ['source_azimuth_resolution',
-        #     burst_in.azimuth_time_interval,
-        #     'Azimuth time resolution of the source data in seconds'],
-        # 'metadata/sourceData/slantRangeResolution':  # 1.6.7
-        #    ['source_slant_range_resolution',
-        #     burst_in.range_pixel_spacing,
-        #     'Slant range resolution of the source data in meters'],
 
         'metadata/sourceData/nearRangeIncidenceAngle':  # 1.6.7
             [None,
@@ -764,7 +766,7 @@ def get_metadata_dict(product_id: str,
         'metadata/sourceData/maxNoiseEquivalentSigmaZero':  # 1.6.9
             [None,
              STANDARD_RTC_S1_ONLY,
-             -22,
+             -22.0,
              'Maximum Noise equivalent sigma0 in dB'],
 
         'metadata/processingInformation/algorithms/softwareVersion':
@@ -861,15 +863,6 @@ def get_metadata_dict(product_id: str,
              'backscatter_dB = 10*log10(backscatter_linear)',
              'Equation to convert provided backscatter to decibel (dB)'],
 
-        # 1.7.8
-        ('metadata/processingInformation/parameters/geocoding/'
-            '/ceosAnalysisReadyDataPixelCoordinateConvention'):
-            ['processing_information_'
-             'ceos_analysis_ready_data_pixel_coordinate_convention',
-             ALL_PRODUCTS,
-             'ULC',
-             'CEOS Analysis Ready Data (CARD) pixel coordinate convention'],
-
         # 4.4
         ('metadata/processingInformation/parameters/geocoding/'
             'burstGeogridSnapX'):
@@ -914,18 +907,6 @@ def get_metadata_dict(product_id: str,
              ('An estimate of the localization error standard deviation'
               ' in the easting direction')],
 
-        # 'identification/frameNumber':  # TBD
-        # 'identification/plannedDatatakeId':
-        # 'identification/plannedObservationId':
-
-        # f'{FREQ_GRID_DS}/faradayRotationFlag':
-        #    ['faraday_rotation_flag', False,
-        #     'Flag to indicate if Faraday Rotation correction was applied'],
-        # f'{FREQ_GRID_DS}/polarizationOrientationFlag':
-        #    ['polarization_orientation_flag', False,
-        #    'Flag to indicate if Polarization Orientation correction was
-        # applied'],
-
         'metadata/processingInformation/algorithms/demInterpolation':
             ['processing_information'
              '_dem_interpolation_algorithm',
@@ -942,23 +923,20 @@ def get_metadata_dict(product_id: str,
             ['processing_information'
              '_geocoding_algorithm',
              ALL_PRODUCTS,
-             cfg_in.groups.processing.geocoding.algorithm_type,
+             geocoding_algorithm,
              'Geocoding algorithm'],
         'metadata/processingInformation/algorithms/' +
         'radiometricTerrainCorrection':
             ['processing_information'
              '_radiometric_terrain_correction_algorithm',
              ALL_PRODUCTS,
-             cfg_in.groups.processing.rtc.algorithm_type,
+             rtc_algorithm,
              'Radiometric terrain correction (RTC) algorithm'],
         'metadata/processingInformation/algorithms/isce3Version':
             ['isce3_version',
              ALL_PRODUCTS,
              isce3.__version__,
              'Version of the ISCE3 framework used for processing'],
-        # 'metadata/processingInformation/algorithms/RTCVersion':
-        #     [str(SOFTWARE_VERSION),
-        # 'RTC-S1 SAS version used for processing'],
         'metadata/processingInformation/algorithms/s1ReaderVersion':
             ['s1_reader_version',
              ALL_PRODUCTS,
@@ -1098,18 +1076,27 @@ def get_metadata_dict(product_id: str,
            ymax_geogrid
         ]
 
+        # 1.7.5
         metadata_dict['identification/boundingBox'] = \
-            [None,
+            ['bounding_box',
              ALL_PRODUCTS,
-             np.array(xy_bounding_box),  # 1.7.5
+             xy_bounding_box,  
              'Bounding box of the product, in order of xmin, ymin, xmax, ymax']
 
         # Attribute `epsg` for HDF5 dataset /identification/boundingBox
         metadata_dict['identification/boundingBox[epsg]'] = \
-            [None,
+            ['bounding_box_epsg_code',
              ALL_PRODUCTS,
              str(epsg_geogrid),
              'Bounding box EPSG code']
+
+        # 1.7.8
+        metadata_dict['identification/boundingBox'
+                      '[pixel_coordinate_convention]'] = \
+            ['bounding_box_pixel_coordinate_convention',
+             ALL_PRODUCTS,
+             'Upper left corner (ULC)',
+             'Bounding box pixel coordinate convention']
 
         metadata_dict['identification/burstID'] = \
             ['burst_id',
@@ -1128,7 +1115,8 @@ def get_metadata_dict(product_id: str,
             ['zero_doppler_start_time',
              ALL_PRODUCTS,
              burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
-             'Azimuth start time of the product in the format YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
+             'Azimuth start time of the product in the format'
+             ' YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
 
         # TODO: Update for static layers!!!
         metadata_dict['identification/zeroDopplerEndTime'] = \
@@ -1143,7 +1131,7 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
              'Azimuth start time of the input product in the format'
-             ' YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
+             ' YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
         metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
             ['source_data_zero_doppler_end_time',
              ALL_PRODUCTS,
@@ -1415,7 +1403,8 @@ def get_rfi_metadata_dict(burst_in, rfi_root_path):
     rfi_metadata_dict[f'{rfi_root_path}/isRfiInfoAvailable'] =\
         ['qa_rfi_info_available',
          not is_rfi_info_empty,
-         'A flag to indicate whether RFI information is available in the source data']
+         'A flag to indicate whether RFI information is available in the'
+         ' source data']
 
     if is_rfi_info_empty:
         return rfi_metadata_dict
@@ -1438,8 +1427,8 @@ def get_rfi_metadata_dict(burst_in, rfi_root_path):
             ['qa_rfi_burst_report_azimuth_time',
              burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(
                 DATE_TIME_METADATA_FORMAT),
-             'Sensing start time of the burst that corresponds to the RFI report'
-             ' in the format YYYY-MM-DDThh:mm:ss.sZ'],
+             'Sensing start time of the burst that corresponds to the RFI'
+             ' report in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'rfiBurstReport/inBandOutBandPowerRatio':
             ['qa_rfi_in_band_out_band_power_ratio',
              burst_in.burst_rfi_info.rfi_burst_report[

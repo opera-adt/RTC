@@ -1443,6 +1443,8 @@ def run_single_job(cfg: RunConfig):
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
+        burst_output_file_list = []
+
         geogrid = cfg.geogrids[burst_id]
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
@@ -1586,7 +1588,7 @@ def run_single_job(cfg: RunConfig):
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
             else:
-                output_file_list.append(nlooks_file)
+                burst_output_file_list.append(nlooks_file)
         else:
             nlooks_file = None
 
@@ -1598,7 +1600,7 @@ def run_single_job(cfg: RunConfig):
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
             else:
-                output_file_list.append(rtc_anf_file)
+                burst_output_file_list.append(rtc_anf_file)
 
         else:
             rtc_anf_file = None
@@ -1612,7 +1614,7 @@ def run_single_job(cfg: RunConfig):
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_gamma0_to_sigma0_file)
             else:
-                output_file_list.append(rtc_anf_gamma0_to_sigma0_file)
+                burst_output_file_list.append(rtc_anf_gamma0_to_sigma0_file)
 
         else:
             rtc_anf_gamma0_to_sigma0_file = None
@@ -1715,7 +1717,7 @@ def run_single_job(cfg: RunConfig):
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
             else:
-                output_file_list.append(layover_shadow_mask_file)
+                burst_output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
                 if save_mask:
                     output_metadata_dict[LAYER_NAME_LAYOVER_SHADOW_MASK][1].append(
@@ -1858,7 +1860,7 @@ def run_single_job(cfg: RunConfig):
                                    output_burst_imagery_list,
                                    output_raster_format, logger)
 
-            output_file_list += output_burst_imagery_list
+            burst_output_file_list += output_burst_imagery_list
 
         if save_nlooks:
             if flag_process:
@@ -1913,7 +1915,7 @@ def run_single_job(cfg: RunConfig):
                 # files are temporary
                 temp_files_list += radar_grid_file_dict_filenames
             else:
-                output_file_list += radar_grid_file_dict_filenames
+                burst_output_file_list += radar_grid_file_dict_filenames
 
             # Save browse image (burst) using static layers
             if (flag_save_browse and
@@ -1925,7 +1927,7 @@ def run_single_job(cfg: RunConfig):
                                    browse_image_burst_height,
                                    browse_image_burst_width, temp_files_list,
                                    burst_scratch_path, logger)
-                output_file_list.append(browse_image_filename)
+                burst_output_file_list.append(browse_image_filename)
 
         # Create burst HDF5
         if (flag_process and save_hdf5_metadata and save_bursts):
@@ -1943,7 +1945,7 @@ def run_single_job(cfg: RunConfig):
                     layover_shadow_mask_file, radar_grid_file_dict,
                     save_imagery=save_imagery_as_hdf5,
                     save_secondary_layers=save_secondary_layers_as_hdf5)
-            output_file_list.append(output_hdf5_file_burst)
+            burst_output_file_list.append(output_hdf5_file_burst)
 
         # Save browse image (burst)
         if (flag_process and flag_save_browse and
@@ -1955,7 +1957,7 @@ def run_single_job(cfg: RunConfig):
                                 pol_list, browse_image_burst_height,
                                 browse_image_burst_width, temp_files_list,
                                 burst_scratch_path, logger)
-            output_file_list.append(browse_image_filename)
+            burst_output_file_list.append(browse_image_filename)
 
         # Append metadata to burst GeoTIFFs
         if (flag_process and (not flag_bursts_files_are_temporary or
@@ -1965,7 +1967,7 @@ def run_single_job(cfg: RunConfig):
                                               is_mosaic=False)
             geotiff_metadata_dict = all_metadata_dict_to_geotiff_metadata_dict(
                 metadata_dict)
-            for current_file in output_file_list:
+            for current_file in burst_output_file_list:
                 if not current_file.endswith('.tif'):
                     continue
                 append_metadata_to_geotiff_file(current_file,
@@ -1987,6 +1989,8 @@ def run_single_job(cfg: RunConfig):
             mosaic_geotiff_metadata_dict = \
                 all_metadata_dict_to_geotiff_metadata_dict(
                     mosaic_metadata_dict)
+
+        output_file_list += burst_output_file_list
 
         t_burst_end = time.time()
         logger.info(
