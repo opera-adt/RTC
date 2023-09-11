@@ -45,17 +45,6 @@ jobs:
         with:
           environment-file: ${{ matrix.env-file.file }}
           environment-name: RTC
-
-      # Install the S1-Reader OPERA-ADT project.
-      - name: Install S1-Reader
-        run: |
-          curl -sSL \
-            https://github.com/opera-adt/s1-reader/archive/refs/tags/v0.1.7.tar.gz \
-            -o s1_reader_src.tar.gz \
-          && tar -xvf s1_reader_src.tar.gz \
-          && ln -s s1-reader-0.1.7 s1-reader \
-          && rm s1_reader_src.tar.gz \
-          && python -m pip install ./s1-reader
       
       # Setup the project
       - name: Install Project
