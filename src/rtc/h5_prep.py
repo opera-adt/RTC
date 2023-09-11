@@ -908,7 +908,7 @@ def get_metadata_dict(product_id: str,
              ('An estimate of the localization error standard deviation'
               ' in the easting direction')],
 
-         'metadata/processingInformation/algorithms/demInterpolation':
+        'metadata/processingInformation/algorithms/demInterpolation':
             ['processing_information'
              '_dem_interpolation_algorithm',
              ALL_PRODUCTS,
@@ -1116,7 +1116,8 @@ def get_metadata_dict(product_id: str,
             ['zero_doppler_start_time',
              ALL_PRODUCTS,
              burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
-             'Azimuth start time of the product in the format YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
+             'Azimuth start time of the product in the format'
+             ' YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
 
         # TODO: Update for static layers!!!
         metadata_dict['identification/zeroDopplerEndTime'] = \
@@ -1131,7 +1132,7 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.sensing_start.strftime(DATE_TIME_METADATA_FORMAT),
              'Azimuth start time of the input product in the format'
-             ' YYYY-MM-DDThh:mm:ss.sZ'] # 1.6.3
+             ' YYYY-MM-DDThh:mm:ss.sZ']  # 1.6.3
         metadata_dict['metadata/sourceData/zeroDopplerEndTime'] = \
             ['source_data_zero_doppler_end_time',
              ALL_PRODUCTS,
@@ -1403,7 +1404,8 @@ def get_rfi_metadata_dict(burst_in, rfi_root_path):
     rfi_metadata_dict[f'{rfi_root_path}/isRfiInfoAvailable'] =\
         ['qa_rfi_info_available',
          not is_rfi_info_empty,
-         'A flag to indicate whether RFI information is available in the source data']
+         'A flag to indicate whether RFI information is available in the'
+         ' source data']
 
     if is_rfi_info_empty:
         return rfi_metadata_dict
@@ -1426,8 +1428,8 @@ def get_rfi_metadata_dict(burst_in, rfi_root_path):
             ['qa_rfi_burst_report_azimuth_time',
              burst_in.burst_rfi_info.rfi_burst_report['azimuthTime'].strftime(
                 DATE_TIME_METADATA_FORMAT),
-             'Sensing start time of the burst that corresponds to the RFI report'
-             ' in the format YYYY-MM-DDThh:mm:ss.sZ'],
+             'Sensing start time of the burst that corresponds to the RFI'
+             ' report in the format YYYY-MM-DDThh:mm:ss.sZ'],
         'rfiBurstReport/inBandOutBandPowerRatio':
             ['qa_rfi_in_band_out_band_power_ratio',
              burst_in.burst_rfi_info.rfi_burst_report[
