@@ -384,6 +384,11 @@ def get_metadata_dict(product_id: str,
         the field is not saved on the GeoTIFF file
     '''
 
+    # product type. Update "RTC_S1" and "RTC_S1_STATIC" to
+    # "RTC_S1" and "RTC_S1_STATIC", respectively.
+    product_type = \
+        cfg_in.groups.primary_executable.product_type.replace('_', '-')
+
     # orbit files
     orbit_files = [os.path.basename(f) for f in cfg_in.orbit_path]
 
@@ -539,7 +544,7 @@ def get_metadata_dict(product_id: str,
         'identification/productType':
             ['product_type',
              ALL_PRODUCTS,
-             cfg_in.groups.primary_executable.product_type,
+             product_type,
              'Product type'],
         'identification/project':
             ['project',
@@ -743,12 +748,12 @@ def get_metadata_dict(product_id: str,
              ' of the source data'],
         'metadata/sourceData/azimuthResolutionInMeters':  # 1.6.7
             ['source_data_azimuth_resolution_in_meters',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              azimuth_resolution,
              'Azimuth resolution of the source data in meters'],
         'metadata/sourceData/slantRangeResolutionInMeters':  # 1.6.7
             ['source_data_slant_range_resolution_in_meters',
-             ALL_PRODUCTS,
+             STANDARD_RTC_S1_ONLY,
              slant_range_resolution,
              'Slant-range resolution of the source data in meters'],
 
