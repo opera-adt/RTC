@@ -615,6 +615,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         logger.info(f'Processing burst: {burst_id} ({burst_index+1}/'
                     f'{n_bursts})')
 
+        burst_output_file_list = []
+
         pol_list = list(burst_pol_dict.keys())
         burst = burst_pol_dict[pol_list[0]]
         geogrid = cfg.geogrids[burst_id]
@@ -683,7 +685,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(nlooks_file)
             else:
-                output_file_list.append(nlooks_file)
+                burst_output_file_list.append(nlooks_file)
         else:
             nlooks_file = None
 
@@ -700,7 +702,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_file)
             else:
-                output_file_list.append(rtc_anf_file)
+                burst_output_file_list.append(rtc_anf_file)
 
         else:
             rtc_anf_file = None
@@ -720,7 +722,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             if flag_bursts_secondary_files_are_temporary:
                 temp_files_list.append(rtc_anf_gamma0_to_sigma0_file)
             else:
-                output_file_list.append(rtc_anf_gamma0_to_sigma0_file)
+                burst_output_file_list.append(rtc_anf_gamma0_to_sigma0_file)
 
         else:
             rtc_anf_gamma0_to_sigma0_file = None
@@ -746,7 +748,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 temp_files_list.append(layover_shadow_mask_file)
                 layover_shadow_mask_file = None
             else:
-                output_file_list.append(layover_shadow_mask_file)
+                burst_output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
 
                 # Take the layover shadow mask from HDF5 file if not exists
@@ -796,7 +798,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             temp_files_list.append(geo_burst_vrt_filename)
 
             if not flag_bursts_files_are_temporary:
-                output_file_list += output_burst_imagery_list
+                burst_output_file_list += output_burst_imagery_list
             else:
                 temp_files_list += output_burst_imagery_list
 
@@ -834,14 +836,14 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 if flag_bursts_secondary_files_are_temporary:
                     temp_files_list.append(current_file)
                 else:
-                    output_file_list.append(current_file)
+                    burst_output_file_list.append(current_file)
 
             # Browse image (burst) using static layers
             if (flag_save_browse and
                     product_type == STATIC_LAYERS_PRODUCT_TYPE):
                 browse_image_filename = \
                     os.path.join(output_dir_bursts, f'{burst_product_id}.png')
-                output_file_list.append(browse_image_filename)
+                burst_output_file_list.append(browse_image_filename)
 
         # Create burst HDF5
         if (save_hdf5_metadata and save_bursts):
@@ -850,7 +852,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             output_hdf5_file_burst = os.path.join(
                 hdf5_file_output_dir,
                 f'{burst_product_id}.{hdf5_file_extension}')
-            output_file_list.append(output_hdf5_file_burst)
+            burst_output_file_list.append(output_hdf5_file_burst)
 
         # Create mosaic HDF5
         if (save_hdf5_metadata and save_mosaics
@@ -864,7 +866,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 product_type != STATIC_LAYERS_PRODUCT_TYPE):
             browse_image_filename = \
                 os.path.join(output_dir_bursts, f'{burst_product_id}.png')
-            output_file_list.append(browse_image_filename)
+            burst_output_file_list.append(browse_image_filename)
 
         # Save mosaic metadata for later use
         if (save_mosaics and burst_index == 0):
@@ -874,6 +876,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             mosaic_geotiff_metadata_dict = \
                 all_metadata_dict_to_geotiff_metadata_dict(
                     mosaic_metadata_dict)
+
+        output_file_list += burst_output_file_list
 
         t_burst_end = time.time()
         logger.info(
