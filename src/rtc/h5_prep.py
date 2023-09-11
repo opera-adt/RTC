@@ -491,12 +491,24 @@ def get_metadata_dict(product_id: str,
 
     if not estimated_geometric_accuracy_bias_y:
         estimated_geometric_accuracy_bias_y = '(UNSPECIFIED)'
+    else:
+        estimated_geometric_accuracy_bias_y = float(
+            estimated_geometric_accuracy_bias_y)
     if not estimated_geometric_accuracy_bias_x:
         estimated_geometric_accuracy_bias_x = '(UNSPECIFIED)'
+    else:
+        estimated_geometric_accuracy_bias_x = float(
+            estimated_geometric_accuracy_bias_x)
     if not estimated_geometric_accuracy_stddev_y:
         estimated_geometric_accuracy_stddev_y = '(UNSPECIFIED)'
+    else:
+        estimated_geometric_accuracy_stddev_y = float(
+            estimated_geometric_accuracy_stddev_y)
     if not estimated_geometric_accuracy_stddev_x:
         estimated_geometric_accuracy_stddev_x = '(UNSPECIFIED)'
+    else:
+        estimated_geometric_accuracy_stddev_x = float(
+            estimated_geometric_accuracy_stddev_x)
 
     subswath_id = burst_in.swath_name.upper()
 
