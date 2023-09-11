@@ -384,11 +384,6 @@ def get_metadata_dict(product_id: str,
         the field is not saved on the GeoTIFF file
     '''
 
-    # product type. Update "RTC_S1" and "RTC_S1_STATIC" to
-    # "RTC_S1" and "RTC_S1_STATIC", respectively.
-    product_type = \
-        cfg_in.groups.primary_executable.product_type.replace('_', '-')
-
     # orbit files
     orbit_files = [os.path.basename(f) for f in cfg_in.orbit_path]
 
@@ -400,6 +395,10 @@ def get_metadata_dict(product_id: str,
 
     # product type
     product_type = cfg_in.groups.primary_executable.product_type
+
+    # product type. Update "RTC_S1" and "RTC_S1_STATIC" to
+    # "RTC_S1" and "RTC_S1_STATIC", respectively.
+    product_type_metadata_value = product_type.replace('_', '-')
 
     # product version
     product_version_runconfig = cfg_in.groups.product_group.product_version
@@ -552,7 +551,7 @@ def get_metadata_dict(product_id: str,
         'identification/productType':
             ['product_type',
              ALL_PRODUCTS,
-             product_type,
+             product_type_metadata_value,
              'Product type'],
         'identification/project':
             ['project',
