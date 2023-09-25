@@ -1095,7 +1095,7 @@ def get_metadata_dict(product_id: str,
                       '[pixel_coordinate_convention]'] = \
             ['bounding_box_pixel_coordinate_convention',
              ALL_PRODUCTS,
-             'Upper left corner (ULC)',
+             "Edges/corners",
              'Bounding box pixel coordinate convention']
 
         metadata_dict['identification/burstID'] = \
