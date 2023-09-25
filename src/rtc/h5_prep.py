@@ -491,13 +491,13 @@ def get_metadata_dict(product_id: str,
     if not estimated_geometric_accuracy_bias_y:
         estimated_geometric_accuracy_bias_y = '(UNSPECIFIED)'
     else:
-        estimated_geometric_accuracy_bias_y = abs(float(
-            estimated_geometric_accuracy_bias_y))
+        estimated_geometric_accuracy_bias_y = float(
+            estimated_geometric_accuracy_bias_y)
     if not estimated_geometric_accuracy_bias_x:
         estimated_geometric_accuracy_bias_x = '(UNSPECIFIED)'
     else:
-        estimated_geometric_accuracy_bias_x = abs(float(
-            estimated_geometric_accuracy_bias_x))
+        estimated_geometric_accuracy_bias_x = float(
+            estimated_geometric_accuracy_bias_x)
     if not estimated_geometric_accuracy_stddev_y:
         estimated_geometric_accuracy_stddev_y = '(UNSPECIFIED)'
     else:
@@ -879,12 +879,12 @@ def get_metadata_dict(product_id: str,
         # 'metadata/processingInformation/geoidReference':  # for 4.2
 
         # 4.3
-        'metadata/qa/geometricAccuracy/absBias/y':
-            ['qa_geometric_accuracy_abs_bias_y',
+        'metadata/qa/geometricAccuracy/bias/y':
+            ['qa_geometric_accuracy_bias_y',
              STANDARD_RTC_S1_ONLY,
              estimated_geometric_accuracy_bias_y,
-             ('An estimate of the absolute localization error bias in the'
-              ' northing direction')],
+             ('An estimate of the localization error bias in the northing'
+              ' direction')],
 
         'metadata/qa/geometricAccuracy/stddev/y':
             ['qa_geometric_accuracy_stddev_y',
@@ -893,12 +893,12 @@ def get_metadata_dict(product_id: str,
              ('An estimate of the localization error standard deviation'
               ' in the northing direction')],
 
-        'metadata/qa/geometricAccuracy/absBias/x':
-            ['qa_geometric_accuracy_abs_bias_x',
+        'metadata/qa/geometricAccuracy/bias/x':
+            ['qa_geometric_accuracy_bias_x',
              STANDARD_RTC_S1_ONLY,
              estimated_geometric_accuracy_bias_x,
-             ('An estimate of the absolute localization error bias in the'
-              ' easting direction')],
+             ('An estimate of the localization error bias in the easting'
+              ' direction')],
 
         'metadata/qa/geometricAccuracy/stddev/x':
             ['qa_geometric_accuracy_stddev_x',
