@@ -491,13 +491,13 @@ def get_metadata_dict(product_id: str,
     if not estimated_geometric_accuracy_bias_y:
         estimated_geometric_accuracy_bias_y = '(UNSPECIFIED)'
     else:
-        estimated_geometric_accuracy_bias_y = float(
-            estimated_geometric_accuracy_bias_y)
+        estimated_geometric_accuracy_bias_y = abs(float(
+            estimated_geometric_accuracy_bias_y))
     if not estimated_geometric_accuracy_bias_x:
         estimated_geometric_accuracy_bias_x = '(UNSPECIFIED)'
     else:
-        estimated_geometric_accuracy_bias_x = float(
-            estimated_geometric_accuracy_bias_x)
+        estimated_geometric_accuracy_bias_x = abs(float(
+            estimated_geometric_accuracy_bias_x))
     if not estimated_geometric_accuracy_stddev_y:
         estimated_geometric_accuracy_stddev_y = '(UNSPECIFIED)'
     else:
@@ -880,11 +880,11 @@ def get_metadata_dict(product_id: str,
 
         # 4.3
         'metadata/qa/geometricAccuracy/bias/y':
-            ['qa_geometric_accuracy_bias_y',
+            ['qa_geometric_accuracy_abs_bias_y',
              STANDARD_RTC_S1_ONLY,
              estimated_geometric_accuracy_bias_y,
-             ('An estimate of the localization error bias in the northing'
-              ' direction')],
+             ('An estimate of the absolute localization error bias in the'
+              ' northing direction')],
 
         'metadata/qa/geometricAccuracy/stddev/y':
             ['qa_geometric_accuracy_stddev_y',
@@ -894,11 +894,11 @@ def get_metadata_dict(product_id: str,
               ' in the northing direction')],
 
         'metadata/qa/geometricAccuracy/bias/x':
-            ['qa_geometric_accuracy_bias_x',
+            ['qa_geometric_accuracy_abs_bias_x',
              STANDARD_RTC_S1_ONLY,
              estimated_geometric_accuracy_bias_x,
-             ('An estimate of the localization error bias in the easting'
-              ' direction')],
+             ('An estimate of the absolute localization error bias in the'
+              ' easting direction')],
 
         'metadata/qa/geometricAccuracy/stddev/x':
             ['qa_geometric_accuracy_stddev_x',
@@ -1095,7 +1095,7 @@ def get_metadata_dict(product_id: str,
                       '[pixel_coordinate_convention]'] = \
             ['bounding_box_pixel_coordinate_convention',
              ALL_PRODUCTS,
-             "Edges/corners",
+             "Edges/corners. Xmin, Ymin, Xmax, Ymax.",
              'Bounding box pixel coordinate convention']
 
         metadata_dict['identification/burstID'] = \
