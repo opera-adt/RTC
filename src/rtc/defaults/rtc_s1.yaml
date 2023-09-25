@@ -316,13 +316,13 @@ runconfig:
                 # of the RTC-S1 geographic grid.
 
                 # Height in pixels for the PNG browse image of RTC-S1 bursts.
-                browse_image_burst_height: 1024
+                browse_image_burst_height: 2048
 
                 # Width in pixels for the PNG browse image of RTC-S1 bursts
                 browse_image_burst_width:
 
                 # Height in pixels for the PNG browse image of RTC-S1 mosaics.
-                browse_image_mosaic_height: 1024
+                browse_image_mosaic_height: 2048
 
                 # Width in pixels for the PNG browse image of RTC-S1 mosaics
                 browse_image_mosaic_width:
