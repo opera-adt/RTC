@@ -860,7 +860,7 @@ def get_metadata_dict(product_id: str,
             ['processing_information'
              '_output_backscatter_decibel_conversion_equation',
              ALL_PRODUCTS,
-             'backscatter_dB = 10*log10(backscatter_linear)',
+             '10*log10(backscatter_linear)',
              'Equation to convert provided backscatter to decibel (dB)'],
 
         # 4.4
@@ -1095,7 +1095,7 @@ def get_metadata_dict(product_id: str,
                       '[pixel_coordinate_convention]'] = \
             ['bounding_box_pixel_coordinate_convention',
              ALL_PRODUCTS,
-             'Upper left corner (ULC)',
+             "Edges/corners",
              'Bounding box pixel coordinate convention']
 
         metadata_dict['identification/burstID'] = \
@@ -1199,7 +1199,7 @@ def all_metadata_dict_to_geotiff_metadata_dict(metadata_dict):
         if key is None:
             continue
         if isinstance(value, str):
-            geotiff_metadata_dict[key.upper()] = str(value).upper()
+            geotiff_metadata_dict[key.upper()] = str(value)
             continue
         geotiff_metadata_dict[key.upper()] = value
 
