@@ -1199,7 +1199,7 @@ def all_metadata_dict_to_geotiff_metadata_dict(metadata_dict):
         if key is None:
             continue
         if isinstance(value, str):
-            geotiff_metadata_dict[key.upper()] = str(value).upper()
+            geotiff_metadata_dict[key.upper()] = str(value)
             continue
         geotiff_metadata_dict[key.upper()] = value
 
