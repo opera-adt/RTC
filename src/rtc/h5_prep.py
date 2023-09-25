@@ -879,7 +879,7 @@ def get_metadata_dict(product_id: str,
         # 'metadata/processingInformation/geoidReference':  # for 4.2
 
         # 4.3
-        'metadata/qa/geometricAccuracy/bias/y':
+        'metadata/qa/geometricAccuracy/absBias/y':
             ['qa_geometric_accuracy_abs_bias_y',
              STANDARD_RTC_S1_ONLY,
              estimated_geometric_accuracy_bias_y,
@@ -893,7 +893,7 @@ def get_metadata_dict(product_id: str,
              ('An estimate of the localization error standard deviation'
               ' in the northing direction')],
 
-        'metadata/qa/geometricAccuracy/bias/x':
+        'metadata/qa/geometricAccuracy/absBias/x':
             ['qa_geometric_accuracy_abs_bias_x',
              STANDARD_RTC_S1_ONLY,
              estimated_geometric_accuracy_bias_x,
