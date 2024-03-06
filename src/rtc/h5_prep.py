@@ -430,6 +430,18 @@ def get_metadata_dict(product_id: str,
         cfg_in.groups.product_group.static_layers_data_access
     if not static_layers_data_access:
         static_layers_data_access = '(NOT PROVIDED)'
+    else:
+        # substitute substring "{burst_id}" with the burst ID used for
+        # URL data access, with format updated from "t018_038602_iw2" to
+        # "T018-038602-iw2")
+        burst_id_asf = str(burst_in.burst_id).upper().replace('_', '-')
+        static_layers_data_access = static_layers_data_access.replace(
+            '{burst_id}', f'{burst_id_asf}')
+
+        # update substring "{end_date}"
+        end_date_str = burst_in.sensing_stop.strftime('%Y-%m-%d')
+        static_layers_data_access = static_layers_data_access.replace(
+            '{end_date}', f'{end_date_str}')
 
     # platform ID
     if burst_in.platform_id == 'S1A':
