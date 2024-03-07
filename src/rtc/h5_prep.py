@@ -426,15 +426,13 @@ def get_metadata_dict(product_id: str,
     source_data_access = cfg_in.groups.input_file_group.source_data_access
     if not source_data_access:
         source_data_access = '(NOT PROVIDED)'
-    else:
-        source_data_access = source_data_access.format(
-            burst_id=burst_id_asf, end_date=end_date_str)
 
     # product data access (URL or DOI)
     product_data_access = cfg_in.groups.product_group.product_data_access
     if not product_data_access:
         product_data_access = '(NOT PROVIDED)'
     else:
+        # replace "{burst_id}"" and "{end_date}" substrings
         product_data_access = product_data_access.format(
             burst_id=burst_id_asf, end_date=end_date_str)
 
@@ -444,6 +442,7 @@ def get_metadata_dict(product_id: str,
     if not static_layers_data_access:
         static_layers_data_access = '(NOT PROVIDED)'
     else:
+        # replace "{burst_id}"" and "{end_date}" substrings
         static_layers_data_access = static_layers_data_access.format(
             burst_id=burst_id_asf, end_date=end_date_str)
 
