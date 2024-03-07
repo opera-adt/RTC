@@ -415,15 +415,28 @@ def get_metadata_dict(product_id: str,
         # If the DEM description is not provided, use DEM source
         dem_file_description = os.path.basename(cfg_in.dem)
 
+    # reformat burst ID to URL data access format used by ASF
+    # (e.g., from "t018_038602_iw2" to "T018-038602-iw2")
+    burst_id_asf = str(burst_in.burst_id).upper().replace('_', '-')
+
+    # create substring "{end_date}"
+    end_date_str = burst_in.sensing_stop.strftime('%Y-%m-%d')
+
     # source data access (URL or DOI)
     source_data_access = cfg_in.groups.input_file_group.source_data_access
     if not source_data_access:
         source_data_access = '(NOT PROVIDED)'
+    else:
+        source_data_access = source_data_access.format(
+            burst_id=burst_id_asf, end_date=end_date_str)
 
     # product data access (URL or DOI)
     product_data_access = cfg_in.groups.product_group.product_data_access
     if not product_data_access:
         product_data_access = '(NOT PROVIDED)'
+    else:
+        product_data_access = product_data_access.format(
+            burst_id=burst_id_asf, end_date=end_date_str)
 
     # static layers data access (URL or DOI)
     static_layers_data_access = \
@@ -431,17 +444,8 @@ def get_metadata_dict(product_id: str,
     if not static_layers_data_access:
         static_layers_data_access = '(NOT PROVIDED)'
     else:
-        # substitute substring "{burst_id}" with the burst ID used for
-        # URL data access, with format updated from "t018_038602_iw2" to
-        # "T018-038602-iw2")
-        burst_id_asf = str(burst_in.burst_id).upper().replace('_', '-')
-        static_layers_data_access = static_layers_data_access.replace(
-            '{burst_id}', f'{burst_id_asf}')
-
-        # update substring "{end_date}"
-        end_date_str = burst_in.sensing_stop.strftime('%Y-%m-%d')
-        static_layers_data_access = static_layers_data_access.replace(
-            '{end_date}', f'{end_date_str}')
+        static_layers_data_access = static_layers_data_access.format(
+            burst_id=burst_id_asf, end_date=end_date_str)
 
     # platform ID
     if burst_in.platform_id == 'S1A':
