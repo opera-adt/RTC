@@ -37,9 +37,9 @@ SHELL ["conda", "run", "-n", "RTC", "/bin/bash", "-c"]
 WORKDIR /home/rtc_user/OPERA
 
 # installing OPERA s1-reader
-RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2.2.tar.gz -o s1_reader_src.tar.gz &&\
+RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2.4.tar.gz -o s1_reader_src.tar.gz &&\
     tar -xvf s1_reader_src.tar.gz &&\
-    ln -s s1-reader-0.2.2 s1-reader &&\
+    ln -s s1-reader-0.2.4 s1-reader &&\
     rm s1_reader_src.tar.gz &&\
     python -m pip install ./s1-reader
 
