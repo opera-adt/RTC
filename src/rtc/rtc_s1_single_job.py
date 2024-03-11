@@ -822,13 +822,13 @@ def set_mask_fill_value_and_ctable(mask_file, reference_file):
     mask_gdal_band = mask_gdal_ds.GetRasterBand(1)
     mask_array = mask_gdal_band.ReadAsArray()
     mask_array[(np.isnan(ref_array)) & (mask_array == 0)] = 255
-    mask_gdal_band.WriteArray(mask_array)
     mask_gdal_band.SetNoDataValue(255)
 
     mask_ctable.SetColorEntry(255, (0, 0, 0, 0))
     mask_gdal_band.SetRasterColorTable(mask_ctable)
     mask_gdal_band.SetRasterColorInterpretation(
         gdal.GCI_PaletteIndex)
+    mask_gdal_band.WriteArray(mask_array)
 
     del mask_gdal_band
     del mask_gdal_ds
