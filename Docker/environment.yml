@@ -10,6 +10,6 @@ dependencies:
   - pyre>=1.11.2
   
   - scipy!=1.10.0
-  - isce3>=0.15.0
+  - isce3==0.15.0
   # Workaround for the issue with `libabseil` (09/11/2023)
   - libabseil=20230125.3
