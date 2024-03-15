@@ -154,10 +154,15 @@ def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
     '''
 
     if len(burst_in.border) == 1:
-        geometry_polygon = burst_in.border[0]
+        geometry_polygon = shapely.geometry.Polygon(burst_in.border[0])
     else:
         geometry_polygon = shapely.geometry.MultiPolygon(burst_in.border)
-
+    if geometry_polygon.is_empty:
+        error_msg = f'empty bounding polygon for burst ID {burst_in.burst_id}'
+        raise RuntimeError(error_msg)
+    if not geometry_polygon.is_valid:
+        error_msg = f'invalid bounding polygon for burst ID {burst_in.burst_id}'
+        raise RuntimeError(error_msg)
     return geometry_polygon.wkt
 
 
@@ -493,6 +498,13 @@ def get_metadata_dict(product_id: str,
     else:
         mosaic_snap_y = float(mosaic_snap_y)
 
+    # average azimuth pixel spacing
+    try:
+        average_zero_doppler_spacing_in_meters = \
+            burst_in.average_azimuth_pixel_spacing
+    except AttributeError:
+        average_zero_doppler_spacing_in_meters = '(UNSPECIFIED)'
+
     # Geometric accuracy
     estimated_geometric_accuracy_bias_y = \
         cfg_in.groups.processing.geocoding.estimated_geometric_accuracy_bias_y
@@ -748,6 +760,12 @@ def get_metadata_dict(product_id: str,
              ALL_PRODUCTS,
              burst_in.azimuth_time_interval,
              'Time interval in the along-track direction of the source data'],
+        'metadata/sourceData/averageZeroDopplerSpacingInMeters':  # 1.6.7
+            ['source_data_average_zero_doppler_spacing_in_meters',
+             ALL_PRODUCTS,
+             average_zero_doppler_spacing_in_meters,
+             'Average pixel spacing in meters between consecutive lines'
+             ' in the along-track direction of the source data'],
         'metadata/sourceData/slantRangeSpacing':  # 1.6.7
             ['source_data_slant_range_spacing',
              ALL_PRODUCTS,
