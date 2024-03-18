@@ -610,6 +610,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             # if output burst directory is empty, delete it
             if (os.path.isdir(output_dir_bursts) and
                     len(os.listdir(output_dir_bursts)) == 0):
+                logger.info(f'Removing burst directory: {output_dir_bursts}')
                 os.rmdir(output_dir_bursts)
 
             if processing_result == 0:
@@ -622,6 +623,7 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         # if output directory is empty, delete it
         if (os.path.isdir(output_dir) and
                 len(os.listdir(output_dir)) == 0):
+            logger.info(f'Removing output directory: {output_dir}')
             os.rmdir(output_dir)
 
         raise RuntimeError(msg_failed_child_proc)
