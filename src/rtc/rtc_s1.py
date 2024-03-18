@@ -603,7 +603,8 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
             # products to avoid sending half-empty products to the DAAC
             # Do not delete log files
             for ext in ['h5', 'tif', 'png']:
-                for f in glob.glob(os.path.join(output_dir_bursts, f'*{ext}')):
+                for f in glob.glob(os.path.join(output_dir_bursts,
+                                                f'*.{ext}')):
                     os.remove(f)
 
             # if output burst directory is empty, delete it
