@@ -6,6 +6,7 @@ from itertools import repeat
 import logging
 import multiprocessing
 import os
+import glob
 import subprocess
 import time
 import yaml
@@ -592,11 +593,39 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
         list_burst_id = list(cfg.bursts.keys())
         for index_child, processing_result in \
                 enumerate(processing_result_list):
-            if processing_result != 0:
-                msg_failed_child_proc += (
-                    f'"{burst_runconfig_list[index_child]}"'
-                    ' for burst ID '
-                    f'"{list_burst_id[index_child]}"\n')
+
+            burst_id = list_burst_id[index_child]
+            output_dir_bursts = os.path.join(output_dir, burst_id)
+
+            # Conservative change to avoid breaking OPERA RTC-S1
+            # production. If there's at least one unsuccessful
+            # product, stop execution and delete ALL processed
+            # products to avoid sending half-empty products to the DAAC
+            # Do not delete log files
+            for ext in ['h5', 'tif', 'png']:
+                for f in glob.glob(os.path.join(output_dir_bursts,
+                                                f'*.{ext}')):
+                    os.remove(f)
+
+            # if output burst directory is empty, delete it
+            if (os.path.isdir(output_dir_bursts) and
+                    len(os.listdir(output_dir_bursts)) == 0):
+                logger.info(f'Removing burst directory: {output_dir_bursts}')
+                os.rmdir(output_dir_bursts)
+
+            if processing_result == 0:
+                continue
+
+            msg_failed_child_proc += (
+                f'"{burst_runconfig_list[index_child]}" for burst ID '
+                f'"{burst_id}"\n')
+
+        # if output directory is empty, delete it
+        if (os.path.isdir(output_dir) and
+                len(os.listdir(output_dir)) == 0):
+            logger.info(f'Removing output directory: {output_dir}')
+            os.rmdir(output_dir)
+
         raise RuntimeError(msg_failed_child_proc)
 
     lookside = None
