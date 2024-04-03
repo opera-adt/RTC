@@ -2,7 +2,7 @@
 
 REPO=opera
 IMAGE=rtc
-TAG=final_1.0.2
+TAG=final_1.0.3
 
 echo "IMAGE is $REPO/$IMAGE:$TAG"
 
