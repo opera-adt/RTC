@@ -1,4 +1,4 @@
- Docker/DockerfileFROM oraclelinux:8
+FROM oraclelinux:8
 
 LABEL author="OPERA ADT" \
     description="RTC cal/val release R4" \
