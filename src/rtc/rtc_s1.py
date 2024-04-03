@@ -620,12 +620,6 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
                 f'"{burst_runconfig_list[index_child]}" for burst ID '
                 f'"{burst_id}"\n')
 
-        # if output directory is empty, delete it
-        if (os.path.isdir(output_dir) and
-                len(os.listdir(output_dir)) == 0):
-            logger.info(f'Removing output directory: {output_dir}')
-            os.rmdir(output_dir)
-
         raise RuntimeError(msg_failed_child_proc)
 
     lookside = None
