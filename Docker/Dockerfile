@@ -2,7 +2,7 @@ FROM oraclelinux:8
 
 LABEL author="OPERA ADT" \
     description="RTC cal/val release R4" \
-    version="1.0.2-final"
+    version="1.0.3-final"
 
 RUN yum -y update &&\
     yum -y install curl &&\
