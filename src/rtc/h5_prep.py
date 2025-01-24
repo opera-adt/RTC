@@ -310,7 +310,28 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
 
 
 def save_orbit(orbit, orbit_group, orbit_file_path):
+
+    # ensure that the orbit reference epoch has not fractional part
+    # otherwise, trancate it to seconds precision
+    orbit_reference_epoch = orbit.reference_epoch
+    if orbit_reference_epoch.frac != 0:
+        logger.warning('the orbit reference epoch is not an'
+                       ' integer number. Truncating it'
+                       ' to seconds precision and'
+                       ' updating the orbit ephemeris'
+                       ' accordingly.')
+
+        epoch = isce3.core.DateTime(orbit_reference_epoch.year,
+                                    orbit_reference_epoch.month,
+                                    orbit_reference_epoch.day,
+                                    orbit_reference_epoch.hour,
+                                    orbit_reference_epoch.minute,
+                                    orbit_reference_epoch.second)
+
+        orbit.update_reference_epoch(epoch)
+
     orbit.save_to_h5(orbit_group)
+
     # Add description attributes.
     orbit_group["time"].attrs["description"] = np.string_(
         "Time vector record. This"
