@@ -370,8 +370,11 @@ def save_orbit(orbit, orbit_group, orbit_file_path):
             orbit_type_list.append(orbit_type_individual)
         orbit_type = '; '.join(orbit_type_list)
 
-    d = orbit_group.require_dataset("orbitType", (), "S64",
-                                    data=np.bytes_(orbit_type))
+    if 'orbitType' in orbit_group:
+        del orbit_group['orbitType']
+    d = orbit_group.create_dataset("orbitType",
+                                   data=np.bytes_(orbit_type))
+
     d.attrs["description"] = np.bytes_(
         "Type of orbit file used in processing")
 
