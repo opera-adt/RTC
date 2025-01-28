@@ -1355,7 +1355,11 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         logger.warning(f'WARNING Cannot open raster file: {ds_filename}')
         return
 
-    ds_name = layer_hdf5_dict[layer_name]
+    if isinstance(layer_name, str):
+        ds_name = layer_hdf5_dict[layer_name]
+    else:
+        ds_name = [layer_hdf5_dict[l] for l in layer_name]
+
     if long_name is not None:
         description = long_name
     else:
@@ -1410,6 +1414,8 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
             dset.attrs.create('_FillValue', data=np.nan + 1j * np.nan)
         elif 'float' in gdal.GetDataTypeName(raster.datatype()).lower():
             dset.attrs.create('_FillValue', data=np.nan)
+        elif 'byte' in gdal.GetDataTypeName(raster.datatype()).lower():
+            dset.attrs.create('_FillValue', data=255)
 
         if stats_vector is not None:
             stats_obj = stats_vector[band]
