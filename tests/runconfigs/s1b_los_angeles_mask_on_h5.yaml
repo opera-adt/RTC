@@ -53,13 +53,13 @@ runconfig:
 
           save_bursts: True
           save_mosaics: True
-          output_imagery_format: COG
+          output_imagery_format: HDF5
           output_imagery_compression: ZSTD
           output_imagery_nbits: 16
 
           # Optional. Save secondary layers (e.g., inc. angle) within 
           # the HDF5 file
-          save_secondary_layers_as_hdf5: False
+          save_secondary_layers_as_hdf5: True
 
           # Save RTC-S1 metadata in the HDF5 format
           # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
@@ -167,7 +167,7 @@ runconfig:
               save_dem: False
 
               # Save layover shadow mask
-              save_mask: False
+              save_mask: True
 
               # OPTIONAL - Absolute radiometric correction
               abs_rad_cal: 1
