@@ -1718,9 +1718,10 @@ def run_single_job(cfg: RunConfig):
             else:
                 burst_output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
-                if save_mask:
-                    output_metadata_dict[LAYER_NAME_LAYOVER_SHADOW_MASK][1].append(
-                        layover_shadow_mask_file)
+
+            if save_mask:
+                output_metadata_dict[LAYER_NAME_LAYOVER_SHADOW_MASK][1].append(
+                    layover_shadow_mask_file)
 
             if not save_mask:
                 layover_shadow_mask_file = None
@@ -1849,8 +1850,7 @@ def run_single_job(cfg: RunConfig):
             if product_type != STATIC_LAYERS_PRODUCT_TYPE:
                 output_imagery_list.append(geo_burst_filename)
 
-        if (flag_process and save_mask and
-                not save_secondary_layers_as_hdf5):
+        if flag_process and save_mask:
             set_mask_fill_value_and_ctable(layover_shadow_mask_file,
                                            geo_burst_filename)
 
