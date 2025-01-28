@@ -1214,7 +1214,6 @@ def run_single_job(cfg: RunConfig):
         cfg.groups.processing.correction_lut_range_spacing_in_meters
 
     memory_mode = geocode_namespace.memory_mode
-    geogrid_upsampling = geocode_namespace.geogrid_upsampling
     shadow_dilation_size = geocode_namespace.shadow_dilation_size
     abs_cal_factor = geocode_namespace.abs_rad_cal
     clip_max = geocode_namespace.clip_max
@@ -1323,7 +1322,7 @@ def run_single_job(cfg: RunConfig):
 
     logger.info('Save layers:')
     logger.info(f'    {layer_names_dict[LAYER_NAME_LAYOVER_SHADOW_MASK]}:'
-                f' {save_rtc_anf}')
+                f' {save_mask}')
     logger.info(f'    RTC area normalization factor: {save_rtc_anf}')
     logger.info(f'    RTC area normalization factor Gamma0 to Beta0:'
                 f' {save_rtc_anf_gamma0_to_sigma0}')
@@ -1803,6 +1802,8 @@ def run_single_job(cfg: RunConfig):
             geo_obj.geogrid(geogrid.start_x, geogrid.start_y,
                             geogrid.spacing_x, geogrid.spacing_y,
                             geogrid.width, geogrid.length, geogrid.epsg)
+            
+            geogrid_upsampling = 1
 
             geo_obj.geocode(radar_grid=radar_grid,
                             input_raster=rdr_burst_raster,
