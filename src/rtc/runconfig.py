@@ -39,9 +39,6 @@ def load_parameters(cfg):
     if geocode_namespace.clip_min is None:
         geocode_namespace.clip_min = np.nan
 
-    if geocode_namespace.geogrid_upsampling is None:
-        geocode_namespace.geogrid_upsampling = 1.0
-
     if geocode_namespace.memory_mode == 'single_block':
         geocode_namespace.memory_mode = \
             isce3.core.GeocodeMemoryMode.SingleBlock

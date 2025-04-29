@@ -123,7 +123,7 @@ def _check_results(output_dir, product_prefix, save_imagery_as_hdf5,
 
     else:
         # assert that the following secondary layers are present:
-        ds_list = ['number_of_looks', 'rtc_area_normalization_factor',
+        ds_list = ['number_of_looks', 'rtc_anf_gamma0_to_beta0',
                    # 'rtc_area_normalization_factor_gamma0_to_sigma0',
                    'local_incidence_angle']
         for ds_name in ds_list:
@@ -154,11 +154,9 @@ def test_workflow():
 
     tests_dir = os.path.dirname(__file__)
     dataset_dir = os.path.join(test_data_directory, dataset_name)
-    user_runconfig_file = os.path.join(tests_dir, 'runconfigs',
-                                       's1b_los_angeles.yaml')
+    if FLAG_ALWAYS_DOWNLOAD or not os.path.isdir(dataset_dir):
 
-    if (FLAG_ALWAYS_DOWNLOAD or not os.path.isdir(dataset_dir) or
-            not os.path.isfile(user_runconfig_file)):
+
 
         print(f'Test dataset {dataset_name} not found. Downloading'
               f' file {dataset_url}.')
@@ -179,31 +177,19 @@ def test_workflow():
     full_log_formatting = False
     create_logger(log_file, full_log_formatting)
 
-    # Get a runconfig dict from command line argumens
-    runconfig_path = os.path.join(tests_dir, 'runconfigs',
-                                  's1b_los_angeles.yaml')
+    for runconfig_mode in ['mask_off', 'mask_on',
+                           'mask_off_h5', 'mask_on_h5']:
 
-    # for output_imagery_format in ['COG', 'HDF5']:
-    for output_imagery_format in ['COG']:
+        # Get a runconfig dict from command line argumens
+        runconfig_path = os.path.join(
+                tests_dir, 'runconfigs',
+                f's1b_los_angeles_{runconfig_mode}.yaml')
 
         cfg = RunConfig.load_from_yaml(runconfig_path)
-        cfg.groups.product_group.output_imagery_format = output_imagery_format
 
         output_dir_single_job, product_prefix, save_imagery_as_hdf5, \
             save_secondary_layers_as_hdf5, save_metadata, \
             hdf5_file_extension, imagery_extension = _load_cfg_parameters(cfg)
-
-        # Testing creation of secondary layers:
-        #
-        # The YAML file above (`runconfig_path`) is only set to create the
-        # `numberOfLooks` and `rtcAreaNormalizationFactorGamma0ToBeta0`. Here,
-        # we also force the creation of `layoverShadowMask` and
-        # `localIncidenceAngle` and will test if they are present in the
-        # output files. We also assert that layers not set to be created,
-        # such as `incidenceAngle`, are indeed not created
-
-        cfg.groups.processing.geocoding.save_mask = True
-        cfg.groups.processing.geocoding.save_local_inc_angle = True
 
         # Run geocode burst workflow (single job)
         run_single_job(cfg)

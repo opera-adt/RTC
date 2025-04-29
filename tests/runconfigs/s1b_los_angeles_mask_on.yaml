@@ -1,0 +1,211 @@
+runconfig:
+  name: rtc_s1_workflow_default
+
+  groups:
+      primary_executable:
+          product_type: RTC_S1
+
+      pge_name_group:
+          pge_name: RTC_S1_PGE
+
+      input_file_group:
+          # Required. List of SAFE files (min=1)
+          safe_file_path: [data/s1b_los_angeles/input_dir/S1B_IW_SLC__1SDV_20200926T135152_20200926T135219_023547_02CBCC_F988-CROPPED.zip]
+
+          # Required. List of orbit (EOF) files (min=1)
+          orbit_file_path: [data/s1b_los_angeles/input_dir/S1B_OPER_AUX_PREORB_OPOD_20200926T111139_V20200926T095426_20200926T162926.EOF]
+
+          # Optional. Burst ID to process (empty for all bursts)
+          # burst_id: [t069_147173_iw1, t069_147174_iw1]
+          burst_id: [t071_151225_iw1, t071_151226_iw1]
+
+      dynamic_ancillary_file_group:
+          # Digital elevation model
+          dem_file: data/s1b_los_angeles/input_dir/dem.tif
+
+          # Digital elevation model description
+          dem_file_description:
+
+      static_ancillary_file_group:
+
+          # burst database sqlite file
+          burst_database_file:
+
+      product_group:
+          processing_type: 'CUSTOM'
+
+          # Directory where PGE will place results
+          product_path: .
+
+          # Directory where SAS writes temporary data
+          scratch_path: data/s1b_los_angeles/scratch_dir
+
+          # If option `save_bursts` is set, output bursts are saved to:
+          #     {output_dir}/{burst_id}/{product_id}{suffix}.{ext}
+          # If option `save_mosaics` is set, output mosaics are saved to:
+          #     {output_dir}/{product_id}{suffix}.{ext}
+          # If the field `product_id`` is left empty, the prefix "rtc_product"
+          # will be used instead.
+          # `suffix` is only used when there are multiple output files.
+          # `ext` is determined by geocoding_options.output_imagery_format.
+          output_dir: data/s1b_los_angeles/output_dir
+          product_id: OPERA_L2_RTC-S1_071-151230-IW2_20200926T135152Z_20230125T134122Z_S1B_30
+
+          save_bursts: True
+          save_mosaics: True
+          output_imagery_format: COG
+          output_imagery_compression: ZSTD
+          output_imagery_nbits: 16
+
+          # Optional. Save secondary layers (e.g., inc. angle) within 
+          # the HDF5 file
+          save_secondary_layers_as_hdf5: False
+
+          # Save RTC-S1 metadata in the HDF5 format
+          # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
+          # 'COG', and enabled by default for `output_imagery_format` equal
+          # to 'HDF5' or 'NETCDF' or `save_secondary_layers_as_hdf5` is True
+          save_metadata: True
+
+      processing:
+
+          # Check if ancillary input cover entirely output products
+          check_ancillary_inputs_coverage: True
+
+          polarization: co-pol
+
+          # Options to run geo2rdr
+          geo2rdr:
+              threshold: 1.0e-8
+              numiter: 25
+
+          # Options to run rdr2geo
+          rdr2geo:
+              threshold: 1.0e-7
+              numiter: 25
+
+          # Apply absolute radiometric correction
+          apply_absolute_radiometric_correction: True
+ 
+          # Apply thermal noise correction
+          apply_thermal_noise_correction: True
+
+          # OPTIONAL - Apply RTC
+          apply_rtc: True
+
+          # Apply bistatic delay correction
+          apply_bistatic_delay_correction: True
+
+          # Apply static tropospheric delay correction
+          apply_static_tropospheric_delay_correction: True
+
+          # OPTIONAL - to control behavior of RTC module
+          # (only applicable if geocode.apply_rtc is True)
+          rtc:
+              # OPTIONAL - Choices:
+              # "gamma0" (default)
+              # "sigma0"
+              output_type: gamma0
+
+              # OPTIONAL - Choices:
+              # "bilinear_distribution" (default)
+              # "area_projection"
+              algorithm_type: area_projection
+
+              # OPTIONAL - Choices:
+              # "beta0" (default)
+              # "sigma0"
+              input_terrain_radiometry: beta0
+
+              # OPTIONAL - Minimum RTC area factor in dB
+              rtc_min_value_db: -30
+
+              # RTC DEM upsampling
+              dem_upsampling: 1
+
+          # OPTIONAL - Mechanism to specify output posting and DEM
+          geocoding:
+
+              # OPTIONAL - Apply valid-samples sub-swath masking
+              apply_valid_samples_sub_swath_masking: True
+
+              # OPTIONAL - Apply shadow masking
+              apply_shadow_masking: False
+
+              # OPTIONAL -
+              algorithm_type: area_projection
+
+              # OPTIONAL - Choices: "single_block", "geogrid", "geogrid_radargrid", and "auto" (default)
+              memory_mode: auto
+
+              # Save the incidence angle
+              save_incidence_angle: False
+               
+              # Save the local-incidence angle
+              save_local_inc_angle: True
+
+              # Save the projection angle
+              save_projection_angle: False
+
+              # Save the RTC ANF compuated with the projection angle method
+              save_rtc_anf_projection_angle: False
+
+              # Save the range slope angle
+              save_range_slope: False
+
+              # Save the number of looks used to compute RTC-S1
+              save_nlooks: True
+               
+              # Save the RTC area normalization factor (ANF) used to generate
+              # the RTC product
+              save_rtc_anf: True
+
+              # Save the RTC area normalization factor (ANF) gamma0 to sigma0
+              save_rtc_anf_gamma0_to_sigma0: False
+
+              # Save interpolated DEM used to compute RTC-S1
+              save_dem: False
+
+              # Save layover shadow mask
+              save_mask: True
+
+              # OPTIONAL - Absolute radiometric correction
+              abs_rad_cal: 1
+
+              # OPTIONAL - Clip values above threshold
+              clip_max:
+
+              # OPTIONAL - Clip values below threshold
+              clip_min:
+
+              # OPTIONAL - Double sampling of the radar-grid
+              # input sampling in the range direction
+              upsample_radargrid: False
+
+              bursts_geogrid:
+                  output_epsg:
+                  x_posting: 300
+                  y_posting: 300
+                  x_snap: 300
+                  y_snap: 300
+                  top_left:
+                      x:
+                      y:
+                  bottom_right:
+                      x:
+                      y:
+
+
+          mosaicking:
+              mosaic_geogrid:
+                  output_epsg:
+                  x_posting: 300
+                  y_posting: 300
+                  x_snap: 300
+                  y_snap: 300
+                  top_left:
+                      x:
+                      y:
+                  bottom_right:
+                      x:
+                      y:

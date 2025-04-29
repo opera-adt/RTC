@@ -769,22 +769,21 @@ def run_parallel(cfg: RunConfig, logfile_path, flag_logger_full_format):
 
             if flag_layover_shadow_mask_is_temporary:
                 temp_files_list.append(layover_shadow_mask_file)
-                layover_shadow_mask_file = None
             else:
                 burst_output_file_list.append(layover_shadow_mask_file)
                 logger.info(f'file saved: {layover_shadow_mask_file}')
 
-                # Take the layover shadow mask from HDF5 file if not exists
-                if save_secondary_layers_as_hdf5:
-                    layover_shadow_mask_file = (
-                        f'NETCDF:{burst_hdf5_in_output}:'
-                        f'{DATA_BASE_GROUP}/'
-                        f'{layer_hdf5_dict[LAYER_NAME_LAYOVER_SHADOW_MASK]}')
+            # Take the layover shadow mask from HDF5 file if not exists
+            if save_secondary_layers_as_hdf5:
+                layover_shadow_mask_file = (
+                    f'NETCDF:{burst_hdf5_in_output}:'
+                    f'{DATA_BASE_GROUP}/'
+                    f'{layer_hdf5_dict[LAYER_NAME_LAYOVER_SHADOW_MASK]}')
 
-                if save_mask:
-                    output_metadata_dict[
-                        LAYER_NAME_LAYOVER_SHADOW_MASK][1].append(
-                            layover_shadow_mask_file)
+            if save_mask:
+                output_metadata_dict[
+                    LAYER_NAME_LAYOVER_SHADOW_MASK][1].append(
+                        layover_shadow_mask_file)
 
             if not save_mask:
                 layover_shadow_mask_file = None

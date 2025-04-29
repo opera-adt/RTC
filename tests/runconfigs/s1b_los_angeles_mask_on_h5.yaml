@@ -53,7 +53,7 @@ runconfig:
 
           save_bursts: True
           save_mosaics: True
-          output_imagery_format: COG
+          output_imagery_format: HDF5
           output_imagery_compression: ZSTD
           output_imagery_nbits: 16
 
@@ -118,7 +118,7 @@ runconfig:
               input_terrain_radiometry: beta0
 
               # OPTIONAL - Minimum RTC area factor in dB
-              rtc_min_value_db:
+              rtc_min_value_db: -30
 
               # RTC DEM upsampling
               dem_upsampling: 1
@@ -138,14 +138,11 @@ runconfig:
               # OPTIONAL - Choices: "single_block", "geogrid", "geogrid_radargrid", and "auto" (default)
               memory_mode: auto
 
-              # OPTIONAL - Processing upsampling factor applied to input geogrid
-              geogrid_upsampling: 1
-               
               # Save the incidence angle
               save_incidence_angle: False
                
               # Save the local-incidence angle
-              save_local_inc_angle: False
+              save_local_inc_angle: True
 
               # Save the projection angle
               save_projection_angle: False
@@ -170,7 +167,7 @@ runconfig:
               save_dem: False
 
               # Save layover shadow mask
-              save_mask: False
+              save_mask: True
 
               # OPTIONAL - Absolute radiometric correction
               abs_rad_cal: 1
