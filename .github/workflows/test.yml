@@ -41,7 +41,7 @@ jobs:
       
       # Set the conda environment up using Mamba and install dependencies
       - name: Setup Environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@main
         with:
           environment-file: ${{ matrix.env-file.file }}
           environment-name: RTC
