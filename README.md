@@ -28,7 +28,7 @@ python -m pip install ./s1-reader
 
 4. Install `RTC` via pip:
 ```bash
-git clone https://github.com/opera-adt/s1-reader.git s1-reader
+git clone https://github.com/opera-adt/RTC.git RTC
 python -m pip install ./RTC
 ```
 
