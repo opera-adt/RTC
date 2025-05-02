@@ -1,8 +1,11 @@
-FROM oraclelinux:8
+ARG repository=cae-artifactory.jpl.nasa.gov:16003/gov/nasa/jpl/iems/sds/infrastructure/base/jplsds-oraclelinux
+ARG tag=8.10.250401
+ARG digest=sha256:e37c210f26cfe7660808e536937fcf6ac359b3ec5713211e46519d7a35973a57
+FROM ${repository}:${tag}@${digest}
 
 LABEL author="OPERA ADT" \
     description="RTC cal/val release R4" \
-    version="1.0.3-final"
+    version="1.0.4-final"
 
 RUN yum -y update &&\
     yum -y install curl &&\
@@ -37,9 +40,9 @@ SHELL ["conda", "run", "-n", "RTC", "/bin/bash", "-c"]
 WORKDIR /home/rtc_user/OPERA
 
 # installing OPERA s1-reader
-RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2.4.tar.gz -o s1_reader_src.tar.gz &&\
+RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2.5.tar.gz -o s1_reader_src.tar.gz &&\
     tar -xvf s1_reader_src.tar.gz &&\
-    ln -s s1-reader-0.2.4 s1-reader &&\
+    ln -s s1-reader-0.2.5 s1-reader &&\
     rm s1_reader_src.tar.gz &&\
     python -m pip install ./s1-reader
 

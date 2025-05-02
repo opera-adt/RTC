@@ -1,4 +1,4 @@
-python>=3.9,<3.10
+python
 cmake>=3.18
 eigen>=3.3
 fftw>=3.3
@@ -21,4 +21,4 @@ setuptools
 shapely
 yamale
 backoff
-isce3==0.15.0
+isce3==0.24.3
