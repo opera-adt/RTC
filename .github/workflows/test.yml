@@ -45,7 +45,10 @@ jobs:
         with:
           environment-file: ${{ matrix.env-file.file }}
           environment-name: RTC
-          generate-run-shell: false
+          init-shell: bash                          # let the action touch ~/.bash_profile
+          log-level: debug                          # shows solver problems early
+
+          # generate-run-shell: false
 
       # Install the S1-Reader OPERA-ADT project.
       - name: Install S1-Reader
