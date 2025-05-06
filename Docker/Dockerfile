@@ -1,8 +1,9 @@
-# ARG repository=cae-artifactory.jpl.nasa.gov:16003/gov/nasa/jpl/iems/sds/infrastructure/base/jplsds-oraclelinux
-# ARG tag=8.10.250401
+ARG repository=cae-artifactory.jpl.nasa.gov:16003/gov/nasa/jpl/iems/sds/infrastructure/base/jplsds-oraclelinux
+ARG tag=8.10.250401
 # ARG digest=sha256:e37c210f26cfe7660808e536937fcf6ac359b3ec5713211e46519d7a35973a57
-# FROM ${repository}:${tag}@${digest}
-FROM oraclelinux:8
+FROM ${repository}:${tag} 
+#@${digest}
+# FROM oraclelinux:8
 LABEL author="OPERA ADT" \
     description="RTC cal/val release R4" \
     version="1.0.4-final"
