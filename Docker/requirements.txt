@@ -21,4 +21,4 @@ setuptools
 shapely
 yamale
 backoff
-isce3==0.24.3
+isce3==0.24.4
