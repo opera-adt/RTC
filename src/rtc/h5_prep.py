@@ -29,6 +29,8 @@ logger = logging.getLogger('rtc_s1')
 
 LAYER_NAME_VV = 'VV'
 LAYER_NAME_VH = 'VH'
+LAYER_NAME_HH = 'HH'
+LAYER_NAME_HV = 'HV'
 LAYER_NAME_LAYOVER_SHADOW_MASK = 'mask'
 LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0 = 'rtc_anf_gamma0_to_beta0'
 LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0 = 'rtc_anf_gamma0_to_sigma0'
@@ -46,6 +48,8 @@ LAYER_NAME_DEM = 'interpolated_dem'
 layer_hdf5_dict = {
     LAYER_NAME_VV: 'VV',
     LAYER_NAME_VH: 'VH',
+    LAYER_NAME_HH: 'HH',
+    LAYER_NAME_HV: 'HV',
     LAYER_NAME_LAYOVER_SHADOW_MASK: 'mask',
     LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0:
         'rtcAreaNormalizationFactorGamma0ToBeta0',
@@ -68,6 +72,8 @@ layer_hdf5_dict = {
 layer_names_dict = {
     LAYER_NAME_VV: 'RTC-S1 VV Backscatter',
     LAYER_NAME_VH: 'RTC-S1 VH Backscatter',
+    LAYER_NAME_HH: 'RTC-S1 HH Backscatter',
+    LAYER_NAME_HV: 'RTC-S1 HV Backscatter',
     LAYER_NAME_LAYOVER_SHADOW_MASK: 'Mask Layer',
     LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0: ('RTC Area Normalization Factor'
                                          ' Gamma0 to Beta0'),
@@ -95,6 +101,10 @@ layer_description_dict = {
     LAYER_NAME_VV: ('Radiometric terrain corrected Sentinel-1 VV backscatter'
                     ' coefficient normalized to gamma0'),
     LAYER_NAME_VH: ('Radiometric terrain corrected Sentinel-1 VH backscatter'
+                    ' coefficient normalized to gamma0'),
+    LAYER_NAME_HH: ('Radiometric terrain corrected Sentinel-1 HH backscatter'
+                    ' coefficient normalized to gamma0'),
+    LAYER_NAME_HV: ('Radiometric terrain corrected Sentinel-1 HV backscatter'
                     ' coefficient normalized to gamma0'),
     LAYER_NAME_LAYOVER_SHADOW_MASK: ('Mask Layer. Values: 0: not'
                                      ' masked; 1: shadow; 2: layover;'
