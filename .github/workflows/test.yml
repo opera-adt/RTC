@@ -104,4 +104,4 @@ jobs:
       # Build the image.
       - name: Build docker image
         run: |
-          sh build_docker_image.sh
+          bash build_docker_image.sh
