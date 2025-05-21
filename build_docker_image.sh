@@ -4,7 +4,7 @@ REPO=opera
 IMAGE=rtc
 TAG=final_1.0.4
 
-docker_build_args=(--rm --force-rm --network host -t $REPO/$IMAGE:$TAG -f docker/Dockerfile)
+docker_build_args=(--rm --force-rm --network host -t $REPO/$IMAGE:$TAG -f Docker/Dockerfile)
 
 if [ $# -eq 0 ]; then
     echo "Base image was not specified. Using the default image specified in the Dockerfile."
