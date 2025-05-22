@@ -320,6 +320,7 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
 
 
 def save_orbit(orbit, orbit_group, orbit_file_path):
+
     # ensure that the orbit reference epoch has not fractional part
     # otherwise, trancate it to seconds precision
     orbit_reference_epoch = orbit.reference_epoch
