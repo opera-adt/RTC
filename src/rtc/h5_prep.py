@@ -29,6 +29,8 @@ logger = logging.getLogger('rtc_s1')
 
 LAYER_NAME_VV = 'VV'
 LAYER_NAME_VH = 'VH'
+LAYER_NAME_HH = 'HH'
+LAYER_NAME_HV = 'HV'
 LAYER_NAME_LAYOVER_SHADOW_MASK = 'mask'
 LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0 = 'rtc_anf_gamma0_to_beta0'
 LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0 = 'rtc_anf_gamma0_to_sigma0'
@@ -46,6 +48,8 @@ LAYER_NAME_DEM = 'interpolated_dem'
 layer_hdf5_dict = {
     LAYER_NAME_VV: 'VV',
     LAYER_NAME_VH: 'VH',
+    LAYER_NAME_HH: 'HH',
+    LAYER_NAME_HV: 'HV',
     LAYER_NAME_LAYOVER_SHADOW_MASK: 'mask',
     LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0:
         'rtcAreaNormalizationFactorGamma0ToBeta0',
@@ -68,6 +72,8 @@ layer_hdf5_dict = {
 layer_names_dict = {
     LAYER_NAME_VV: 'RTC-S1 VV Backscatter',
     LAYER_NAME_VH: 'RTC-S1 VH Backscatter',
+    LAYER_NAME_HH: 'RTC-S1 HH Backscatter',
+    LAYER_NAME_HV: 'RTC-S1 HV Backscatter',
     LAYER_NAME_LAYOVER_SHADOW_MASK: 'Mask Layer',
     LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0: ('RTC Area Normalization Factor'
                                          ' Gamma0 to Beta0'),
@@ -95,6 +101,10 @@ layer_description_dict = {
     LAYER_NAME_VV: ('Radiometric terrain corrected Sentinel-1 VV backscatter'
                     ' coefficient normalized to gamma0'),
     LAYER_NAME_VH: ('Radiometric terrain corrected Sentinel-1 VH backscatter'
+                    ' coefficient normalized to gamma0'),
+    LAYER_NAME_HH: ('Radiometric terrain corrected Sentinel-1 HH backscatter'
+                    ' coefficient normalized to gamma0'),
+    LAYER_NAME_HV: ('Radiometric terrain corrected Sentinel-1 HV backscatter'
                     ' coefficient normalized to gamma0'),
     LAYER_NAME_LAYOVER_SHADOW_MASK: ('Mask Layer. Values: 0: not'
                                      ' masked; 1: shadow; 2: layover;'
@@ -181,7 +191,7 @@ def save_hdf5_file(hdf5_obj, output_hdf5_file, clip_max,
         del hdf5_obj[h5_ds]
     pol_list_s2 = np.array(pol_list, dtype='S2')
     dset = hdf5_obj.create_dataset(h5_ds, data=pol_list_s2)
-    dset.attrs['description'] = np.string_(
+    dset.attrs['description'] = np.bytes_(
                 'List of processed polarization layers')
 
     # save geogrid coordinates
@@ -284,11 +294,11 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
     '''
 
     hdf5_obj = h5py.File(output_hdf5_file, 'w')
-    hdf5_obj.attrs['Conventions'] = np.string_("CF-1.8")
-    hdf5_obj.attrs["contact"] = np.string_("operasds@jpl.nasa.gov")
-    hdf5_obj.attrs["institution"] = np.string_("NASA JPL")
-    hdf5_obj.attrs["project"] = np.string_("OPERA")
-    hdf5_obj.attrs["reference_document"] = np.string_(
+    hdf5_obj.attrs['Conventions'] = np.bytes_("CF-1.8")
+    hdf5_obj.attrs["contact"] = np.bytes_("operasds@jpl.nasa.gov")
+    hdf5_obj.attrs["institution"] = np.bytes_("NASA JPL")
+    hdf5_obj.attrs["project"] = np.bytes_("OPERA")
+    hdf5_obj.attrs["reference_document"] = np.bytes_(
         "Product Specification Document for the OPERA Radiometric"
         " Terrain-Corrected SAR Backscatter from Sentinel-1,"
         " JPL D-108758, Rev. Working Version 1, Aug 31, 2023")
@@ -296,9 +306,9 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
     # product type
     product_type = cfg.groups.primary_executable.product_type
     if product_type == STATIC_LAYERS_PRODUCT_TYPE:
-        hdf5_obj.attrs["title"] = np.string_("OPERA RTC-S1-STATIC Product")
+        hdf5_obj.attrs["title"] = np.bytes_("OPERA RTC-S1-STATIC Product")
     else:
-        hdf5_obj.attrs["title"] = np.string_("OPERA RTC-S1 Product")
+        hdf5_obj.attrs["title"] = np.bytes_("OPERA RTC-S1 Product")
 
     populate_metadata_group(product_id, hdf5_obj, burst, cfg,
                             processing_datetime, is_mosaic)
@@ -310,23 +320,44 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
 
 
 def save_orbit(orbit, orbit_group, orbit_file_path):
+
+    # ensure that the orbit reference epoch has not fractional part
+    # otherwise, trancate it to seconds precision
+    orbit_reference_epoch = orbit.reference_epoch
+    if orbit_reference_epoch.frac != 0:
+        logger.warning('the orbit reference epoch is not an'
+                       ' integer number. Truncating it'
+                       ' to seconds precision and'
+                       ' updating the orbit ephemeris'
+                       ' accordingly.')
+
+        epoch = isce3.core.DateTime(orbit_reference_epoch.year,
+                                    orbit_reference_epoch.month,
+                                    orbit_reference_epoch.day,
+                                    orbit_reference_epoch.hour,
+                                    orbit_reference_epoch.minute,
+                                    orbit_reference_epoch.second)
+
+        orbit.update_reference_epoch(epoch)
+
     orbit.save_to_h5(orbit_group)
+
     # Add description attributes.
-    orbit_group["time"].attrs["description"] = np.string_(
+    orbit_group["time"].attrs["description"] = np.bytes_(
         "Time vector record. This"
         " record contains the time corresponding to position, velocity,"
         " acceleration records")
-    orbit_group["position"].attrs["description"] = np.string_(
+    orbit_group["position"].attrs["description"] = np.bytes_(
         "Position vector"
         " record. This record contains the platform position data with"
         " respect to WGS84 G1762 reference frame")
-    orbit_group["velocity"].attrs["description"] = np.string_(
+    orbit_group["velocity"].attrs["description"] = np.bytes_(
         "Velocity vector"
         " record. This record contains the platform velocity data with"
         " respect to WGS84 G1762 reference frame")
     orbit_group.create_dataset(
         'referenceEpoch',
-        data=np.string_(orbit.reference_epoch.isoformat()))
+        data=np.bytes_(orbit.reference_epoch.isoformat()))
 
     # Orbit source/type
     orbit_type = 'Undefined'
@@ -349,9 +380,12 @@ def save_orbit(orbit, orbit_group, orbit_file_path):
             orbit_type_list.append(orbit_type_individual)
         orbit_type = '; '.join(orbit_type_list)
 
-    d = orbit_group.require_dataset("orbitType", (), "S64",
-                                    data=np.string_(orbit_type))
-    d.attrs["description"] = np.string_(
+    if 'orbitType' in orbit_group:
+        del orbit_group['orbitType']
+    d = orbit_group.create_dataset("orbitType",
+                                   data=np.bytes_(orbit_type))
+
+    d.attrs["description"] = np.bytes_(
         "Type of orbit file used in processing")
 
 
@@ -1286,11 +1320,11 @@ def populate_metadata_group(product_id: str,
             continue
         if isinstance(data, str):
             dset = h5py_obj.create_dataset(
-                path_dataset_in_h5, data=np.string_(data))
+                path_dataset_in_h5, data=np.bytes_(data))
         else:
             dset = h5py_obj.create_dataset(path_dataset_in_h5, data=data)
 
-        dset.attrs['description'] = np.string_(description)
+        dset.attrs['description'] = np.bytes_(description)
 
 
 def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
@@ -1331,7 +1365,11 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         logger.warning(f'WARNING Cannot open raster file: {ds_filename}')
         return
 
-    ds_name = layer_hdf5_dict[layer_name]
+    if isinstance(layer_name, str):
+        ds_name = layer_hdf5_dict[layer_name]
+    else:
+        ds_name = [layer_hdf5_dict[l] for l in layer_name]
+
     if long_name is not None:
         description = long_name
     else:
@@ -1367,18 +1405,18 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         dset = h5py_obj.create_dataset(h5_ds, data=data)
         dset.dims[0].attach_scale(yds)
         dset.dims[1].attach_scale(xds)
-        dset.attrs['grid_mapping'] = np.string_("projection")
+        dset.attrs['grid_mapping'] = np.bytes_("projection")
 
         if standard_name is not None:
-            dset.attrs['standard_name'] = np.string_(standard_name)
+            dset.attrs['standard_name'] = np.bytes_(standard_name)
 
         if long_name is not None:
-            dset.attrs['long_name'] = np.string_(long_name)
+            dset.attrs['long_name'] = np.bytes_(long_name)
 
-        dset.attrs['description'] = np.string_(description)
+        dset.attrs['description'] = np.bytes_(description)
 
         if units is not None:
-            dset.attrs['units'] = np.string_(units)
+            dset.attrs['units'] = np.bytes_(units)
 
         if fill_value is not None:
             dset.attrs.create('_FillValue', data=fill_value)
@@ -1386,6 +1424,8 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
             dset.attrs.create('_FillValue', data=np.nan + 1j * np.nan)
         elif 'float' in gdal.GetDataTypeName(raster.datatype()).lower():
             dset.attrs.create('_FillValue', data=np.nan)
+        elif 'byte' in gdal.GetDataTypeName(raster.datatype()).lower():
+            dset.attrs.create('_FillValue', data=255)
 
         if stats_vector is not None:
             stats_obj = stats_vector[band]
