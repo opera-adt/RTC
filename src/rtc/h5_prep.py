@@ -29,6 +29,8 @@ logger = logging.getLogger('rtc_s1')
 
 LAYER_NAME_VV = 'VV'
 LAYER_NAME_VH = 'VH'
+LAYER_NAME_HH = 'HH'
+LAYER_NAME_HV = 'HV'
 LAYER_NAME_LAYOVER_SHADOW_MASK = 'mask'
 LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0 = 'rtc_anf_gamma0_to_beta0'
 LAYER_NAME_RTC_ANF_GAMMA0_TO_SIGMA0 = 'rtc_anf_gamma0_to_sigma0'
@@ -46,6 +48,8 @@ LAYER_NAME_DEM = 'interpolated_dem'
 layer_hdf5_dict = {
     LAYER_NAME_VV: 'VV',
     LAYER_NAME_VH: 'VH',
+    LAYER_NAME_HH: 'HH',
+    LAYER_NAME_HV: 'HV',
     LAYER_NAME_LAYOVER_SHADOW_MASK: 'mask',
     LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0:
         'rtcAreaNormalizationFactorGamma0ToBeta0',
@@ -68,6 +72,8 @@ layer_hdf5_dict = {
 layer_names_dict = {
     LAYER_NAME_VV: 'RTC-S1 VV Backscatter',
     LAYER_NAME_VH: 'RTC-S1 VH Backscatter',
+    LAYER_NAME_HH: 'RTC-S1 HH Backscatter',
+    LAYER_NAME_HV: 'RTC-S1 HV Backscatter',
     LAYER_NAME_LAYOVER_SHADOW_MASK: 'Mask Layer',
     LAYER_NAME_RTC_ANF_GAMMA0_TO_BETA0: ('RTC Area Normalization Factor'
                                          ' Gamma0 to Beta0'),
@@ -95,6 +101,10 @@ layer_description_dict = {
     LAYER_NAME_VV: ('Radiometric terrain corrected Sentinel-1 VV backscatter'
                     ' coefficient normalized to gamma0'),
     LAYER_NAME_VH: ('Radiometric terrain corrected Sentinel-1 VH backscatter'
+                    ' coefficient normalized to gamma0'),
+    LAYER_NAME_HH: ('Radiometric terrain corrected Sentinel-1 HH backscatter'
+                    ' coefficient normalized to gamma0'),
+    LAYER_NAME_HV: ('Radiometric terrain corrected Sentinel-1 HV backscatter'
                     ' coefficient normalized to gamma0'),
     LAYER_NAME_LAYOVER_SHADOW_MASK: ('Mask Layer. Values: 0: not'
                                      ' masked; 1: shadow; 2: layover;'
@@ -310,8 +320,27 @@ def create_hdf5_file(product_id, output_hdf5_file, orbit, burst, cfg,
 
 
 def save_orbit(orbit, orbit_group, orbit_file_path):
-    return
+    # ensure that the orbit reference epoch has not fractional part
+    # otherwise, trancate it to seconds precision
+    orbit_reference_epoch = orbit.reference_epoch
+    if orbit_reference_epoch.frac != 0:
+        logger.warning('the orbit reference epoch is not an'
+                       ' integer number. Truncating it'
+                       ' to seconds precision and'
+                       ' updating the orbit ephemeris'
+                       ' accordingly.')
+
+        epoch = isce3.core.DateTime(orbit_reference_epoch.year,
+                                    orbit_reference_epoch.month,
+                                    orbit_reference_epoch.day,
+                                    orbit_reference_epoch.hour,
+                                    orbit_reference_epoch.minute,
+                                    orbit_reference_epoch.second)
+
+        orbit.update_reference_epoch(epoch)
+
     orbit.save_to_h5(orbit_group)
+
     # Add description attributes.
     orbit_group["time"].attrs["description"] = np.bytes_(
         "Time vector record. This"
@@ -350,8 +379,11 @@ def save_orbit(orbit, orbit_group, orbit_file_path):
             orbit_type_list.append(orbit_type_individual)
         orbit_type = '; '.join(orbit_type_list)
 
-    d = orbit_group.require_dataset("orbitType", (), "S64",
-                                    data=np.bytes_(orbit_type))
+    if 'orbitType' in orbit_group:
+        del orbit_group['orbitType']
+    d = orbit_group.create_dataset("orbitType",
+                                   data=np.bytes_(orbit_type))
+
     d.attrs["description"] = np.bytes_(
         "Type of orbit file used in processing")
 
@@ -1332,7 +1364,11 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
         logger.warning(f'WARNING Cannot open raster file: {ds_filename}')
         return
 
-    ds_name = layer_hdf5_dict[layer_name]
+    if isinstance(layer_name, str):
+        ds_name = layer_hdf5_dict[layer_name]
+    else:
+        ds_name = [layer_hdf5_dict[l] for l in layer_name]
+
     if long_name is not None:
         description = long_name
     else:
@@ -1387,6 +1423,8 @@ def save_hdf5_dataset(ds_filename, h5py_obj, root_path,
             dset.attrs.create('_FillValue', data=np.nan + 1j * np.nan)
         elif 'float' in gdal.GetDataTypeName(raster.datatype()).lower():
             dset.attrs.create('_FillValue', data=np.nan)
+        elif 'byte' in gdal.GetDataTypeName(raster.datatype()).lower():
+            dset.attrs.create('_FillValue', data=255)
 
         if stats_vector is not None:
             stats_obj = stats_vector[band]

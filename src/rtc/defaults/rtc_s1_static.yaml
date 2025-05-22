@@ -198,9 +198,6 @@ runconfig:
                 # OPTIONAL - Choices: "single_block", "geogrid", "geogrid_and_radargrid", and "auto" (default)
                 memory_mode:
 
-                # OPTIONAL - Processing upsampling factor applied to input geogrid
-                geogrid_upsampling: 1
-
                 # Save the incidence angle
                 save_incidence_angle: True
 
