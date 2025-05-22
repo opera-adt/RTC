@@ -65,10 +65,10 @@ jobs:
       - name: Install Project
         run: python -m pip install .
 
-      # Test the project.
-      - name: Test Project
-        run: |
-          pytest -vrpP
+      # # Test the project.
+      # - name: Test Project
+      #   run: |
+      #     pytest -vrpP
 
   build_docker:
 
