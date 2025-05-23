@@ -47,6 +47,7 @@ jobs:
           environment-name: RTC
           init-shell: bash                          # let the action touch ~/.bash_profile
           log-level: debug                          # shows solver problems early
+          remove-run-shell: false        # avoid ENOENT
 
           # generate-run-shell: false
 
@@ -59,7 +60,7 @@ jobs:
           && tar -xvf s1_reader_src.tar.gz \
           && ln -s s1-reader-0.2.5 s1-reader \
           && rm s1_reader_src.tar.gz \
-          && python -m pip install ./s1-reader      
+          && python -m pip install -e ./s1-reader      
 
       # Setup the project
       - name: Install Project
