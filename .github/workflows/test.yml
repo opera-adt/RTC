@@ -41,30 +41,33 @@ jobs:
       
       # Set the conda environment up using Mamba and install dependencies
       - name: Setup Environment
-        uses: mamba-org/setup-micromamba@main
+        uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: ${{ matrix.env-file.file }}
           environment-name: RTC
+          init-shell: bash                          # let the action touch ~/.bash_profile
+          log-level: debug                          # shows solver problems early
+          post-cleanup: none
 
       # Install the S1-Reader OPERA-ADT project.
       - name: Install S1-Reader
         run: |
           curl -sSL \
-            https://github.com/opera-adt/s1-reader/archive/refs/tags/v0.2.2.tar.gz \
+            https://github.com/opera-adt/s1-reader/archive/refs/tags/v0.2.5.tar.gz \
             -o s1_reader_src.tar.gz \
           && tar -xvf s1_reader_src.tar.gz \
-          && ln -s s1-reader-0.2.2 s1-reader \
+          && ln -s s1-reader-0.2.5 s1-reader \
           && rm s1_reader_src.tar.gz \
-          && python -m pip install ./s1-reader      
+          && python -m pip install -e ./s1-reader      
 
       # Setup the project
       - name: Install Project
         run: python -m pip install .
 
-      # Test the project.
+      # # Test the project.
       - name: Test Project
         run: |
-          pytest -vrpP
+          pytest -vrpP tests/
 
   build_docker:
 
@@ -100,4 +103,4 @@ jobs:
       # Build the image.
       - name: Build docker image
         run: |
-          sh build_docker_image.sh
+          bash build_docker_image.sh

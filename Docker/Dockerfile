@@ -1,8 +1,13 @@
-FROM oraclelinux:8
+ARG BASE_IMAGE=oraclelinux:8.8
+
+FROM ${BASE_IMAGE}
+
+# ARG is out of scope here unless re-declared
+ARG BASE_IMAGE
 
 LABEL author="OPERA ADT" \
     description="RTC cal/val release R4" \
-    version="1.0.3-final"
+    version="1.0.4-final"
 
 RUN yum -y update &&\
     yum -y install curl &&\
@@ -37,9 +42,9 @@ SHELL ["conda", "run", "-n", "RTC", "/bin/bash", "-c"]
 WORKDIR /home/rtc_user/OPERA
 
 # installing OPERA s1-reader
-RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2.4.tar.gz -o s1_reader_src.tar.gz &&\
+RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2.5.tar.gz -o s1_reader_src.tar.gz &&\
     tar -xvf s1_reader_src.tar.gz &&\
-    ln -s s1-reader-0.2.4 s1-reader &&\
+    ln -s s1-reader-0.2.5 s1-reader &&\
     rm s1_reader_src.tar.gz &&\
     python -m pip install ./s1-reader
 
