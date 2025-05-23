@@ -4,6 +4,8 @@ import os
 import requests
 import tarfile
 from osgeo import gdal
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from rtc.runconfig import RunConfig, load_parameters
 from rtc.core import create_logger
@@ -156,21 +158,28 @@ def test_workflow():
     dataset_dir = os.path.join(test_data_directory, dataset_name)
     if FLAG_ALWAYS_DOWNLOAD or not os.path.isdir(dataset_dir):
 
-
-
         print(f'Test dataset {dataset_name} not found. Downloading'
               f' file {dataset_url}.')
-        response = requests.get(dataset_url)
-        response.raise_for_status()
+        # To avoid the issue in downloading, try again. 
+        session = requests.Session()
+        retries = Retry(
+            total=5,                    # up to 5 attempts
+            backoff_factor=2,           # 2 s, 4 s, 8 s, …
+            status_forcelist=[502, 503, 504],
+        )
+        session.mount("https://", HTTPAdapter(max_retries=retries))
 
-        compressed_filename = os.path.join(test_data_directory,
-                                           os.path.basename(dataset_url))
+        compressed_path = os.path.join(test_data_directory,
+                                       f"{dataset_name}.tar.gz")
+        with session.get(dataset_url, stream=True, timeout=120) as r:
+            r.raise_for_status()
+            with open(compressed_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=1024 * 1024):  # 1 MB
+                    f.write(chunk)
 
-        open(compressed_filename, 'wb').write(response.content)
-
-        print(f'Extracting downloaded file {compressed_filename}')
-        with tarfile.open(compressed_filename) as compressed_file:
-            compressed_file.extractall(test_data_directory)
+        print(f"Extracting {compressed_path}")
+        with tarfile.open(compressed_path, "r:gz") as tf:
+            tf.extractall(test_data_directory)
 
     # create logger
     log_file = os.path.join('data', 'log.txt')
