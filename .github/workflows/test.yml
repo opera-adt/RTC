@@ -47,8 +47,7 @@ jobs:
           environment-name: RTC
           init-shell: bash                          # let the action touch ~/.bash_profile
           log-level: debug                          # shows solver problems early
-          remove-run-shell: false        # avoid ENOENT
-
+          post-cleanup: false
           # generate-run-shell: false
 
       # Install the S1-Reader OPERA-ADT project.
