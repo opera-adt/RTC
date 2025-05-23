@@ -1,7 +1,7 @@
 name: rtc_s1_sas_final
 channels:
   - conda-forge
-  - nodefault
+  - nodefaults
 dependencies:
   - python>=3.9,<3.10
   - gdal>=3.0
