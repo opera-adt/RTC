@@ -47,8 +47,7 @@ jobs:
           environment-name: RTC
           init-shell: bash                          # let the action touch ~/.bash_profile
           log-level: debug                          # shows solver problems early
-          post-cleanup: false
-          # generate-run-shell: false
+          post-cleanup: environment
 
       # Install the S1-Reader OPERA-ADT project.
       - name: Install S1-Reader
