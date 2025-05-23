@@ -149,7 +149,7 @@ def test_workflow():
         os.makedirs(test_data_directory, exist_ok=True)
 
     dataset_name = 's1b_los_angeles'
-    dataset_url = ('https://zenodo.org/record/7753472/files/'
+    dataset_url = ('https://zenodo.org/records/7753472/files/'
                    's1b_los_angeles.tar.gz?download=1')
 
     tests_dir = os.path.dirname(__file__)
