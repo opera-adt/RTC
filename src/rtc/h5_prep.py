@@ -170,9 +170,44 @@ def get_polygon_wkt(burst_in: Sentinel1BurstSlc):
     if geometry_polygon.is_empty:
         error_msg = f'empty bounding polygon for burst ID {burst_in.burst_id}'
         raise RuntimeError(error_msg)
+
+    # fix if invalid
     if not geometry_polygon.is_valid:
-        error_msg = f'invalid bounding polygon for burst ID {burst_in.burst_id}'
-        raise RuntimeError(error_msg)
+        geometry_polygon = shapely.validation.make_valid(geometry_polygon)
+    
+    if geometry_polygon.is_empty:
+        raise RuntimeError(
+            f'invalid (empty) bounding polygon for burst ID {burst_in.burst_id}')
+
+    # normalize to Polygon / MultiPolygon only
+    if geometry_polygon.geom_type == "GeometryCollection":
+        polys = [
+            g for g in geometry_polygon.geoms
+            if g.geom_type in ("Polygon", "MultiPolygon")
+        ]
+        
+        flat = []
+        for g in polys:
+            if g.geom_type == "Polygon":
+                flat.append(g)
+            else:
+                flat.extend(g.geoms)
+
+        if not flat:
+            raise RuntimeError(
+                f'invalid bounding polygon for burst ID {burst_in.burst_id}'
+            )
+
+        geometry_polygon = (
+            flat[0] if len(flat) == 1
+            else shapely.geometry.MultiPolygon(flat)
+        )
+    
+    # final safety check
+    if not geometry_polygon.is_valid:
+        raise RuntimeError(
+            f'invalid bounding polygon for burst ID {burst_in.burst_id}')
+
     return geometry_polygon.wkt
 
 
