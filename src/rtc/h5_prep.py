@@ -1619,12 +1619,22 @@ def get_range_azimuth_resolution(burst: Sentinel1BurstSlc):
     -----
     https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-1-sar/
     products-algorithms/level-1/single-look-complex/interferometric-wide-swath
+    Values available in:
+        Sentinel-1 Product Definition, 
+        Document Number: S1-RS-MDA-52-7440
+        S-1 MPC Nomenclature: DI-MPC-PB
+        S-1 MPC Reference: MPC-0239
+    IW SLC -> Table 7-5, EW SLC -> Table 7-8
     '''
-
     resolution_subswath_range_azimuth_dict = {
         'IW1': [2.7, 22.5],
         'IW2': [3.1, 22.7],
-        'IW3': [3.5, 22.6]
+        'IW3': [3.5, 22.6],
+        'EW1': [7.9, 43.7],
+        'EW2': [9.9, 44.3],
+        'EW3': [11.6, 45.2],
+        'EW4': [13.3, 45.6],
+        'EW5': [14.4, 44.0]
     }
 
     slant_range_resolution, azimuth_resolution =\
