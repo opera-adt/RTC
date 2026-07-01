@@ -264,20 +264,26 @@ def runconfig_to_bursts(cfg: SimpleNamespace):
                             'dual-pol': ['HH', 'HV']}
         pols = mode_to_pols[cfg.processing.polarization]
 
-        # zip pol and IW subswath indices together
-        i_subswaths = [1, 2, 3]
+        # get the sensor acquisition mode from the filename
+        sensor_mode = os.path.basename(
+            str(safe_file)).split("_")[1].lower()
+        
+        # set the number of subswaths based on the mode
+        subswaths = {"iw": [1, 2, 3], "ew": [1, 2, 3, 4, 5]}[sensor_mode]
+
+        # zip pol and IW/EW subswath indices together
         pol_subswath_index_pairs = [(pol, i)
-                                    for pol in pols for i in i_subswaths]
+                                    for pol in pols for i in subswaths]
 
         # list of burst ID + polarization tuples
         # used to prevent reference repeats
         id_pols_found = []
 
         # loop over pol and subswath index combinations
-        for pol, i_subswath in pol_subswath_index_pairs:
+        for pol, subswath in pol_subswath_index_pairs:
 
             # loop over burst objs extracted from SAFE zip
-            for burst in load_bursts(safe_file, orbit_file_path, i_subswath,
+            for burst in load_bursts(safe_file, orbit_file_path, subswath,
                                      pol, flag_apply_eap=False):
                 # get burst ID
                 burst_id = str(burst.burst_id)
