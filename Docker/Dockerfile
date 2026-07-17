@@ -6,8 +6,8 @@ FROM ${BASE_IMAGE}
 ARG BASE_IMAGE
 
 LABEL author="OPERA ADT" \
-    description="RTC cal/val release R4" \
-    version="1.0.4-final"
+    description="RTC Final release R5" \
+    version="1.0.5-final"
 
 RUN yum -y update &&\
     yum -y install curl &&\
